@@ -1,0 +1,10 @@
+{
+  "name": "MINIROS",
+  "short_name": "MINIROS",
+  "description": "Mini Retail Operations System",
+  "start_url": "/",
+  "display": "standalone",
+  "background_color": "#ffffff",
+  "theme_color": "#111111",
+  "icons": []
+}
