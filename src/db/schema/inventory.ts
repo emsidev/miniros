@@ -1,4 +1,4 @@
-import { bigint, index, numeric, pgTable, text, timestamp, uniqueIndex, uuid } from "drizzle-orm/pg-core";
+import { bigint, boolean, index, numeric, pgTable, text, timestamp, uniqueIndex, uuid } from "drizzle-orm/pg-core";
 import { businesses } from "./business";
 import { employees } from "./employees";
 import { inventoryCountTypeEnum, inventoryEventTypeEnum, inventoryItemTypeEnum, inventoryLocationTypeEnum, productStatusEnum } from "./enums";
@@ -14,7 +14,7 @@ export const inventoryItems = pgTable("inventory_items", {
   itemType: inventoryItemTypeEnum("item_type").notNull(),
   unit: text("unit").notNull(),
   defaultUnitCostCents: bigint("default_unit_cost_cents", { mode: "number" }).default(0).notNull(),
-  trackStock: text("track_stock").default("true").notNull(),
+  trackStock: boolean("track_stock").default(true).notNull(),
   status: productStatusEnum("status").default("active").notNull(),
   createdAt: timestamp("created_at", { withTimezone: true }).defaultNow().notNull(),
   updatedAt: timestamp("updated_at", { withTimezone: true }).defaultNow().notNull(),
