@@ -1,0 +1,34 @@
+---
+import { workflowSteps } from "../../content/home";
+---
+
+<section class="workflow section" id="how-it-works">
+  <div class="section-heading centered">
+    <p class="section-label">How MINIROS works</p>
+    <h2>Run your shift. See your profit.</h2>
+    <p>
+      A selling day should move from opening stock to closeout without losing
+      the details that decide whether the location was worth it.
+    </p>
+  </div>
+
+  <div class="step-line" aria-hidden="true">
+    {workflowSteps.map((step) => <span>{step.number}</span>)}
+  </div>
+
+  <div class="workflow-grid">
+    {
+      workflowSteps.map((step) => (
+        <article class="workflow-step">
+          <div class="step-copy">
+            <h3>{step.title}</h3>
+            <p>{step.body}</p>
+          </div>
+          <figure class="workflow-phone">
+            <img src={step.image} alt={step.alt} loading="lazy" />
+          </figure>
+        </article>
+      ))
+    }
+  </div>
+</section>
