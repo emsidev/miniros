@@ -35,7 +35,7 @@ export const problemCards = [
     body: "Rent, transport, staff, and deductions are usually outside the POS.",
   },
   {
-    icon: "↝",
+    icon: "〰",
     title: "Manual logs and receipts",
     body: "Closeout data lives in photos, paper notes, and separate spreadsheets.",
   },
@@ -50,7 +50,7 @@ export const problemCards = [
     body: "The booth looks busy but margin can disappear after real expenses.",
   },
   {
-    icon: "▣",
+    icon: "□",
     title: "No clear rent-again answer",
     body: "Owners need a verdict, not another exported report to interpret.",
   },
@@ -103,34 +103,42 @@ export const workflowSteps = [
 
 export const modules = [
   {
+    icon: "⚡",
     title: "Start Shift",
     body: "Fast, simple, and works offline.",
   },
   {
+    icon: "📦",
     title: "Inventory & Recipes",
     body: "Track items, recipes, and auto-deductions.",
   },
   {
+    icon: "🧑‍🤝‍🧑",
     title: "Shift Management",
     body: "Assign staff and track every shift.",
   },
   {
+    icon: "🧾",
     title: "Payments & Proofs",
     body: "Cash, non-cash, split, and proof uploads.",
   },
   {
+    icon: "🥐",
     title: "Production",
     body: "Log production and manage supplies.",
   },
   {
+    icon: "🧮",
     title: "Costs & Deductions",
     body: "Rent, transport, staff, and other expenses.",
   },
   {
+    icon: "✅",
     title: "Closeout & Reconcile",
     body: "Cash reconciliation and closeout workflow.",
   },
   {
+    icon: "📈",
     title: "Reports & Profitability",
     body: "Real profit per shift and per location.",
   },
