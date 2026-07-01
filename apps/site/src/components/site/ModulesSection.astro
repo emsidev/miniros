@@ -1,0 +1,31 @@
+---
+import { modules } from "../../content/home";
+---
+
+<section class="modules section" id="features">
+  <div class="modules-copy">
+    <p class="section-label">Built for real operations</p>
+    <h2>
+      Everything you need.
+      <span>Nothing you do not.</span>
+    </h2>
+    <p>
+      MINIROS brings daily operations into one simple, mobile-first system built
+      for how small selling teams actually work.
+    </p>
+  </div>
+
+  <div class="module-grid">
+    {
+      modules.map((item) => (
+        <article class="module-card">
+          <span class="module-icon" aria-hidden="true"></span>
+          <div>
+            <h3>{item.title}</h3>
+            <p>{item.body}</p>
+          </div>
+        </article>
+      ))
+    }
+  </div>
+</section>
