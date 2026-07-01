@@ -3,4 +3,4 @@
 
 export PATH="/c/Program Files/nodejs:$HOME/AppData/Local/pnpm:$PATH"
 
-pnpm turbo run typecheck lint test
+pnpm exec turbo run typecheck lint test
