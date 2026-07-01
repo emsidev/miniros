@@ -3,9 +3,14 @@ import { workflowSteps } from "../../content/home";
 ---
 
 <section class="workflow section" id="how-it-works">
-  <div class="section-heading centered">
-    <p class="section-label">How MINIROS works</p>
-    <h2>Run your shift. See your profit.</h2>
+  <div class="section-heading centered reveal-target">
+    <p class="section-label">
+      <span aria-hidden="true">↬</span> How MINIROS works
+    </p>
+    <h2>
+      Run your shift.
+      <span>See your profit.</span>
+    </h2>
     <p>
       A selling day should move from opening stock to closeout without losing
       the details that decide whether the location was worth it.
@@ -19,7 +24,7 @@ import { workflowSteps } from "../../content/home";
   <div class="workflow-grid">
     {
       workflowSteps.map((step) => (
-        <article class="workflow-step">
+        <article class="workflow-step reveal-target">
           <div class="step-copy">
             <h3>{step.title}</h3>
             <p>{step.body}</p>
