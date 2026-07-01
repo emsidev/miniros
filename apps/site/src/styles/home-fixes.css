@@ -1,0 +1,161 @@
+/* Overrides for screenshot presentation: keep the product screenshots, remove fake device boxes. */
+
+.hero {
+  grid-template-columns: minmax(0, 0.92fr) minmax(0, 1.08fr);
+}
+
+.hero-visual {
+  position: relative;
+  min-height: 43rem;
+}
+
+.hero-visual-orb {
+  position: absolute;
+  right: 3rem;
+  top: 5rem;
+  width: 23rem;
+  height: 23rem;
+  border-radius: 50%;
+  background: radial-gradient(
+    circle at 38% 35%,
+    rgba(217, 255, 53, 0.42),
+    rgba(217, 255, 53, 0.06) 48%,
+    transparent 70%
+  );
+  filter: blur(2px);
+  animation: pulse-orb 6.5s ease-in-out infinite;
+}
+
+.hero-admin-card {
+  position: absolute;
+  top: 5.5rem;
+  left: 0;
+  z-index: 2;
+  width: min(28rem, 58%);
+  padding: 1rem;
+  border-radius: 2rem;
+  transform: rotate(-7deg);
+}
+
+.hero-shot {
+  position: absolute;
+  z-index: 3;
+  margin: 0;
+  border: 0;
+  background: transparent;
+  box-shadow: none;
+  filter: drop-shadow(0 30px 45px rgba(16, 19, 25, 0.18));
+}
+
+.hero-shot img {
+  width: 100%;
+  height: auto;
+  border: 0;
+  border-radius: 1.25rem;
+  background: transparent;
+}
+
+.hero-shot-main {
+  right: 8.5rem;
+  top: 0.4rem;
+  width: min(19rem, 39%);
+}
+
+.hero-shot-side {
+  right: 0.2rem;
+  top: 8rem;
+  z-index: 2;
+  width: min(17rem, 34%);
+}
+
+.workflow-phone {
+  display: grid;
+  place-items: start center;
+  min-height: 0;
+  margin: 0;
+  overflow: visible;
+  border: 0;
+  border-radius: 0;
+  background: transparent;
+  box-shadow: none;
+}
+
+.workflow-phone img {
+  width: min(8.4rem, 92%);
+  height: auto;
+  object-fit: contain;
+  border: 0;
+  border-radius: 1rem;
+  background: transparent;
+  filter: drop-shadow(0 22px 24px rgba(16, 19, 25, 0.16));
+}
+
+.admin-phone-card,
+.faq-phone {
+  overflow: visible;
+  border: 0;
+  background: transparent;
+  box-shadow: none;
+  filter: drop-shadow(0 22px 32px rgba(16, 19, 25, 0.16));
+}
+
+.admin-phone-card img,
+.faq-phone img {
+  width: 100%;
+  height: auto;
+  object-fit: contain;
+  border-radius: 1.1rem;
+}
+
+@media (max-width: 1100px) {
+  .hero-visual {
+    min-height: 38rem;
+  }
+}
+
+@media (max-width: 860px) {
+  .hero-visual {
+    min-height: 33rem;
+  }
+
+  .hero-admin-card {
+    width: 78%;
+    top: 2rem;
+  }
+
+  .hero-shot-main {
+    width: 45%;
+    right: 4rem;
+    top: 4rem;
+  }
+
+  .hero-shot-side {
+    width: 40%;
+    top: 8rem;
+  }
+}
+
+@media (max-width: 560px) {
+  .hero-visual {
+    min-height: 29rem;
+  }
+
+  .hero-admin-card {
+    width: 92%;
+    transform: rotate(-3deg);
+  }
+
+  .hero-shot-main {
+    width: 54%;
+    right: 4.2rem;
+    top: 8.4rem;
+  }
+
+  .hero-shot-side {
+    display: none;
+  }
+
+  .workflow-phone img {
+    width: min(11rem, 92%);
+  }
+}
