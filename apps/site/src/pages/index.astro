@@ -44,5 +44,125 @@ import "../styles/home.css";
     </main>
 
     <Footer />
+
+    <script>
+      import gsap from "gsap";
+      import { ScrollTrigger } from "gsap/ScrollTrigger";
+
+      gsap.registerPlugin(ScrollTrigger);
+
+      const prefersReducedMotion = window.matchMedia(
+        "(prefers-reduced-motion: reduce)",
+      ).matches;
+
+      const faqItems = Array.from(
+        document.querySelectorAll<HTMLElement>(".faq-item"),
+      );
+
+      const setFaqOpen = (item: HTMLElement, isOpen: boolean) => {
+        const button = item.querySelector<HTMLButtonElement>(".faq-trigger");
+        const answer = item.querySelector<HTMLElement>(".faq-answer");
+
+        item.classList.toggle("is-open", isOpen);
+        button?.setAttribute("aria-expanded", String(isOpen));
+        answer?.setAttribute("aria-hidden", String(!isOpen));
+      };
+
+      faqItems.forEach((item) => {
+        const button = item.querySelector<HTMLButtonElement>(".faq-trigger");
+
+        button?.addEventListener("click", () => {
+          if (item.classList.contains("is-open")) {
+            return;
+          }
+
+          faqItems.forEach((candidate) => {
+            setFaqOpen(candidate, candidate === item);
+          });
+        });
+      });
+
+      if (!prefersReducedMotion) {
+        gsap.from(".site-header", {
+          y: -18,
+          opacity: 0,
+          duration: 0.8,
+          ease: "power3.out",
+        });
+
+        gsap.from(".hero-copy > *", {
+          y: 28,
+          opacity: 0,
+          duration: 0.9,
+          ease: "power3.out",
+          stagger: 0.08,
+          delay: 0.08,
+        });
+
+        gsap.from(".profit-bubble, .profit-orb", {
+          y: 30,
+          scale: 0.94,
+          opacity: 0,
+          duration: 0.9,
+          ease: "back.out(1.35)",
+          stagger: 0.1,
+          delay: 0.18,
+        });
+
+        gsap.utils.toArray<HTMLElement>(".section, .problem-band").forEach(
+          (section) => {
+            gsap.fromTo(
+              section,
+              { opacity: 0.92, y: 34 },
+              {
+                opacity: 1,
+                y: 0,
+                duration: 0.9,
+                ease: "power3.out",
+                scrollTrigger: {
+                  trigger: section,
+                  start: "top 88%",
+                },
+              },
+            );
+          },
+        );
+
+        gsap.utils.toArray<HTMLElement>(".reveal-target").forEach((element) => {
+          gsap.fromTo(
+            element,
+            { y: 36, opacity: 0 },
+            {
+              y: 0,
+              opacity: 1,
+              duration: 0.85,
+              ease: "power3.out",
+              scrollTrigger: {
+                trigger: element,
+                start: "top 86%",
+              },
+            },
+          );
+        });
+
+        gsap.utils.toArray<HTMLElement>(".problem-card").forEach((card) => {
+          gsap.fromTo(
+            card,
+            { y: 30, rotate: -1.5, opacity: 0 },
+            {
+              y: 0,
+              rotate: 0,
+              opacity: 1,
+              duration: 0.75,
+              ease: "back.out(1.15)",
+              scrollTrigger: {
+                trigger: card,
+                start: "top 88%",
+              },
+            },
+          );
+        });
+      }
+    </script>
   </body>
 </html>
