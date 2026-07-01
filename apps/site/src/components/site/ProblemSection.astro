@@ -21,7 +21,7 @@ import { problemCards } from "../../content/home";
   <div class="problem-grid">
     {
       problemCards.map((card, index) => (
-        <article class={`problem-card problem-card-${index + 1} reveal-target`}>
+        <article class={`problem-card problem-card-${index + 1}`}>
           <span class="problem-icon" aria-hidden="true">{card.icon}</span>
           <h3>{card.title}</h3>
           <p>{card.body}</p>
