@@ -26,17 +26,6 @@
   animation: pulse-orb 6.5s ease-in-out infinite;
 }
 
-.hero-admin-card {
-  position: absolute;
-  top: 5.5rem;
-  left: 0;
-  z-index: 2;
-  width: min(28rem, 58%);
-  padding: 1rem;
-  border-radius: 2rem;
-  transform: rotate(-7deg);
-}
-
 .hero-shot {
   position: absolute;
   z-index: 3;
@@ -53,6 +42,14 @@
   border: 0;
   border-radius: 1.25rem;
   background: transparent;
+}
+
+.hero-shot-admin {
+  left: 0;
+  top: 4.6rem;
+  z-index: 1;
+  width: min(24rem, 50%);
+  transform: rotate(-7deg);
 }
 
 .hero-shot-main {
@@ -118,8 +115,9 @@
     min-height: 33rem;
   }
 
-  .hero-admin-card {
-    width: 78%;
+  .hero-shot-admin {
+    width: 64%;
+    left: 0;
     top: 2rem;
   }
 
@@ -140,8 +138,8 @@
     min-height: 29rem;
   }
 
-  .hero-admin-card {
-    width: 92%;
+  .hero-shot-admin {
+    width: 78%;
     transform: rotate(-3deg);
   }
 
