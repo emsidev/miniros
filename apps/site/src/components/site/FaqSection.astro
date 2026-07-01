@@ -3,9 +3,14 @@ import { faqs, screens } from "../../content/home";
 ---
 
 <section class="faq section" id="faq">
-  <div class="faq-copy">
-    <p class="section-label">FAQ</p>
-    <h2>Questions? We have early answers.</h2>
+  <div class="faq-copy reveal-target">
+    <p class="section-label">
+      <span aria-hidden="true">?</span> FAQ
+    </p>
+    <h2>
+      <span aria-hidden="true">💬</span>
+      Questions? We have early answers.
+    </h2>
     <p>
       MINIROS is pre-launch. The site should set the right expectation: join
       early access first, then install later when the product is ready.
@@ -13,18 +18,35 @@ import { faqs, screens } from "../../content/home";
   </div>
 
   <div class="faq-layout">
-    <div class="faq-list">
+    <div class="faq-list" data-faq-list>
       {
         faqs.map((item, index) => (
-          <details class="faq-item" open={index === 0}>
-            <summary>{item.question}</summary>
-            <p>{item.answer}</p>
-          </details>
+          <article class={`faq-item ${index === 0 ? "is-open" : ""}`}>
+            <button
+              class="faq-trigger"
+              type="button"
+              aria-expanded={index === 0 ? "true" : "false"}
+              aria-controls={`faq-answer-${index}`}
+            >
+              <span>{item.question}</span>
+              <span class="faq-plus" aria-hidden="true">+</span>
+            </button>
+            <div
+              class="faq-answer"
+              id={`faq-answer-${index}`}
+              role="region"
+              aria-hidden={index === 0 ? "false" : "true"}
+            >
+              <div>
+                <p>{item.answer}</p>
+              </div>
+            </div>
+          </article>
         ))
       }
     </div>
 
-    <figure class="faq-phone">
+    <figure class="faq-phone reveal-target">
       <img src={screens.shifts} alt="MINIROS mobile shifts screen" loading="lazy" />
     </figure>
   </div>
