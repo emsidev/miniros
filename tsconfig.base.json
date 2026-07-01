@@ -1,0 +1,29 @@
+{
+  "compilerOptions": {
+    "target": "ES2022",
+    "module": "ESNext",
+    "moduleResolution": "Bundler",
+    "lib": ["ES2022"],
+    "strict": true,
+    "allowJs": false,
+    "esModuleInterop": true,
+    "resolveJsonModule": true,
+    "isolatedModules": true,
+    "skipLibCheck": true,
+    "forceConsistentCasingInFileNames": true,
+    "baseUrl": ".",
+    "paths": {
+      "@miniros/config": ["./packages/config/package.json"],
+      "@miniros/contracts": ["./packages/contracts/src/index.ts"],
+      "@miniros/contracts/*": ["./packages/contracts/src/*"],
+      "@miniros/db": ["./packages/db/src/index.ts"],
+      "@miniros/db/*": ["./packages/db/src/*"],
+      "@miniros/domain": ["./packages/domain/src/index.ts"],
+      "@miniros/domain/*": ["./packages/domain/src/*"],
+      "@miniros/sdk": ["./packages/sdk/src/index.ts"],
+      "@miniros/sdk/*": ["./packages/sdk/src/*"],
+      "@miniros/ui": ["./packages/ui/src/index.ts"],
+      "@miniros/ui/*": ["./packages/ui/src/*"]
+    }
+  }
+}

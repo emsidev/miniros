@@ -1,0 +1,23 @@
+{
+  "name": "@miniros/contracts",
+  "version": "0.1.0",
+  "private": true,
+  "type": "module",
+  "main": "./src/index.ts",
+  "types": "./src/index.ts",
+  "exports": {
+    ".": "./src/index.ts",
+    "./health": "./src/health.ts",
+    "./workflows": "./src/workflows.ts"
+  },
+  "scripts": {
+    "build": "tsup src/index.ts --format esm --dts --out-dir dist --clean",
+    "lint": "eslint src --ext .ts",
+    "typecheck": "tsc --noEmit -p tsconfig.json",
+    "test": "echo No contracts tests yet"
+  },
+  "dependencies": {
+    "@miniros/domain": "workspace:*",
+    "zod": "^3.24.1"
+  }
+}

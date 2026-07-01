@@ -2,27 +2,23 @@
 
 MINIROS means **Mini Retail Operations System**.
 
-MINIROS is a mobile-first retail operations system for pop-up sellers, booth sellers, bazaar sellers, kiosks, and small retail teams.
+The repo now uses a `pnpm` + Turbo monorepo layout so the product surfaces can stay separate while business rules, contracts, and data access stay shared.
 
-The MVP helps business owners know if a booth or selling location is worth renting again by tracking sales, payments, inventory, staff costs, rent, transport, deductions, and closeout data.
+## Workspace shape
 
-## Core stack
+- `apps/web`: authenticated Next.js App Router product app
+- `apps/site`: Astro marketing and documentation site
+- `apps/mobile`: Expo mobile shell
+- `apps/api`: typed API surface for shared workflows
+- `apps/agent`: agent-facing utilities
+- `apps/e2e`: end-to-end test workspace
+- `packages/domain`: business rules, workflow catalog, permissions
+- `packages/db`: Drizzle schema and DB access
+- `packages/contracts`: shared request and response schemas
+- `packages/sdk`: typed client helpers for app consumers
+- `packages/ui`: shared copy and design tokens
+- `packages/config`: shared ESLint and TypeScript presets
 
-- Next.js App Router
-- React
-- TypeScript
-- Tailwind CSS
-- shadcn/ui
-- Supabase Auth, Postgres, Storage, RLS, Realtime
-- Drizzle ORM and Drizzle Kit
-- Dexie / IndexedDB
-- PWA
-- Vercel
+## Product rule
 
-## Architecture decision
-
-Business logic lives in Next.js server actions and server services using SRP.
-
-Supabase is used for Auth, Postgres, Storage, RLS, and Realtime.
-
-Do not use Supabase RPC functions, stored procedures, or business-logic triggers for MVP workflows.
+Business logic belongs in shared TypeScript packages and server-side services, not inside React components and not inside Supabase RPC business logic.

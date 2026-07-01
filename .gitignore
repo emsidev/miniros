@@ -1,7 +1,12 @@
 node_modules
+.pnpm-store
 .next
 out
 dist
+.turbo
+.expo
+.astro
+.eslintcache
 .env
 .env*.local
 *.log

@@ -1,0 +1,17 @@
+{
+  "name": "@miniros/agent",
+  "version": "0.1.0",
+  "private": true,
+  "type": "module",
+  "scripts": {
+    "dev": "tsx watch src/index.ts",
+    "build": "tsup src/index.ts --format esm --out-dir dist --clean",
+    "lint": "eslint src --ext .ts",
+    "typecheck": "tsc --noEmit -p tsconfig.json",
+    "test": "echo No agent tests yet"
+  },
+  "dependencies": {
+    "@miniros/domain": "workspace:*",
+    "@miniros/sdk": "workspace:*"
+  }
+}

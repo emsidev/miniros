@@ -1,0 +1,1717 @@
+---
+const title = "MINIROS | Track profit, not just sales.";
+const description =
+  "Mobile-first retail operations for pop-up sellers, kiosks, and bazaar teams. MINIROS helps you know if a location is worth renting again.";
+
+const screens = {
+  startShiftStock: "/Employee%20_%20Start%20Shift%201.png",
+  startShiftFloat: "/Employee%20_%20Start%20Shift%202.png",
+  shifts: "/Employee%20_%20Shifts.png",
+  sell: "/Employee%20_%20Sell.png",
+  locations: "/Admin%20_%20Location%20Profitability%201.png",
+  locationAnalysis: "/Admin%20_%20Location%20Profitability%202.png",
+};
+
+const navItems = [
+  { label: "How It Works", href: "#workflow" },
+  { label: "What It Tracks", href: "#features" },
+  { label: "Location Profit", href: "#profitability" },
+  { label: "FAQs", href: "#faqs" },
+];
+
+const metrics = [
+  { value: "Shift-by-shift", label: "profitability visibility" },
+  { value: "Mobile-first", label: "operator and admin workflows" },
+  { value: "One system", label: "sales, costs, stock, and closeout" },
+];
+
+const operatingSignals = [
+  {
+    title: "Sell with the full cost picture",
+    body: "Sales, opening stock, cash float, rent, transport, and shift deductions all stay tied to the same operational record.",
+  },
+  {
+    title: "Keep staff flows simple on the floor",
+    body: "Employees see clean shift, sell, and production routes instead of bulky admin tooling built for office desks.",
+  },
+  {
+    title: "Decide where to show up again",
+    body: "Location performance is the product outcome: MINIROS makes 'rent again' versus 'reconsider' visible at a glance.",
+  },
+];
+
+const workflowSteps = [
+  {
+    index: "01",
+    title: "Open the shift with real starting context",
+    body: "Operators set opening stock from production and confirm the cash float before the first sale lands.",
+    image: screens.startShiftStock,
+    alt: "MINIROS start shift opening stock screen",
+  },
+  {
+    index: "02",
+    title: "Lock in the float and start selling",
+    body: "Cash on hand is captured up front so closeout math has a clean baseline instead of guessed reconciliation.",
+    image: screens.startShiftFloat,
+    alt: "MINIROS start shift cash float screen",
+  },
+  {
+    index: "03",
+    title: "Run a mobile-first POS during the shift",
+    body: "The sell flow keeps current orders, payment method, and shift status in a single focused touch surface.",
+    image: screens.sell,
+    alt: "MINIROS mobile sell screen",
+  },
+  {
+    index: "04",
+    title: "Keep the team aligned on what is active next",
+    body: "Schedules and assigned shifts stay visible to the employee without sending them through an admin dashboard.",
+    image: screens.shifts,
+    alt: "MINIROS employee shifts calendar screen",
+  },
+  {
+    index: "05",
+    title: "Review the locations that should stay in rotation",
+    body: "Admins can scan every location by rent level, active status, and average profit without digging through reports first.",
+    image: screens.locations,
+    alt: "MINIROS locations profitability list",
+  },
+  {
+    index: "06",
+    title: "Turn closeout data into a verdict",
+    body: "Each location resolves to a simple recommendation backed by margin, profit trend, and shift history.",
+    image: screens.locationAnalysis,
+    alt: "MINIROS location analysis verdict screen",
+  },
+];
+
+const featureCards = [
+  {
+    title: "Mobile shift control",
+    body: "Opening stock, cash float, and shift execution are designed for small teams working from phones in tight physical spaces.",
+  },
+  {
+    title: "One operational ledger",
+    body: "Inventory movement, payments, production, and closeout stay connected so profit is not reconstructed from separate tools later.",
+  },
+  {
+    title: "Operator clarity",
+    body: "Role-based routes keep the daily employee surface clean while admin users retain deeper controls in a separate management layer.",
+  },
+  {
+    title: "Location decisions",
+    body: "The strongest promise is practical: after a booth weekend, the owner can tell whether that place earned another rental.",
+  },
+];
+
+const faqItems = [
+  {
+    question: "Who is MINIROS built for?",
+    answer:
+      "MINIROS is built for pop-up sellers, bazaar teams, booth sellers, kiosk operators, and small retail groups that need mobile-first shift operations.",
+  },
+  {
+    question: "What makes it different from a basic POS?",
+    answer:
+      "A basic POS stops at sales. MINIROS keeps the whole shift intact: opening stock, float, production, costs, closeout, and location-level profitability.",
+  },
+  {
+    question: "Is the employee flow separate from the admin flow?",
+    answer:
+      "Yes. Employees and operators get a simpler workspace for shifts, selling, and production, while admin users keep setup, reporting, and location analysis under admin routes.",
+  },
+  {
+    question: "What is the main business question it answers?",
+    answer:
+      "The core question is whether a selling location actually made money and whether the owner should rent that location again.",
+  },
+];
+---
+
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <meta name="description" content={description} />
+    <meta name="theme-color" content="#111318" />
+    <title>{title}</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com" />
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+    <link
+      href="https://fonts.googleapis.com/css2?family=Outfit:wght@300;400;500;600;700;800&display=swap"
+      rel="stylesheet"
+    />
+  </head>
+  <body>
+    <main class="page-shell">
+      <div class="ambient ambient-a"></div>
+      <div class="ambient ambient-b"></div>
+
+      <header class="site-header">
+        <a class="wordmark" href="#top" aria-label="MINIROS home">
+          <span class="wordmark-mark" aria-hidden="true">
+            <span></span>
+            <span></span>
+          </span>
+          <span>MINIROS</span>
+        </a>
+
+        <nav class="site-nav" aria-label="Primary">
+          {navItems.map((item) => <a href={item.href}>{item.label}</a>)}
+        </nav>
+
+        <a class="nav-cta" href="#cta">
+          <span>See the flow</span>
+          <span class="nav-cta-icon" aria-hidden="true">↗</span>
+        </a>
+      </header>
+
+      <section class="hero section" id="top">
+        <div class="hero-copy">
+          <p class="hero-kicker">
+            MINIROS helps operators run the shift and helps owners decide
+            whether the location earned another day.
+          </p>
+          <h1>Track profit, not just sales.</h1>
+          <p class="hero-body">
+            Built for booths, bazaars, kiosks, and pop-up teams that need one
+            mobile-first system for shift setup, selling, production, closeout,
+            and location profitability.
+          </p>
+
+          <div class="hero-actions">
+            <a class="button button-primary" href="#workflow">
+              <span>Walk the workflow</span>
+              <span class="button-icon" aria-hidden="true">↗</span>
+            </a>
+            <a class="button button-secondary" href="#profitability"
+              >See location verdicts</a
+            >
+          </div>
+
+          <div class="metric-row">
+            {
+              metrics.map((item) => (
+                <div class="metric-pill">
+                  <strong>{item.value}</strong>
+                  <span>{item.label}</span>
+                </div>
+              ))
+            }
+          </div>
+        </div>
+
+        <div class="hero-stage reveal">
+          <figure class="hero-phone hero-phone-main tilt-negative">
+            <img
+              src={screens.locationAnalysis}
+              alt="Location analysis verdict in MINIROS"
+              loading="eager"
+            />
+          </figure>
+
+          <figure
+            class="hero-phone hero-phone-side hero-phone-side-left tilt-positive"
+          >
+            <img
+              src={screens.startShiftStock}
+              alt="Start shift opening stock in MINIROS"
+              loading="lazy"
+            />
+          </figure>
+
+          <figure
+            class="hero-phone hero-phone-side hero-phone-side-right tilt-positive"
+          >
+            <img src={screens.sell} alt="Sell flow in MINIROS" loading="lazy" />
+          </figure>
+        </div>
+      </section>
+
+      <section class="signal-band reveal">
+        <div class="section-intro">
+          <h2>
+            Measure the whole selling shift, not just the checkout moment.
+          </h2>
+          <p>
+            MINIROS stays focused on operational truth: what stock went out,
+            what money came in, what the shift cost, and whether that location
+            deserves another rental.
+          </p>
+        </div>
+
+        <div class="signal-grid">
+          {
+            operatingSignals.map((item) => (
+              <article class="signal-card">
+                <h3>{item.title}</h3>
+                <p>{item.body}</p>
+              </article>
+            ))
+          }
+        </div>
+      </section>
+
+      <section class="workflow section" id="workflow">
+        <div class="workflow-heading">
+          <p class="section-label">How MINIROS moves</p>
+          <h2>From shift opening to rent-again decisions.</h2>
+          <p>
+            The page structure follows the product logic instead of generic
+            feature marketing. Each step below maps to a real MINIROS screen and
+            a real operating decision.
+          </p>
+        </div>
+
+        <div class="workflow-shell">
+          <div class="workflow-summary reveal">
+            <div class="summary-card">
+              <span class="summary-line"></span>
+              <h3>Shift selling is the center of the product.</h3>
+              <p>
+                Employees need a fast surface. Owners need clean totals. MINIROS
+                is built so the same operational flow supports both without
+                turning the employee view into admin clutter.
+              </p>
+            </div>
+          </div>
+
+          <div class="workflow-list">
+            {
+              workflowSteps.map((step) => (
+                <article class="workflow-card reveal" data-step>
+                  <div class="workflow-card-copy">
+                    <span class="workflow-index">{step.index}</span>
+                    <h3>{step.title}</h3>
+                    <p>{step.body}</p>
+                  </div>
+
+                  <figure class="workflow-shot">
+                    <img src={step.image} alt={step.alt} loading="lazy" />
+                  </figure>
+                </article>
+              ))
+            }
+          </div>
+        </div>
+      </section>
+
+      <section class="features section" id="features">
+        <div class="section-intro reveal">
+          <p class="section-label">What it tracks</p>
+          <h2>One operating layer for mobile selling teams.</h2>
+          <p>
+            The MVP stays disciplined: shift selling, production, stock,
+            closeout, and location profitability. Nothing here tries to act like
+            a bloated all-purpose retail suite.
+          </p>
+        </div>
+
+        <div class="feature-bento">
+          <article class="bento-card bento-card-large reveal">
+            <div class="bento-copy">
+              <h3>
+                Operators start with the exact stock and float they will work
+                with.
+              </h3>
+              <p>
+                That makes the first sale, the closeout, and the profitability
+                report part of one chain instead of disconnected forms.
+              </p>
+            </div>
+
+            <div class="bento-double">
+              <img
+                src={screens.startShiftStock}
+                alt="Opening stock step in MINIROS"
+                loading="lazy"
+              />
+              <img
+                src={screens.startShiftFloat}
+                alt="Cash float step in MINIROS"
+                loading="lazy"
+              />
+            </div>
+          </article>
+
+          <article class="bento-card bento-card-dark reveal">
+            <div class="bento-copy">
+              <h3>Every shift should feel legible on a phone.</h3>
+              <p>
+                Clean filters, concise cards, and decisive calls to action
+                matter more than loading the interface with enterprise dashboard
+                noise.
+              </p>
+            </div>
+
+            <img
+              src={screens.shifts}
+              alt="Employee shifts view in MINIROS"
+              loading="lazy"
+            />
+          </article>
+
+          <article class="bento-card reveal">
+            <div class="feature-list">
+              {
+                featureCards.slice(0, 2).map((item) => (
+                  <div>
+                    <h3>{item.title}</h3>
+                    <p>{item.body}</p>
+                  </div>
+                ))
+              }
+            </div>
+          </article>
+
+          <article class="bento-card reveal">
+            <div class="feature-list">
+              {
+                featureCards.slice(2).map((item) => (
+                  <div>
+                    <h3>{item.title}</h3>
+                    <p>{item.body}</p>
+                  </div>
+                ))
+              }
+            </div>
+          </article>
+        </div>
+      </section>
+
+      <section class="profitability section" id="profitability">
+        <div class="profit-shell">
+          <div class="profit-copy reveal">
+            <p class="section-label section-label-dark">
+              Location profitability
+            </p>
+            <h2>A location should earn its next rent.</h2>
+            <p>
+              MINIROS turns shift history into a location verdict that a
+              business owner can actually act on: rent again, reconsider, or
+              rotate out.
+            </p>
+
+            <div class="profit-stats">
+              <div>
+                <span class="stat-value">42%</span>
+                <span class="stat-label"
+                  >sample profit margin surfaced in the UI</span
+                >
+              </div>
+              <div>
+                <span class="stat-value">82</span>
+                <span class="stat-label"
+                  >location score that compresses the decision</span
+                >
+              </div>
+              <div>
+                <span class="stat-value">3 views</span>
+                <span class="stat-label"
+                  >list, verdict, and shift history working together</span
+                >
+              </div>
+            </div>
+          </div>
+
+          <div class="profit-visual reveal">
+            <figure class="profit-device profit-device-back">
+              <img
+                src={screens.locations}
+                alt="Locations list in MINIROS"
+                loading="lazy"
+              />
+            </figure>
+            <figure class="profit-device profit-device-front">
+              <img
+                src={screens.locationAnalysis}
+                alt="Location analysis details in MINIROS"
+                loading="lazy"
+              />
+            </figure>
+          </div>
+        </div>
+      </section>
+
+      <section class="faq section" id="faqs">
+        <div class="section-intro reveal">
+          <p class="section-label">FAQs</p>
+          <h2>Built around daily pop-up retail work.</h2>
+          <p>
+            The messaging stays narrow on purpose. MINIROS is not pretending to
+            solve every retail workflow in one release.
+          </p>
+        </div>
+
+        <div class="faq-shell">
+          <div class="faq-list reveal">
+            {
+              faqItems.map((item, index) => (
+                <details class="faq-item" open={index === 0}>
+                  <summary>{item.question}</summary>
+                  <p>{item.answer}</p>
+                </details>
+              ))
+            }
+          </div>
+
+          <figure class="faq-shot reveal">
+            <img
+              src={screens.sell}
+              alt="MINIROS sell sheet on mobile"
+              loading="lazy"
+            />
+          </figure>
+        </div>
+      </section>
+
+      <section class="cta section" id="cta">
+        <div class="cta-card reveal">
+          <div>
+            <h2>
+              Mobile-first operations for the booths that need clean profit
+              answers.
+            </h2>
+            <p>
+              MINIROS is designed for teams that want to sell fast, close
+              cleanly, and know which location deserves the next booking.
+            </p>
+          </div>
+
+          <div class="cta-actions">
+            <a class="button button-primary" href="#top">
+              <span>Back to top</span>
+              <span class="button-icon" aria-hidden="true">↑</span>
+            </a>
+            <span class="cta-note">Track profit, not just sales.</span>
+          </div>
+        </div>
+      </section>
+    </main>
+
+    <footer class="site-footer">
+      <span>MINIROS</span>
+      <span
+        >Mini Retail Operations System for shift selling and location profit.</span
+      >
+    </footer>
+
+    <script>
+      import gsap from "gsap";
+      import { ScrollTrigger } from "gsap/ScrollTrigger";
+
+      gsap.registerPlugin(ScrollTrigger);
+
+      const html = document.documentElement;
+      const reduceMotionQuery = window.matchMedia(
+        "(prefers-reduced-motion: reduce)",
+      );
+
+      const activateFaqState = () => {
+        document.querySelectorAll(".faq-item").forEach((item) => {
+          item.toggleAttribute("data-open", item.open);
+        });
+      };
+
+      activateFaqState();
+
+      document.querySelectorAll(".faq-item").forEach((item) => {
+        item.addEventListener("toggle", activateFaqState);
+      });
+
+      if (!reduceMotionQuery.matches) {
+        html.classList.add("motion-safe");
+
+        gsap.from(".site-header", {
+          y: -24,
+          opacity: 0,
+          duration: 0.8,
+          ease: "power3.out",
+        });
+
+        gsap.from(".hero-copy > *", {
+          y: 28,
+          opacity: 0,
+          duration: 0.9,
+          ease: "power3.out",
+          stagger: 0.08,
+          delay: 0.1,
+        });
+
+        gsap.from(".hero-phone", {
+          y: 36,
+          opacity: 0,
+          rotate: 3,
+          duration: 1.1,
+          ease: "power3.out",
+          stagger: 0.14,
+          delay: 0.16,
+        });
+
+        const mm = gsap.matchMedia();
+
+        mm.add(
+          {
+            isDesktop: "(min-width: 960px)",
+            reduceMotion: "(prefers-reduced-motion: reduce)",
+          },
+          (context) => {
+            const { reduceMotion } = context.conditions;
+
+            if (reduceMotion) {
+              return;
+            }
+
+            gsap.utils.toArray(".reveal").forEach((element) => {
+              gsap.from(element, {
+                y: 48,
+                opacity: 0,
+                duration: 0.9,
+                ease: "power3.out",
+                scrollTrigger: {
+                  trigger: element,
+                  start: "top 84%",
+                },
+              });
+            });
+
+            gsap.utils.toArray("[data-step]").forEach((card) => {
+              const image = card.querySelector("img");
+              gsap.from(card, {
+                y: 44,
+                opacity: 0,
+                duration: 0.85,
+                ease: "power3.out",
+                scrollTrigger: {
+                  trigger: card,
+                  start: "top 78%",
+                },
+              });
+
+              if (image) {
+                gsap.fromTo(
+                  image,
+                  { scale: 0.92, y: 12 },
+                  {
+                    scale: 1,
+                    y: 0,
+                    duration: 1.1,
+                    ease: "power3.out",
+                    scrollTrigger: {
+                      trigger: card,
+                      start: "top 78%",
+                      scrub: 0.6,
+                    },
+                  },
+                );
+              }
+            });
+
+            const summaryCard = document.querySelector(".summary-card");
+            if (summaryCard) {
+              gsap.fromTo(
+                summaryCard,
+                { y: 0 },
+                {
+                  y: -28,
+                  ease: "none",
+                  scrollTrigger: {
+                    trigger: ".workflow-shell",
+                    start: "top 70%",
+                    end: "bottom bottom",
+                    scrub: true,
+                  },
+                },
+              );
+            }
+          },
+        );
+      }
+    </script>
+  </body>
+</html>
+
+<style is:global>
+  :root {
+    color-scheme: light;
+    --bg: #f4efe7;
+    --bg-strong: #ece4d8;
+    --surface: rgba(255, 255, 255, 0.76);
+    --surface-strong: #fffdf8;
+    --surface-dark: #111318;
+    --surface-dark-soft: #1a1f26;
+    --text: #151922;
+    --muted: #5e6777;
+    --line: rgba(17, 19, 24, 0.08);
+    --line-dark: rgba(255, 255, 255, 0.08);
+    --accent: #d8fb34;
+    --accent-soft: rgba(216, 251, 52, 0.16);
+    --accent-dark: #161b12;
+    --success: #3fbe68;
+    --danger: #e45454;
+    --shadow: 0 30px 80px rgba(17, 19, 24, 0.08);
+    --shadow-strong: 0 36px 90px rgba(17, 19, 24, 0.18);
+    --radius-xl: 32px;
+    --radius-lg: 24px;
+    --radius-md: 18px;
+    --content: min(1180px, calc(100vw - 32px));
+    --ease-out: cubic-bezier(0.23, 1, 0.32, 1);
+    --ease-soft: cubic-bezier(0.32, 0.72, 0, 1);
+  }
+
+  * {
+    box-sizing: border-box;
+  }
+
+  html {
+    scroll-behavior: smooth;
+  }
+
+  body {
+    margin: 0;
+    min-width: 320px;
+    overflow-x: hidden;
+    background:
+      radial-gradient(
+        circle at top left,
+        rgba(216, 251, 52, 0.12),
+        transparent 28%
+      ),
+      radial-gradient(
+        circle at 85% 14%,
+        rgba(17, 19, 24, 0.06),
+        transparent 20%
+      ),
+      linear-gradient(180deg, #f6f1e8 0%, #f4efe7 40%, #f2ede4 100%);
+    color: var(--text);
+    font-family: "Outfit", system-ui, sans-serif;
+  }
+
+  img {
+    display: block;
+    max-width: 100%;
+  }
+
+  a {
+    color: inherit;
+    text-decoration: none;
+  }
+
+  button,
+  summary {
+    font: inherit;
+  }
+
+  .page-shell {
+    position: relative;
+    width: 100%;
+    max-width: 100%;
+    overflow-x: hidden;
+  }
+
+  .ambient {
+    position: fixed;
+    inset: auto auto 10% -8%;
+    z-index: 0;
+    width: 26rem;
+    height: 26rem;
+    border-radius: 50%;
+    pointer-events: none;
+    filter: blur(24px);
+    opacity: 0.2;
+  }
+
+  .ambient-a {
+    background: radial-gradient(
+      circle,
+      rgba(216, 251, 52, 0.26) 0%,
+      transparent 68%
+    );
+  }
+
+  .ambient-b {
+    inset: 10% -10% auto auto;
+    background: radial-gradient(
+      circle,
+      rgba(21, 25, 34, 0.14) 0%,
+      transparent 62%
+    );
+  }
+
+  .section,
+  .signal-band,
+  .site-header,
+  .site-footer {
+    position: relative;
+    z-index: 1;
+    width: var(--content);
+    margin: 0 auto;
+  }
+
+  .site-header {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 1.25rem;
+    padding: 1.2rem 1.5rem;
+    margin-top: 1rem;
+    background: rgba(255, 253, 248, 0.62);
+    border: 1px solid rgba(255, 255, 255, 0.85);
+    border-radius: 999px;
+    backdrop-filter: blur(16px);
+    box-shadow: 0 16px 40px rgba(17, 19, 24, 0.06);
+  }
+
+  .wordmark {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.85rem;
+    font-size: 0.95rem;
+    font-weight: 700;
+    letter-spacing: 0.08em;
+    text-transform: uppercase;
+  }
+
+  .wordmark-mark {
+    position: relative;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    width: 2.7rem;
+    height: 2.7rem;
+    border-radius: 999px;
+    background: var(--surface-dark);
+    box-shadow: inset 0 1px 1px rgba(255, 255, 255, 0.08);
+  }
+
+  .wordmark-mark span {
+    position: absolute;
+    display: block;
+    width: 0.9rem;
+    height: 1.35rem;
+    border-radius: 999px;
+    background: var(--accent);
+  }
+
+  .wordmark-mark span:first-child {
+    transform: translateX(-0.3rem) rotate(18deg);
+  }
+
+  .wordmark-mark span:last-child {
+    transform: translateX(0.3rem) rotate(-18deg);
+  }
+
+  .site-nav {
+    display: flex;
+    align-items: center;
+    gap: 1.35rem;
+    font-size: 0.98rem;
+    color: var(--muted);
+  }
+
+  .site-nav a {
+    transition: color 220ms var(--ease-out);
+  }
+
+  .site-nav a:hover {
+    color: var(--text);
+  }
+
+  .nav-cta,
+  .button {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    gap: 0.7rem;
+    min-height: 3.5rem;
+    padding: 0.65rem 0.8rem 0.65rem 1.35rem;
+    border-radius: 999px;
+    border: 1px solid transparent;
+    transition:
+      transform 180ms var(--ease-out),
+      background-color 240ms var(--ease-out),
+      color 240ms var(--ease-out),
+      border-color 240ms var(--ease-out),
+      box-shadow 240ms var(--ease-out);
+  }
+
+  .nav-cta {
+    background: var(--surface-dark);
+    color: #fff;
+    box-shadow: 0 14px 30px rgba(17, 19, 24, 0.16);
+  }
+
+  .nav-cta-icon,
+  .button-icon {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    width: 2rem;
+    height: 2rem;
+    border-radius: 999px;
+    background: rgba(255, 255, 255, 0.12);
+    transition:
+      transform 220ms var(--ease-soft),
+      background-color 220ms var(--ease-out);
+  }
+
+  .hero {
+    display: grid;
+    grid-template-columns: minmax(0, 1.1fr) minmax(0, 0.9fr);
+    gap: 3rem;
+    align-items: center;
+    min-height: max(46rem, calc(100dvh - 8.5rem));
+    padding: 5rem 0 4.5rem;
+  }
+
+  .hero-copy {
+    max-width: 42rem;
+  }
+
+  .hero-kicker {
+    max-width: 33rem;
+    margin: 0 0 1.2rem;
+    color: var(--muted);
+    font-size: 1.08rem;
+    line-height: 1.7;
+  }
+
+  .hero h1 {
+    max-width: 8.5ch;
+    margin: 0;
+    font-size: clamp(4rem, 8vw, 6.2rem);
+    line-height: 0.94;
+    letter-spacing: -0.06em;
+  }
+
+  .hero-body {
+    max-width: 36rem;
+    margin: 1.5rem 0 0;
+    color: var(--muted);
+    font-size: 1.14rem;
+    line-height: 1.8;
+  }
+
+  .hero-actions {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 1rem;
+    margin-top: 2rem;
+  }
+
+  .button {
+    font-size: 1rem;
+    font-weight: 600;
+  }
+
+  .button:active,
+  .nav-cta:active {
+    transform: scale(0.98);
+  }
+
+  .button-primary {
+    background: var(--accent);
+    color: #111318;
+    box-shadow: 0 18px 34px rgba(216, 251, 52, 0.28);
+  }
+
+  .button-primary .button-icon {
+    background: rgba(17, 19, 24, 0.08);
+  }
+
+  .button-secondary {
+    background: rgba(255, 255, 255, 0.9);
+    border-color: rgba(17, 19, 24, 0.12);
+    color: var(--text);
+  }
+
+  .metric-row {
+    display: grid;
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+    gap: 1rem;
+    margin-top: 2.3rem;
+  }
+
+  .metric-pill {
+    padding: 1rem 1.15rem;
+    background: rgba(255, 255, 255, 0.62);
+    border: 1px solid rgba(255, 255, 255, 0.9);
+    border-radius: 1.4rem;
+    box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.8);
+  }
+
+  .metric-pill strong,
+  .stat-value {
+    display: block;
+    font-size: 1.05rem;
+    font-weight: 700;
+  }
+
+  .metric-pill span,
+  .stat-label {
+    display: block;
+    margin-top: 0.35rem;
+    color: var(--muted);
+    line-height: 1.5;
+  }
+
+  .hero-stage {
+    position: relative;
+    display: flex;
+    justify-content: center;
+    min-height: 48rem;
+    padding: 2.25rem 0;
+  }
+
+  .hero-phone {
+    position: absolute;
+    margin: 0;
+    width: min(19rem, 36vw);
+    transition: transform 500ms var(--ease-soft);
+  }
+
+  .hero-phone img,
+  .workflow-shot img,
+  .bento-card img,
+  .faq-shot img,
+  .profit-device img {
+    width: 100%;
+    height: auto;
+    filter: drop-shadow(0 26px 46px rgba(17, 19, 24, 0.12));
+  }
+
+  .hero-phone-main {
+    z-index: 3;
+    top: 1rem;
+    right: 12%;
+    width: min(22rem, 42vw);
+  }
+
+  .hero-phone-side {
+    z-index: 2;
+    width: min(16rem, 30vw);
+  }
+
+  .hero-phone-side-left {
+    top: 14rem;
+    left: 0;
+  }
+
+  .hero-phone-side-right {
+    right: 0;
+    bottom: 0;
+  }
+
+  .tilt-negative {
+    transform: rotate(-8deg);
+  }
+
+  .tilt-positive {
+    transform: rotate(7deg);
+  }
+
+  .section {
+    padding: 7rem 0;
+  }
+
+  .signal-band {
+    display: grid;
+    grid-template-columns: minmax(0, 0.92fr) minmax(0, 1.08fr);
+    gap: 2rem;
+    padding: 2rem;
+    background: rgba(17, 19, 24, 0.96);
+    color: white;
+    border-radius: 2rem;
+    box-shadow: var(--shadow-strong);
+  }
+
+  .section-intro,
+  .workflow-heading {
+    max-width: 44rem;
+  }
+
+  .section-label {
+    display: inline-flex;
+    margin: 0 0 0.9rem;
+    color: var(--muted);
+    font-size: 0.9rem;
+    font-weight: 600;
+    letter-spacing: 0.08em;
+    text-transform: uppercase;
+  }
+
+  .section-label-dark {
+    color: rgba(255, 255, 255, 0.64);
+  }
+
+  .signal-band h2,
+  .workflow-heading h2,
+  .section-intro h2,
+  .profit-copy h2,
+  .cta-card h2 {
+    margin: 0;
+    font-size: clamp(2.4rem, 4.5vw, 4rem);
+    line-height: 1;
+    letter-spacing: -0.05em;
+  }
+
+  .signal-band p,
+  .workflow-heading p,
+  .section-intro p,
+  .profit-copy p,
+  .cta-card p,
+  .workflow-card p,
+  .signal-card p,
+  .bento-copy p,
+  .feature-list p,
+  .summary-card p,
+  .faq-item p {
+    margin: 0;
+    color: inherit;
+    line-height: 1.75;
+    font-size: 1.04rem;
+  }
+
+  .signal-band .section-intro p,
+  .profit-copy p {
+    margin-top: 1.2rem;
+    color: rgba(255, 255, 255, 0.68);
+  }
+
+  .signal-grid {
+    display: grid;
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+    gap: 1rem;
+  }
+
+  .signal-card {
+    padding: 1.5rem;
+    background: rgba(255, 255, 255, 0.05);
+    border: 1px solid rgba(255, 255, 255, 0.08);
+    border-radius: 1.5rem;
+  }
+
+  .signal-card h3,
+  .workflow-card h3,
+  .bento-copy h3,
+  .feature-list h3,
+  .summary-card h3 {
+    margin: 0 0 0.85rem;
+    font-size: 1.35rem;
+    line-height: 1.2;
+    letter-spacing: -0.03em;
+  }
+
+  .signal-card p {
+    color: rgba(255, 255, 255, 0.68);
+  }
+
+  .workflow-heading {
+    margin-bottom: 2.4rem;
+  }
+
+  .workflow-shell {
+    display: grid;
+    grid-template-columns: minmax(0, 0.66fr) minmax(0, 1fr);
+    gap: 1.5rem;
+    align-items: start;
+  }
+
+  .workflow-summary {
+    position: sticky;
+    top: 1.5rem;
+  }
+
+  .summary-card,
+  .workflow-card,
+  .bento-card,
+  .faq-item,
+  .cta-card {
+    position: relative;
+    overflow: hidden;
+    background: rgba(255, 255, 255, 0.72);
+    border: 1px solid rgba(255, 255, 255, 0.92);
+    border-radius: 2rem;
+    box-shadow: var(--shadow);
+  }
+
+  .summary-card {
+    min-height: 26rem;
+    padding: 2rem;
+    background:
+      radial-gradient(
+        circle at top right,
+        rgba(216, 251, 52, 0.22),
+        transparent 30%
+      ),
+      rgba(255, 255, 255, 0.76);
+  }
+
+  .summary-line {
+    display: block;
+    width: 4.5rem;
+    height: 0.32rem;
+    margin-bottom: 1.3rem;
+    border-radius: 999px;
+    background: var(--accent);
+  }
+
+  .workflow-list {
+    display: grid;
+    gap: 1rem;
+  }
+
+  .workflow-card {
+    display: grid;
+    grid-template-columns: minmax(0, 0.9fr) minmax(16rem, 22rem);
+    gap: 1.5rem;
+    align-items: center;
+    padding: 1.25rem;
+  }
+
+  .workflow-card-copy {
+    padding: 1rem 0.4rem 1rem 0.55rem;
+  }
+
+  .workflow-index {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    width: 2.7rem;
+    height: 2.7rem;
+    margin-bottom: 1rem;
+    border-radius: 999px;
+    background: var(--surface-dark);
+    color: var(--accent);
+    font-size: 0.92rem;
+    font-weight: 700;
+    letter-spacing: 0.05em;
+  }
+
+  .workflow-shot {
+    padding: 1rem;
+    margin: 0;
+    border-radius: calc(2rem - 0.4rem);
+    background: linear-gradient(
+      180deg,
+      rgba(17, 19, 24, 0.07),
+      rgba(17, 19, 24, 0.01)
+    );
+  }
+
+  .features .section-intro {
+    margin-bottom: 2.2rem;
+  }
+
+  .feature-bento {
+    display: grid;
+    grid-template-columns: repeat(12, minmax(0, 1fr));
+    grid-auto-flow: dense;
+    gap: 1rem;
+  }
+
+  .bento-card {
+    padding: 1.4rem;
+  }
+
+  .bento-card-large {
+    grid-column: span 7;
+    min-height: 36rem;
+  }
+
+  .bento-card-dark {
+    grid-column: span 5;
+    color: white;
+    background: #12161d;
+    border-color: rgba(255, 255, 255, 0.06);
+  }
+
+  .bento-card:not(.bento-card-large):not(.bento-card-dark) {
+    grid-column: span 6;
+  }
+
+  .bento-copy {
+    max-width: 30rem;
+  }
+
+  .bento-copy p,
+  .bento-card-dark .bento-copy p {
+    color: var(--muted);
+  }
+
+  .bento-card-dark .bento-copy p {
+    color: rgba(255, 255, 255, 0.68);
+  }
+
+  .bento-double {
+    display: grid;
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    gap: 1rem;
+    margin-top: 2rem;
+  }
+
+  .bento-double img {
+    border-radius: 1.45rem;
+  }
+
+  .bento-card-dark img {
+    margin-top: 1.6rem;
+  }
+
+  .feature-list {
+    display: grid;
+    gap: 1.4rem;
+    height: 100%;
+    align-content: center;
+  }
+
+  .feature-list p {
+    color: var(--muted);
+  }
+
+  .profitability {
+    padding-bottom: 7.5rem;
+  }
+
+  .profit-shell {
+    display: grid;
+    grid-template-columns: minmax(0, 0.84fr) minmax(0, 1.16fr);
+    gap: 1.5rem;
+    padding: 2rem;
+    background: #111318;
+    color: white;
+    border-radius: 2.25rem;
+    box-shadow: var(--shadow-strong);
+  }
+
+  .profit-stats {
+    display: grid;
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+    gap: 1rem;
+    margin-top: 2rem;
+  }
+
+  .profit-stats > div {
+    padding: 1.1rem 1rem;
+    border-radius: 1.35rem;
+    background: rgba(255, 255, 255, 0.06);
+    border: 1px solid var(--line-dark);
+  }
+
+  .profit-visual {
+    position: relative;
+    min-height: 45rem;
+  }
+
+  .profit-device {
+    position: absolute;
+    width: min(21rem, 38vw);
+    margin: 0;
+  }
+
+  .profit-device-back {
+    left: 2%;
+    bottom: 0;
+    width: min(17rem, 31vw);
+    transform: rotate(-7deg);
+  }
+
+  .profit-device-front {
+    right: 2%;
+    top: 0;
+    transform: rotate(6deg);
+  }
+
+  .faq-shell {
+    display: grid;
+    grid-template-columns: minmax(0, 0.92fr) minmax(0, 0.78fr);
+    gap: 1.5rem;
+    align-items: start;
+  }
+
+  .faq-list {
+    display: grid;
+    gap: 0.9rem;
+  }
+
+  .faq-item {
+    padding: 1.2rem 1.35rem;
+  }
+
+  .faq-item summary {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 1rem;
+    list-style: none;
+    cursor: pointer;
+    font-size: 1.15rem;
+    font-weight: 600;
+    line-height: 1.35;
+  }
+
+  .faq-item summary::-webkit-details-marker {
+    display: none;
+  }
+
+  .faq-item summary::after {
+    content: "+";
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    flex: 0 0 auto;
+    width: 2rem;
+    height: 2rem;
+    border-radius: 999px;
+    background: rgba(17, 19, 24, 0.06);
+    color: var(--muted);
+    transition:
+      transform 220ms var(--ease-out),
+      background-color 220ms var(--ease-out),
+      color 220ms var(--ease-out);
+  }
+
+  .faq-item[data-open] summary::after {
+    transform: rotate(45deg);
+    background: var(--accent);
+    color: var(--text);
+  }
+
+  .faq-item p {
+    margin-top: 0.95rem;
+    color: var(--muted);
+  }
+
+  .faq-shot {
+    margin: 0;
+    padding: 1.4rem;
+    border-radius: 2rem;
+    background: rgba(255, 255, 255, 0.72);
+    border: 1px solid rgba(255, 255, 255, 0.9);
+    box-shadow: var(--shadow);
+  }
+
+  .cta-card {
+    display: flex;
+    align-items: flex-end;
+    justify-content: space-between;
+    gap: 1.5rem;
+    padding: 2rem;
+    background:
+      radial-gradient(
+        circle at 10% 0%,
+        rgba(216, 251, 52, 0.3),
+        transparent 26%
+      ),
+      linear-gradient(180deg, rgba(17, 19, 24, 0.96), rgba(17, 19, 24, 1));
+    color: white;
+    border-color: rgba(255, 255, 255, 0.08);
+  }
+
+  .cta-card p {
+    max-width: 38rem;
+    margin-top: 1rem;
+    color: rgba(255, 255, 255, 0.68);
+  }
+
+  .cta-actions {
+    display: flex;
+    flex-direction: column;
+    align-items: flex-end;
+    gap: 0.9rem;
+  }
+
+  .cta-note {
+    color: rgba(255, 255, 255, 0.64);
+    font-size: 0.98rem;
+  }
+
+  .site-footer {
+    display: flex;
+    justify-content: space-between;
+    gap: 1rem;
+    padding: 0 0 2.2rem;
+    color: var(--muted);
+    font-size: 0.95rem;
+  }
+
+  @media (hover: hover) and (pointer: fine) {
+    .nav-cta:hover,
+    .button:hover {
+      transform: translateY(-2px);
+    }
+
+    .nav-cta:hover .nav-cta-icon,
+    .button:hover .button-icon {
+      transform: translate3d(4px, -1px, 0) scale(1.04);
+    }
+
+    .hero-phone:hover,
+    .profit-device:hover {
+      transform: translateY(-10px) rotate(0deg);
+    }
+  }
+
+  @media (max-width: 1100px) {
+    .site-nav {
+      display: none;
+    }
+
+    .hero {
+      grid-template-columns: 1fr;
+      gap: 2rem;
+      min-height: auto;
+      padding-top: 4rem;
+    }
+
+    .hero h1 {
+      max-width: 10ch;
+    }
+
+    .hero-stage {
+      min-height: 34rem;
+    }
+
+    .hero-phone-main {
+      right: 18%;
+    }
+
+    .signal-band,
+    .workflow-shell,
+    .profit-shell,
+    .faq-shell,
+    .cta-card {
+      grid-template-columns: 1fr;
+    }
+
+    .signal-grid,
+    .profit-stats {
+      grid-template-columns: repeat(2, minmax(0, 1fr));
+    }
+
+    .workflow-summary {
+      position: static;
+    }
+
+    .summary-card {
+      min-height: auto;
+    }
+
+    .bento-card-large,
+    .bento-card-dark,
+    .bento-card:not(.bento-card-large):not(.bento-card-dark) {
+      grid-column: span 12;
+    }
+
+    .profit-visual {
+      min-height: 36rem;
+    }
+
+    .profit-device-front {
+      right: 10%;
+    }
+
+    .cta-actions {
+      align-items: flex-start;
+    }
+  }
+
+  @media (max-width: 767px) {
+    :root {
+      --content: calc(100vw - 24px);
+    }
+
+    .site-header {
+      padding: 1rem 1.1rem;
+      border-radius: 1.3rem;
+    }
+
+    .wordmark {
+      font-size: 0.88rem;
+      letter-spacing: 0.06em;
+    }
+
+    .nav-cta {
+      min-height: 3.1rem;
+      padding-left: 1rem;
+      font-size: 0.94rem;
+    }
+
+    .nav-cta span:first-child {
+      display: none;
+    }
+
+    .hero {
+      padding: 2.6rem 0 4.3rem;
+    }
+
+    .hero-copy,
+    .hero-kicker,
+    .hero-body {
+      max-width: 100%;
+    }
+
+    .hero-kicker {
+      padding-right: 0.25rem;
+      font-size: 0.98rem;
+      line-height: 1.65;
+    }
+
+    .hero h1 {
+      max-width: 7ch;
+      font-size: clamp(2.75rem, 12vw, 4rem);
+      line-height: 0.96;
+    }
+
+    .hero-body,
+    .signal-band p,
+    .workflow-heading p,
+    .section-intro p,
+    .profit-copy p,
+    .cta-card p,
+    .workflow-card p,
+    .signal-card p,
+    .bento-copy p,
+    .feature-list p,
+    .summary-card p,
+    .faq-item p {
+      font-size: 0.98rem;
+      line-height: 1.7;
+    }
+
+    .hero-body {
+      padding-right: 0.25rem;
+    }
+
+    .hero-actions,
+    .metric-row,
+    .signal-grid,
+    .profit-stats,
+    .bento-double {
+      grid-template-columns: 1fr;
+    }
+
+    .button,
+    .button-secondary,
+    .button-primary {
+      width: 100%;
+    }
+
+    .metric-row {
+      display: grid;
+    }
+
+    .hero-stage {
+      min-height: 24rem;
+      padding-bottom: 4rem;
+    }
+
+    .hero-phone-main {
+      position: relative;
+      top: auto;
+      right: auto;
+      width: min(18rem, 74vw);
+      margin: 0 auto;
+      transform: rotate(-6deg);
+    }
+
+    .hero-phone-side {
+      width: min(10.5rem, 42vw);
+    }
+
+    .hero-phone-side-left {
+      top: auto;
+      bottom: 0.5rem;
+      left: 0;
+    }
+
+    .hero-phone-side-right {
+      right: 0;
+      bottom: 1.3rem;
+    }
+
+    .section,
+    .profitability {
+      padding: 4.5rem 0;
+    }
+
+    .signal-band,
+    .profit-shell {
+      padding: 1.25rem;
+      border-radius: 1.75rem;
+    }
+
+    .signal-band h2,
+    .workflow-heading h2,
+    .section-intro h2,
+    .profit-copy h2,
+    .cta-card h2 {
+      font-size: clamp(2rem, 9vw, 2.7rem);
+      line-height: 1.02;
+    }
+
+    .workflow-card {
+      grid-template-columns: 1fr;
+      padding: 1rem;
+    }
+
+    .workflow-card-copy {
+      padding: 0.6rem 0.2rem 0;
+    }
+
+    .bento-card,
+    .faq-item,
+    .cta-card,
+    .faq-shot {
+      border-radius: 1.6rem;
+    }
+
+    .profit-visual {
+      min-height: auto;
+      display: flex;
+      flex-direction: column;
+      gap: 1rem;
+    }
+
+    .profit-device {
+      position: relative;
+      width: min(18rem, 74vw);
+      transform: none;
+    }
+
+    .profit-device-back,
+    .profit-device-front {
+      inset: auto;
+      right: auto;
+      left: auto;
+      top: auto;
+      bottom: auto;
+      margin: 0 auto;
+    }
+
+    .cta-card {
+      padding: 1.5rem;
+    }
+
+    .site-footer {
+      flex-direction: column;
+      padding-bottom: 1.5rem;
+      font-size: 0.9rem;
+    }
+  }
+
+  @media (prefers-reduced-motion: reduce) {
+    html {
+      scroll-behavior: auto;
+    }
+
+    *,
+    *::before,
+    *::after {
+      animation-duration: 0.01ms !important;
+      animation-iteration-count: 1 !important;
+      transition-duration: 0.01ms !important;
+      scroll-behavior: auto !important;
+    }
+  }
+</style>
