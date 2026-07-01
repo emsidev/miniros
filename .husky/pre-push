@@ -1,6 +1,3 @@
-#!/usr/bin/env sh
-. "$(dirname -- "$0")/_/husky.sh"
+export PATH="/c/Users/McJoseph/AppData/Local/pnpm:/c/Program Files/nodejs:$PATH"
 
-export PATH="/c/Program Files/nodejs:$HOME/AppData/Local/pnpm:$PATH"
-
-pnpm exec turbo run typecheck lint test
+cmd.exe /d /s /c '"%LOCALAPPDATA%\pnpm\pnpm.cmd" turbo run typecheck lint test'
