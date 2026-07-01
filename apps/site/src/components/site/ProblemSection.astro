@@ -3,8 +3,10 @@ import { problemCards } from "../../content/home";
 ---
 
 <section class="problem-band" id="problem">
-  <div class="problem-copy">
-    <p class="section-label section-label-dark">The real problem</p>
+  <div class="problem-copy reveal-target">
+    <p class="section-label section-label-dark">
+      <span aria-hidden="true">↯</span> The real problem
+    </p>
     <h2>
       Sales are easy to count.
       <span>Profit is the hard part.</span>
@@ -18,9 +20,9 @@ import { problemCards } from "../../content/home";
 
   <div class="problem-grid">
     {
-      problemCards.map((card) => (
-        <article class="problem-card">
-          <span aria-hidden="true">{card.icon}</span>
+      problemCards.map((card, index) => (
+        <article class={`problem-card problem-card-${index + 1} reveal-target`}>
+          <span class="problem-icon" aria-hidden="true">{card.icon}</span>
           <h3>{card.title}</h3>
           <p>{card.body}</p>
         </article>
