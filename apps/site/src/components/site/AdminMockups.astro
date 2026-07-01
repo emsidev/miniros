@@ -3,8 +3,10 @@ import { adminScreens, screens } from "../../content/home";
 ---
 
 <section class="admin-showcase section" id="admin">
-  <div class="section-heading">
-    <p class="section-label">Web app for admins</p>
+  <div class="section-heading reveal-target">
+    <p class="section-label">
+      <span aria-hidden="true">🧭</span> Web app for admins
+    </p>
     <h2>Admin controls for the work behind every booth.</h2>
     <p>
       Operators get the mobile POS flow. Admins get a desktop workspace for
@@ -13,7 +15,7 @@ import { adminScreens, screens } from "../../content/home";
     </p>
   </div>
 
-  <div class="admin-layout">
+  <div class="admin-layout reveal-target">
     <div class="desktop-shell">
       <div class="desktop-topbar">
         <div class="mock-window-dots" aria-hidden="true">
@@ -94,7 +96,7 @@ import { adminScreens, screens } from "../../content/home";
   <div class="admin-card-grid">
     {
       adminScreens.map((screen) => (
-        <article class="admin-feature-card">
+        <article class="admin-feature-card reveal-target">
           <span>{screen.label}</span>
           <strong>{screen.metric}</strong>
           <h3>{screen.title}</h3>
