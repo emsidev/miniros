@@ -1,0 +1,31 @@
+---
+import { faqs, screens } from "../../content/home";
+---
+
+<section class="faq section" id="faq">
+  <div class="faq-copy">
+    <p class="section-label">FAQ</p>
+    <h2>Questions? We have early answers.</h2>
+    <p>
+      MINIROS is pre-launch. The site should set the right expectation: join
+      early access first, then install later when the product is ready.
+    </p>
+  </div>
+
+  <div class="faq-layout">
+    <div class="faq-list">
+      {
+        faqs.map((item, index) => (
+          <details class="faq-item" open={index === 0}>
+            <summary>{item.question}</summary>
+            <p>{item.answer}</p>
+          </details>
+        ))
+      }
+    </div>
+
+    <figure class="faq-phone">
+      <img src={screens.shifts} alt="MINIROS mobile shifts screen" loading="lazy" />
+    </figure>
+  </div>
+</section>
