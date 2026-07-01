@@ -109,8 +109,9 @@ import "../styles/home.css";
           delay: 0.18,
         });
 
-        gsap.utils.toArray<HTMLElement>(".section, .problem-band").forEach(
-          (section) => {
+        gsap.utils
+          .toArray<HTMLElement>(".section, .problem-band, .trust-bar, .site-footer")
+          .forEach((section) => {
             gsap.fromTo(
               section,
               { opacity: 0.92, y: 34 },
@@ -125,8 +126,7 @@ import "../styles/home.css";
                 },
               },
             );
-          },
-        );
+          });
 
         gsap.utils.toArray<HTMLElement>(".reveal-target").forEach((element) => {
           gsap.fromTo(
