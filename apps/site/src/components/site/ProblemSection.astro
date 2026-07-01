@@ -1,0 +1,30 @@
+---
+import { problemCards } from "../../content/home";
+---
+
+<section class="problem-band" id="problem">
+  <div class="problem-copy">
+    <p class="section-label section-label-dark">The real problem</p>
+    <h2>
+      Sales are easy to count.
+      <span>Profit is the hard part.</span>
+    </h2>
+    <p>
+      Many sellers do not know if a location is actually profitable because
+      costs, inventory, and staff are tracked in different places or not tracked
+      at all.
+    </p>
+  </div>
+
+  <div class="problem-grid">
+    {
+      problemCards.map((card) => (
+        <article class="problem-card">
+          <span aria-hidden="true">{card.icon}</span>
+          <h3>{card.title}</h3>
+          <p>{card.body}</p>
+        </article>
+      ))
+    }
+  </div>
+</section>
