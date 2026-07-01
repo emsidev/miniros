@@ -3,8 +3,10 @@ import { metrics } from "../../content/home";
 ---
 
 <section class="metrics-band section" aria-label="MINIROS pilot goals">
-  <div>
-    <p class="section-label section-label-dark">Real numbers</p>
+  <div class="reveal-target">
+    <p class="section-label section-label-dark">
+      <span aria-hidden="true">✹</span> Real numbers
+    </p>
     <h2>
       Smarter shifts.
       <span>Stronger businesses.</span>
@@ -18,7 +20,7 @@ import { metrics } from "../../content/home";
   <div class="metrics-grid">
     {
       metrics.map((item) => (
-        <article class="metric-card">
+        <article class="metric-card reveal-target">
           <strong>{item.value}</strong>
           <span>{item.label}</span>
         </article>
