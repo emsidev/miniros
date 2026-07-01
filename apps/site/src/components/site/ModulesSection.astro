@@ -3,8 +3,10 @@ import { modules } from "../../content/home";
 ---
 
 <section class="modules section" id="features">
-  <div class="modules-copy">
-    <p class="section-label">Built for real operations</p>
+  <div class="modules-copy reveal-target">
+    <p class="section-label">
+      <span aria-hidden="true">✺</span> Built for real operations
+    </p>
     <h2>
       Everything you need.
       <span>Nothing you do not.</span>
@@ -18,8 +20,8 @@ import { modules } from "../../content/home";
   <div class="module-grid">
     {
       modules.map((item) => (
-        <article class="module-card">
-          <span class="module-icon" aria-hidden="true"></span>
+        <article class="module-card reveal-target">
+          <span class="module-icon" aria-hidden="true">{item.icon}</span>
           <div>
             <h3>{item.title}</h3>
             <p>{item.body}</p>
