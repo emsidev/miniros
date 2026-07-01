@@ -1,0 +1,47 @@
+---
+import { navItems } from "../../content/home";
+---
+
+<footer class="site-footer" id="early-access">
+  <section class="final-cta">
+    <div>
+      <p class="section-label section-label-dark">Ready to take control?</p>
+      <h2>
+        Track profit.
+        <span>Grow with confidence.</span>
+      </h2>
+      <p>
+        Join the early access list. MINIROS will open limited slots first for
+        pop-up sellers, booth owners, and small retail teams.
+      </p>
+    </div>
+
+    <form class="waitlist-form" aria-label="Early access placeholder form">
+      <label for="early-access-email">Email address</label>
+      <div>
+        <input
+          id="early-access-email"
+          name="email"
+          type="email"
+          placeholder="Enter your email"
+          autocomplete="email"
+        />
+        <button type="button">Join early access</button>
+      </div>
+      <small>Limited slots. Waitlist capture is not connected yet.</small>
+    </form>
+  </section>
+
+  <div class="footer-grid">
+    <a class="footer-brand" href="#top" aria-label="MINIROS home">
+      <strong>MINIROS</strong>
+      <span>Mini Retail Operations System</span>
+    </a>
+
+    <nav aria-label="Footer navigation">
+      {navItems.map((item) => <a href={item.href}>{item.label}</a>)}
+    </nav>
+
+    <p>© 2026 MINIROS. All rights reserved.</p>
+  </div>
+</footer>
