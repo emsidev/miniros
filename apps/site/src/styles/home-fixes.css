@@ -65,7 +65,7 @@
   width: min(20rem, 40%);
 }
 
-.workflow-phone {
+.workflow-stage-media {
   display: grid;
   place-items: start center;
   min-height: 0;
@@ -77,8 +77,8 @@
   box-shadow: none;
 }
 
-.workflow-phone img {
-  width: min(8.4rem, 92%);
+.workflow-stage-media img {
+  width: min(18rem, 88%);
   height: auto;
   object-fit: contain;
   border: 0;
@@ -170,7 +170,7 @@
     display: none;
   }
 
-  .workflow-phone img {
-    width: min(11rem, 92%);
+  .workflow-stage-media img {
+    width: min(14rem, 92%);
   }
 }

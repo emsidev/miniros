@@ -3,33 +3,40 @@ import { workflowSteps } from "../../content/home";
 ---
 
 <section class="workflow section" id="how-it-works">
-  <div class="section-heading centered reveal-target">
-    <p class="section-label">
-      <span aria-hidden="true">↬</span> How MINIROS works
-    </p>
-    <h2>
-      Run your shift.
-      <span>See your profit.</span>
-    </h2>
-    <p>
+  <div class="workflow-intro reveal-target">
+    <div class="workflow-intro-copy">
+      <p class="section-label">
+        <span aria-hidden="true">↬</span> How MINIROS works
+      </p>
+      <h2>
+        Run the booth with less friction.
+        <span>Leave with a profit answer.</span>
+      </h2>
+    </div>
+    <p class="workflow-intro-body">
       A selling day should move from opening stock to closeout without losing
-      the details that decide whether the location was worth it.
+      the numbers that decide whether the location was worth renting again.
     </p>
   </div>
 
-  <div class="step-line" aria-hidden="true">
-    {workflowSteps.map((step) => <span>{step.number}</span>)}
-  </div>
-
-  <div class="workflow-grid">
+  <div class="workflow-list">
     {
-      workflowSteps.map((step) => (
-        <article class="workflow-step reveal-target">
-          <div class="step-copy">
-            <h3>{step.title}</h3>
+      workflowSteps.map((step, index) => (
+        <article
+          class:list={[
+            "workflow-stage reveal-target",
+            index % 2 === 1 && "workflow-stage-reverse",
+          ]}
+        >
+          <div class="workflow-stage-copy">
+            <p class="workflow-stage-label">
+              <span>{step.number}</span>
+              {step.title}
+            </p>
+            <h3>{step.headline}</h3>
             <p>{step.body}</p>
           </div>
-          <figure class="workflow-phone">
+          <figure class="workflow-stage-media">
             <img src={step.image} alt={step.alt} loading="lazy" />
           </figure>
         </article>

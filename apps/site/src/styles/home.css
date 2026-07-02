@@ -37,11 +37,25 @@ body {
   min-width: 320px;
   overflow-x: hidden;
   background:
-    radial-gradient(circle at 8% 8%, rgba(217, 255, 53, 0.22), transparent 28rem),
-    radial-gradient(circle at 92% 10%, rgba(16, 19, 25, 0.1), transparent 22rem),
+    radial-gradient(
+      circle at 8% 8%,
+      rgba(217, 255, 53, 0.22),
+      transparent 28rem
+    ),
+    radial-gradient(
+      circle at 92% 10%,
+      rgba(16, 19, 25, 0.1),
+      transparent 22rem
+    ),
     linear-gradient(180deg, #fbf8f2 0%, #f7f3ec 48%, #f2ece1 100%);
   color: var(--text);
-  font-family: "Outfit", system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+  font-family:
+    "Outfit",
+    system-ui,
+    -apple-system,
+    BlinkMacSystemFont,
+    "Segoe UI",
+    sans-serif;
   text-rendering: geometricPrecision;
 }
 
@@ -116,7 +130,12 @@ button {
   left: 50%;
   width: min(36rem, 72vw);
   height: 1px;
-  background: linear-gradient(90deg, transparent, rgba(20, 24, 34, 0.16), transparent);
+  background: linear-gradient(
+    90deg,
+    transparent,
+    rgba(20, 24, 34, 0.16),
+    transparent
+  );
   transform: translateX(-50%);
 }
 
@@ -281,7 +300,9 @@ button {
 
 .site-nav a,
 .site-footer nav a {
-  transition: color 180ms var(--ease), transform 180ms var(--ease);
+  transition:
+    color 180ms var(--ease),
+    transform 180ms var(--ease);
 }
 
 .site-nav a:hover,
@@ -582,7 +603,11 @@ button {
 .final-cta {
   border-radius: var(--radius-xl);
   background:
-    radial-gradient(circle at 86% 10%, rgba(217, 255, 53, 0.18), transparent 20rem),
+    radial-gradient(
+      circle at 86% 10%,
+      rgba(217, 255, 53, 0.18),
+      transparent 20rem
+    ),
     linear-gradient(135deg, #101319, #171c24 65%, #101319);
   color: #fff;
   box-shadow: var(--shadow-strong);
@@ -632,7 +657,11 @@ button {
   border: 1px solid rgba(255, 255, 255, 0.13);
   border-radius: 1.4rem;
   background:
-    linear-gradient(145deg, rgba(255, 255, 255, 0.08), rgba(255, 255, 255, 0.03)),
+    linear-gradient(
+      145deg,
+      rgba(255, 255, 255, 0.08),
+      rgba(255, 255, 255, 0.03)
+    ),
     rgba(255, 255, 255, 0.04);
   transition:
     transform 220ms var(--ease),
@@ -718,65 +747,126 @@ button {
   line-height: 1.5;
 }
 
-.step-line {
+.workflow-intro {
+  display: grid;
+  grid-template-columns: minmax(0, 1.08fr) minmax(18rem, 0.72fr);
+  gap: 1.5rem 3rem;
+  align-items: end;
+  margin-bottom: 2rem;
+}
+
+.workflow-intro-copy {
+  max-width: 44rem;
+}
+
+.workflow-intro h2 {
+  margin: 0;
+  font-size: clamp(2.8rem, 5vw, 4.8rem);
+  line-height: 0.94;
+  letter-spacing: -0.07em;
+}
+
+.workflow-intro h2 span {
+  display: block;
+}
+
+.workflow-intro-body {
+  margin: 0;
+  max-width: 25rem;
+  color: var(--muted);
+  font-size: 1.02rem;
+  line-height: 1.7;
+}
+
+.workflow-list {
+  display: grid;
+  gap: 1.4rem;
+}
+
+.workflow-stage {
   position: relative;
   display: grid;
-  grid-template-columns: repeat(6, 1fr);
-  gap: 1rem;
-  margin: 2.2rem 0 1.5rem;
+  grid-template-columns: minmax(0, 0.86fr) minmax(0, 1.14fr);
+  gap: 2rem;
+  align-items: center;
+  padding: clamp(1.4rem, 2vw, 2rem);
+  border: 1px solid rgba(255, 255, 255, 0.72);
+  border-radius: 2rem;
+  background:
+    radial-gradient(
+      circle at top left,
+      rgba(217, 255, 53, 0.14),
+      transparent 20rem
+    ),
+    rgba(255, 255, 255, 0.74);
+  box-shadow: 0 24px 64px rgba(16, 19, 25, 0.08);
+  overflow: hidden;
 }
 
-.step-line::before {
+.workflow-stage::after {
   content: "";
   position: absolute;
-  top: 50%;
-  left: 2.5rem;
-  right: 2.5rem;
-  z-index: -1;
-  border-top: 1px dashed rgba(125, 146, 0, 0.4);
+  inset: auto -6rem -6rem auto;
+  width: 16rem;
+  height: 16rem;
+  border-radius: 50%;
+  background: radial-gradient(circle, rgba(16, 19, 25, 0.08), transparent 68%);
+  pointer-events: none;
 }
 
-.step-line span {
-  display: inline-grid;
-  place-items: center;
-  justify-self: center;
-  width: 2rem;
-  height: 2rem;
-  border-radius: 50%;
-  background: var(--accent);
-  color: #111318;
+.workflow-stage-reverse .workflow-stage-copy {
+  order: 2;
+}
+
+.workflow-stage-reverse .workflow-stage-media {
+  order: 1;
+}
+
+.workflow-stage-copy {
+  position: relative;
+  z-index: 1;
+  max-width: 27rem;
+  padding: 0.6rem 0;
+}
+
+.workflow-stage-label {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.8rem;
+  margin: 0 0 1rem;
+  color: #7d9200;
   font-size: 0.78rem;
   font-weight: 800;
+  letter-spacing: 0.16em;
+  text-transform: uppercase;
 }
 
-.workflow-grid {
-  display: grid;
-  grid-template-columns: repeat(6, minmax(0, 1fr));
-  gap: 1rem;
+.workflow-stage-label span {
+  display: inline-grid;
+  place-items: center;
+  width: 2.15rem;
+  height: 2.15rem;
+  border-radius: 999px;
+  background: var(--accent);
+  color: #111318;
+  letter-spacing: 0;
 }
 
-.workflow-step {
-  min-width: 0;
+.workflow-stage-copy h3 {
+  margin: 0 0 0.8rem;
+  font-size: clamp(2rem, 3.7vw, 3.55rem);
+  line-height: 0.94;
+  letter-spacing: -0.07em;
 }
 
-.step-copy {
-  min-height: 6.5rem;
-  text-align: center;
-}
-
-.step-copy h3 {
-  margin: 0 0 0.35rem;
-  font-size: 0.98rem;
-}
-
-.step-copy p {
+.workflow-stage-copy p:last-child {
   margin: 0;
   color: var(--muted);
-  font-size: 0.8rem;
-  line-height: 1.45;
+  font-size: 1rem;
+  line-height: 1.7;
 }
 
-.workflow-phone,
+.workflow-stage-media,
 .faq-phone,
 .admin-phone-card {
   overflow: hidden;
@@ -786,16 +876,48 @@ button {
   box-shadow: var(--shadow);
 }
 
-.workflow-phone {
-  min-height: 18rem;
+.workflow-stage-media {
+  position: relative;
+  display: grid;
+  place-items: center;
+  min-height: clamp(19rem, 34vw, 28rem);
+  padding: clamp(1.2rem, 3vw, 2rem);
+  border: 1px solid rgba(16, 19, 25, 0.08);
+  border-radius: 1.7rem;
+  background: linear-gradient(
+    180deg,
+    rgba(255, 255, 255, 0.94) 0%,
+    rgba(247, 243, 236, 0.9) 100%
+  );
+  box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.75);
 }
 
-.workflow-phone img,
+.workflow-stage-media::before {
+  content: "";
+  position: absolute;
+  inset: 1rem;
+  border-radius: 1.15rem;
+  background:
+    radial-gradient(circle at top, rgba(217, 255, 53, 0.2), transparent 55%),
+    linear-gradient(180deg, rgba(16, 19, 25, 0.04), transparent 65%);
+}
+
+.workflow-stage-media img,
 .faq-phone img,
 .admin-phone-card img {
-  width: 100%;
-  height: 100%;
-  object-fit: cover;
+  position: relative;
+  z-index: 1;
+  width: min(18rem, 100%);
+  height: auto;
+  object-fit: contain;
+  transition:
+    transform 420ms var(--ease),
+    filter 420ms var(--ease);
+}
+
+.workflow-stage:hover .workflow-stage-media img {
+  transform: scale(1.03);
+  filter: drop-shadow(0 28px 34px rgba(16, 19, 25, 0.18));
 }
 
 .modules {
@@ -830,7 +952,9 @@ button {
   gap: 1rem;
   min-height: 7.5rem;
   padding: 1.25rem;
-  transition: transform 220ms var(--ease), box-shadow 220ms var(--ease);
+  transition:
+    transform 220ms var(--ease),
+    box-shadow 220ms var(--ease);
 }
 
 .module-card:hover {
@@ -869,7 +993,7 @@ button {
 
 .admin-layout {
   display: grid;
-  grid-template-columns: minmax(0, 1fr) minmax(13rem, 0.24fr);
+  grid-template-columns: minmax(0, 1fr) minmax(16rem, 0.32fr);
   gap: 1.35rem;
   align-items: stretch;
 }
@@ -1059,7 +1183,9 @@ button {
 
 .admin-feature-card {
   padding: 1.2rem;
-  transition: transform 220ms var(--ease), box-shadow 220ms var(--ease);
+  transition:
+    transform 220ms var(--ease),
+    box-shadow 220ms var(--ease);
 }
 
 .admin-feature-card:hover {
@@ -1144,7 +1270,10 @@ button {
 
 .faq-item {
   overflow: hidden;
-  transition: border-color 200ms var(--ease), box-shadow 200ms var(--ease), transform 200ms var(--ease);
+  transition:
+    border-color 200ms var(--ease),
+    box-shadow 200ms var(--ease),
+    transform 200ms var(--ease);
 }
 
 .faq-item.is-open {
@@ -1174,7 +1303,9 @@ button {
   height: 1.8rem;
   border-radius: 50%;
   background: rgba(16, 19, 25, 0.06);
-  transition: transform 240ms var(--ease), background-color 240ms var(--ease);
+  transition:
+    transform 240ms var(--ease),
+    background-color 240ms var(--ease);
 }
 
 .faq-item.is-open .faq-plus {
@@ -1360,17 +1491,19 @@ button {
     grid-column: span 2;
   }
 
-  .workflow-grid {
-    grid-template-columns: repeat(3, minmax(0, 1fr));
+  .workflow-intro,
+  .workflow-stage,
+  .workflow-stage-reverse {
+    grid-template-columns: 1fr;
   }
 
-  .step-line {
-    display: none;
+  .workflow-stage {
+    gap: 1.25rem;
   }
 
-  .workflow-step {
-    display: grid;
-    gap: 1rem;
+  .workflow-stage-reverse .workflow-stage-copy,
+  .workflow-stage-reverse .workflow-stage-media {
+    order: initial;
   }
 
   .admin-layout,
@@ -1456,10 +1589,6 @@ button {
     max-width: none;
   }
 
-  .workflow-grid {
-    grid-template-columns: repeat(2, minmax(0, 1fr));
-  }
-
   .desktop-body {
     grid-template-columns: 1fr;
   }
@@ -1525,17 +1654,18 @@ button {
     bottom: 0;
   }
 
-  .workflow-grid {
-    grid-template-columns: 1fr;
+  .workflow-stage {
+    padding: 1.25rem;
+    border-radius: 1.5rem;
   }
 
-  .workflow-step {
-    max-width: 18rem;
-    margin-inline: auto;
+  .workflow-stage-copy h3 {
+    font-size: clamp(1.9rem, 9vw, 2.85rem);
   }
 
-  .workflow-phone {
-    min-height: 21rem;
+  .workflow-stage-media {
+    min-height: 19rem;
+    padding: 1rem;
   }
 
   .footer-brand {
