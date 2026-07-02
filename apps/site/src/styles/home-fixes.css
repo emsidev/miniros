@@ -11,10 +11,10 @@
 
 .hero-visual-orb {
   position: absolute;
-  right: 3rem;
-  top: 5rem;
-  width: 23rem;
-  height: 23rem;
+  right: 1.5rem;
+  top: 4rem;
+  width: 26rem;
+  height: 26rem;
   border-radius: 50%;
   background: radial-gradient(
     circle at 38% 35%,
@@ -28,12 +28,11 @@
 
 .hero-shot {
   position: absolute;
-  z-index: 3;
   margin: 0;
   border: 0;
   background: transparent;
   box-shadow: none;
-  filter: drop-shadow(0 30px 45px rgba(16, 19, 25, 0.18));
+  filter: drop-shadow(0 34px 52px rgba(16, 19, 25, 0.2));
 }
 
 .hero-shot img {
@@ -45,24 +44,25 @@
 }
 
 .hero-shot-admin {
-  left: 0;
-  top: 4.6rem;
+  left: 2.3rem;
+  top: 5.8rem;
   z-index: 1;
-  width: min(24rem, 50%);
+  width: min(20rem, 40%);
   transform: rotate(-7deg);
 }
 
 .hero-shot-main {
-  right: 8.5rem;
-  top: 0.4rem;
-  width: min(19rem, 39%);
+  right: 8rem;
+  top: -0.2rem;
+  z-index: 4;
+  width: min(23rem, 46%);
 }
 
 .hero-shot-side {
-  right: 0.2rem;
-  top: 8rem;
+  right: -0.4rem;
+  top: 6.8rem;
   z-index: 2;
-  width: min(17rem, 34%);
+  width: min(20rem, 40%);
 }
 
 .workflow-phone {
@@ -108,45 +108,62 @@
   .hero-visual {
     min-height: 38rem;
   }
+
+  .hero-shot-admin {
+    left: 1rem;
+    width: min(19rem, 42%);
+  }
+
+  .hero-shot-main {
+    right: 7rem;
+    width: min(21rem, 48%);
+  }
+
+  .hero-shot-side {
+    width: min(18rem, 40%);
+  }
 }
 
 @media (max-width: 860px) {
   .hero-visual {
-    min-height: 33rem;
+    min-height: 34rem;
   }
 
   .hero-shot-admin {
-    width: 64%;
+    width: 52%;
     left: 0;
-    top: 2rem;
+    top: 3rem;
   }
 
   .hero-shot-main {
-    width: 45%;
+    width: 48%;
     right: 4rem;
-    top: 4rem;
+    top: 2rem;
   }
 
   .hero-shot-side {
-    width: 40%;
+    width: 42%;
+    right: 0;
     top: 8rem;
   }
 }
 
 @media (max-width: 560px) {
   .hero-visual {
-    min-height: 29rem;
+    min-height: 30rem;
   }
 
   .hero-shot-admin {
-    width: 78%;
+    width: 70%;
+    left: -1.2rem;
+    top: 2.4rem;
     transform: rotate(-3deg);
   }
 
   .hero-shot-main {
-    width: 54%;
-    right: 4.2rem;
-    top: 8.4rem;
+    width: 58%;
+    right: 2.8rem;
+    top: 7rem;
   }
 
   .hero-shot-side {
