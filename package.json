@@ -20,6 +20,7 @@
     "*.{ts,tsx,js,mjs,cjs,json,md,css,astro}": "pnpm exec prettier --write"
   },
   "devDependencies": {
+    "@types/node": "^22.10.1",
     "@typescript-eslint/eslint-plugin": "^8.18.1",
     "@typescript-eslint/parser": "^8.18.1",
     "drizzle-kit": "^0.31.10",
