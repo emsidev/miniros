@@ -2,13 +2,16 @@ import Link from "next/link";
 import type { ReactNode } from "react";
 import { Store } from "lucide-react";
 import { MobileBottomNav } from "./mobile-bottom-nav";
+import { RealtimeRefresh } from "./realtime-refresh";
 
 export function AppShell({
   children,
   businessName,
+  businessId,
 }: {
   children: ReactNode;
   businessName?: string;
+  businessId?: string;
 }) {
   return (
     <div className="min-h-screen bg-background pb-24 md:pb-8">
@@ -36,6 +39,7 @@ export function AppShell({
       <main className="mx-auto w-full max-w-6xl px-4 py-6 sm:px-6">
         {children}
       </main>
+      {businessId ? <RealtimeRefresh businessId={businessId} /> : null}
       <MobileBottomNav />
     </div>
   );

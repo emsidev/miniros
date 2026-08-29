@@ -36,12 +36,16 @@
   execution from `PUBLIC`, `anon`, and `authenticated`.
 - The visual system uses warm oat surfaces, near-black controls, chartreuse accents,
   Outfit typography, rounded cards, and a mobile bottom navigation.
+- The existing `promo_rules.discount_value` column is retained for schema
+  compatibility: fixed promos are stored as two-decimal peso values and converted
+  to integer cents at POS calculation time; percentage promos are capped at 100% by
+  the server action.
 
 ## Local setup
 
 1. Enable the repository package manager: `corepack enable pnpm`.
 2. Install dependencies: `corepack pnpm install --frozen-lockfile`.
-3. Copy `.env.example` to `apps/web/.env.local` (or export the variables) and
+3. Copy `apps/web/.env.example` to `apps/web/.env.local` (or export the variables) and
    provide the required values below.
 4. Start the app: `corepack pnpm --filter @miniros/web dev`.
 5. Open `http://localhost:3000`.
@@ -136,9 +140,11 @@ credentials or direct database password were available for a destructive live fl
   baseline gates repaired.
 - Phase 1 — complete: canonical vertical slice implemented and verified as described
   above.
-- Phase 2 — deferred: settings depth, remaining reports and approval types, client
-  Realtime subscriptions, live offline queue synchronization, receiving/transfers,
-  and the full Bettercup demo seed.
+- Phase 2 — core depth complete: editable business settings, promo management with
+  POS application, sales/payment/product reporting, production overview, simple
+  stock receiving/transfers, and selective client Realtime refreshes are live.
+  Deferred Phase 2 items are live offline queue synchronization, the remaining
+  approval types, and the full Bettercup demo seed.
 - Phase 3 — explicitly deferred: advanced promotion campaigns, full background sync
   and conflict resolution, and unnamed scope.
 
@@ -150,5 +156,9 @@ credentials or direct database password were available for a destructive live fl
 - Add an orphan-object sweeper for the narrow payment-proof process-termination edge.
 - Link/create a Vercel project and deploy. No `.vercel/project.json` exists in this
   checkout; the production build and environment contract are deployment-ready.
-- Phase 2 and Phase 3 remain intentionally untouched beyond non-crashing Admin
-  placeholders for production setup, promos, and settings.
+- Add live offline queue synchronization and conflict handling when the server-side
+  sync endpoint and proof-blob handoff are finalized.
+- Add a safe, authenticated Bettercup demo-data seed and complete the remaining
+  sale-correction/refund/void approval workflows.
+- The e2e workspace and most non-domain packages still use placeholder test scripts;
+  the required domain math suite is covered and currently has 34 passing tests.

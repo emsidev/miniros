@@ -1,5 +1,5 @@
 import Link from "next/link";
-import { ArrowRight, Boxes, CookingPot } from "lucide-react";
+import { ArrowRight, Boxes, CookingPot, Truck } from "lucide-react";
 import { PageHeader } from "@/components/shared/layout";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 
@@ -15,6 +15,12 @@ const inventoryAreas = [
     title: "Product recipes",
     description: "Define what stock each sold product consumes.",
     icon: CookingPot,
+  },
+  {
+    href: "/admin/inventory/stock",
+    title: "Stock movements",
+    description: "Receive supplies and transfer stock between locations.",
+    icon: Truck,
   },
 ] as const;
 

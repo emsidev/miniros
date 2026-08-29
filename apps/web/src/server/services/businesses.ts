@@ -8,7 +8,12 @@ import {
 } from "@miniros/db/schema";
 import { and, asc, eq, isNull } from "drizzle-orm";
 import { cookies } from "next/headers";
-import { ACTIVE_BUSINESS_COOKIE, AccessError, requireUser } from "./access";
+import {
+  ACTIVE_BUSINESS_COOKIE,
+  AccessError,
+  requireActiveBusiness,
+  requireUser,
+} from "./access";
 import { claimMembershipInvitations } from "./invitations";
 
 function businessSlug(name: string, id: string) {
@@ -149,4 +154,71 @@ export async function switchActiveBusiness(businessId: string) {
 
   await setActiveBusinessCookie(businessId);
   return { businessId };
+}
+
+export async function getBusinessSettings() {
+  const { business } = await requireActiveBusiness({ admin: true });
+  const database = requireDatabase();
+  const [record] = await database
+    .select({
+      id: businesses.id,
+      name: businesses.name,
+      slug: businesses.slug,
+      status: businesses.status,
+      createdAt: businesses.createdAt,
+      updatedAt: businesses.updatedAt,
+    })
+    .from(businesses)
+    .where(
+      and(
+        eq(businesses.id, business.id),
+        eq(businesses.status, "active"),
+        isNull(businesses.deletedAt),
+      ),
+    )
+    .limit(1);
+
+  if (!record) throw new AccessError("Business not found.");
+  return record;
+}
+
+export async function updateBusinessSettings(input: { name: string }) {
+  const access = await requireActiveBusiness({ admin: true });
+  const name = input.name.trim();
+  const database = requireDatabase();
+
+  return database.transaction(async (tx) => {
+    const [updated] = await tx
+      .update(businesses)
+      .set({ name, updatedAt: new Date() })
+      .where(
+        and(
+          eq(businesses.id, access.business.id),
+          eq(businesses.status, "active"),
+          isNull(businesses.deletedAt),
+        ),
+      )
+      .returning({
+        id: businesses.id,
+        name: businesses.name,
+        slug: businesses.slug,
+        status: businesses.status,
+        updatedAt: businesses.updatedAt,
+      });
+
+    if (!updated) throw new AccessError("Business not found.");
+
+    await tx.insert(auditLogs).values({
+      id: randomUUID(),
+      businessId: access.business.id,
+      actorUserId: access.user.id,
+      actorEmployeeId: access.employee?.id ?? null,
+      action: "business.settings_updated",
+      entityType: "business",
+      entityId: access.business.id,
+      metadata: { name: updated.name },
+    });
+
+    return updated;
+  });
 }

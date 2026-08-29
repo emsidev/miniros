@@ -12,7 +12,11 @@ export default async function WorkspaceLayout({
     const { business, employee } = await requireActiveBusiness();
     if (!employee) redirect("/businesses");
 
-    return <AppShell businessName={business.name}>{children}</AppShell>;
+    return (
+      <AppShell businessName={business.name} businessId={business.id}>
+        {children}
+      </AppShell>
+    );
   } catch (error) {
     if (error instanceof AccessError) redirect("/businesses");
     throw error;

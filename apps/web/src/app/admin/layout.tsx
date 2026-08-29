@@ -31,6 +31,11 @@ export default async function AdminLayout({
   }
 
   return (
-    <AdminShell businessName={access.business.name}>{children}</AdminShell>
+    <AdminShell
+      businessName={access.business.name}
+      businessId={access.business.id}
+    >
+      {children}
+    </AdminShell>
   );
 }

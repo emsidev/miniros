@@ -15,6 +15,7 @@ import {
   UsersRound,
 } from "lucide-react";
 import { MobileBottomNav } from "./mobile-bottom-nav";
+import { RealtimeRefresh } from "./realtime-refresh";
 
 const items = [
   ["/admin/dashboard", "Dashboard", LayoutDashboard],
@@ -33,9 +34,11 @@ const items = [
 export function AdminShell({
   children,
   businessName,
+  businessId,
 }: {
   children: ReactNode;
   businessName: string;
+  businessId: string;
 }) {
   return (
     <div className="min-h-screen bg-background pb-24 md:grid md:grid-cols-[250px_1fr] md:pb-0">
@@ -81,6 +84,7 @@ export function AdminShell({
           {children}
         </main>
       </div>
+      <RealtimeRefresh businessId={businessId} />
       <MobileBottomNav variant="admin" />
     </div>
   );

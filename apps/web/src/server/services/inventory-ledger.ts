@@ -61,10 +61,16 @@ export async function applyInventoryDeltas(
   tx: OperationalTransaction,
   input: {
     businessId: string;
-    shiftId: string;
+    shiftId: string | null;
     inventoryLocationId: string;
     eventId: string;
-    eventType: "sale_deduction" | "production_input" | "adjustment";
+    eventType:
+      | "sale_deduction"
+      | "production_input"
+      | "adjustment"
+      | "receiving"
+      | "transfer_in"
+      | "transfer_out";
     sourceType: string;
     sourceId: string;
     employeeId: string | null;
