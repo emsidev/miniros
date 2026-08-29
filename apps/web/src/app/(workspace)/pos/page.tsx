@@ -18,7 +18,11 @@ export default async function PosPage({
         title="Point of sale"
         description={`${workspace.shift.locationName} · Complete sales, proofs, and recipe deductions together.`}
       />
-      <PosForm shiftId={workspace.shift.id} products={workspace.products} />
+      <PosForm
+        shiftId={workspace.shift.id}
+        products={workspace.products}
+        promos={workspace.promos}
+      />
     </div>
   );
 }

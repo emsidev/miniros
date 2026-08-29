@@ -2,7 +2,12 @@
 
 import { useMemo, useState, useTransition, type FormEvent } from "react";
 import { useRouter } from "next/navigation";
-import { addCents, multiplyCentsByQuantity } from "@miniros/domain";
+import {
+  addCents,
+  allocateDiscountCents,
+  multiplyCentsByQuantity,
+  percentageOfCents,
+} from "@miniros/domain";
 import type { PaymentMethod } from "@miniros/contracts";
 import { AlertCircle, Minus, Plus, ShoppingBag, Trash2 } from "lucide-react";
 
@@ -23,6 +28,12 @@ type Product = {
   categoryName: string | null;
   priceCents: number;
   requiresRecipeDeduction: boolean;
+};
+type Promo = {
+  id: string;
+  name: string;
+  discountType: "fixed_amount" | "percentage";
+  discountValue: number;
 };
 type PaymentDraft = {
   id: string;
@@ -52,9 +63,11 @@ function newPayment(method: PaymentMethod): PaymentDraft {
 export function PosForm({
   shiftId,
   products,
+  promos,
 }: {
   shiftId: string;
   products: readonly Product[];
+  promos: readonly Promo[];
 }) {
   const router = useRouter();
   const [isPending, startTransition] = useTransition();
@@ -62,6 +75,7 @@ export function PosForm({
   const [category, setCategory] = useState("all");
   const [cart, setCart] = useState<Record<string, number>>({});
   const [discount, setDiscount] = useState("0");
+  const [promoId, setPromoId] = useState("none");
   const [payments, setPayments] = useState<PaymentDraft[]>(() => [
     newPayment("cash"),
   ]);
@@ -99,7 +113,27 @@ export function PosForm({
     ),
   );
   const discountCents = Math.max(0, pesosToCents(discount) || 0);
-  const totalCents = Math.max(0, subtotalCents - discountCents);
+  const selectedPromo = promos.find((promo) => promo.id === promoId);
+  const promoDiscountCents = selectedPromo
+    ? selectedPromo.discountType === "fixed_amount"
+      ? Math.round(selectedPromo.discountValue * 100)
+      : percentageOfCents(subtotalCents, selectedPromo.discountValue)
+    : 0;
+  const appliedDiscountCents = selectedPromo
+    ? promoDiscountCents
+    : discountCents;
+  const totalCents = Math.max(0, subtotalCents - appliedDiscountCents);
+  const lineSubtotalsCents = cartLines.map((line) =>
+    multiplyCentsByQuantity(line.priceCents, line.quantity),
+  );
+  const lineDiscountsCents = allocateDiscountCents(
+    lineSubtotalsCents,
+    appliedDiscountCents,
+  );
+  const cartItems = cartLines.map((line, index) => ({
+    ...line,
+    lineDiscountCents: lineDiscountsCents[index] ?? 0,
+  }));
 
   function changeQuantity(productId: string, delta: number) {
     setCart((current) => {
@@ -124,6 +158,7 @@ export function PosForm({
   function resetSale() {
     setCart({});
     setDiscount("0");
+    setPromoId("none");
     setPayments([newPayment("cash")]);
     setSaleRequestId(crypto.randomUUID());
     setInventoryEventId(crypto.randomUUID());
@@ -156,11 +191,11 @@ export function PosForm({
         saleId,
         shiftId,
         inventoryEventId,
-        items: cartLines.map((line, index) => ({
+        items: cartItems.map((line) => ({
           id: crypto.randomUUID(),
           productId: line.id,
           quantity: line.quantity,
-          discountCents: index === 0 ? discountCents : 0,
+          discountCents: line.lineDiscountCents,
         })),
         payments: paymentRows.map((payment) => ({
           id: payment.id,
@@ -308,6 +343,25 @@ export function PosForm({
         )}
         <div className="grid gap-3 sm:grid-cols-2">
           <div>
+            <Label htmlFor="promo">Saved promo</Label>
+            <select
+              id="promo"
+              value={promoId}
+              onChange={(event) => setPromoId(event.target.value)}
+              className="h-10 w-full rounded-md border bg-background px-3"
+            >
+              <option value="none">No promo</option>
+              {promos.map((promo) => (
+                <option key={promo.id} value={promo.id}>
+                  {promo.name} ·{" "}
+                  {promo.discountType === "fixed_amount"
+                    ? `₱${promo.discountValue.toFixed(2)}`
+                    : `${promo.discountValue}%`}
+                </option>
+              ))}
+            </select>
+          </div>
+          <div>
             <Label htmlFor="discount">Manual discount (₱)</Label>
             <Input
               id="discount"
@@ -316,6 +370,7 @@ export function PosForm({
               step="0.01"
               value={discount}
               onChange={(event) => setDiscount(event.target.value)}
+              disabled={Boolean(selectedPromo)}
             />
           </div>
           <div className="rounded-xl bg-muted p-3 text-right">

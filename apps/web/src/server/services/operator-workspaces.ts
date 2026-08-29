@@ -7,11 +7,12 @@ import {
   productCategories,
   productRecipeItems,
   productionLogs,
+  promoRules,
   products,
   sales,
   shiftInventoryCounts,
 } from "@miniros/db/schema";
-import { and, asc, desc, eq, isNull, ne } from "drizzle-orm";
+import { and, asc, desc, eq, gte, isNull, lte, ne, or } from "drizzle-orm";
 
 import { AccessError } from "./access";
 import { resolveOperationalShift } from "./operator-workspace-core";
@@ -49,7 +50,8 @@ export async function getPosWorkspace(shiftId?: string) {
     statuses: ["active"],
   });
   const database = requireDatabase();
-  const [catalog, recentSales] = await Promise.all([
+  const now = new Date();
+  const [catalog, recentSales, promos] = await Promise.all([
     database
       .select({
         id: products.id,
@@ -93,9 +95,34 @@ export async function getPosWorkspace(shiftId?: string) {
       )
       .orderBy(desc(sales.soldAt))
       .limit(5),
+    database
+      .select({
+        id: promoRules.id,
+        name: promoRules.name,
+        discountType: promoRules.discountType,
+        discountValue: promoRules.discountValue,
+      })
+      .from(promoRules)
+      .where(
+        and(
+          eq(promoRules.businessId, access.business.id),
+          eq(promoRules.status, "active"),
+          or(isNull(promoRules.startsAt), lte(promoRules.startsAt, now)),
+          or(isNull(promoRules.endsAt), gte(promoRules.endsAt, now)),
+        ),
+      )
+      .orderBy(asc(promoRules.name)),
   ]);
 
-  return { shift, products: catalog, recentSales };
+  return {
+    shift,
+    products: catalog,
+    recentSales,
+    promos: promos.map((promo) => ({
+      ...promo,
+      discountValue: Number(promo.discountValue),
+    })),
+  };
 }
 
 export async function getProductionWorkspace(shiftId?: string) {

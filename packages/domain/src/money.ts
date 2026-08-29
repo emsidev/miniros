@@ -81,6 +81,49 @@ export function divideCents(amountCents: Cents, divisor: number): Cents {
   );
 }
 
+export function percentageOfCents(
+  amountCents: Cents,
+  percentage: number,
+): Cents {
+  assertNonNegativeCents(amountCents);
+  if (!Number.isFinite(percentage) || percentage < 0) {
+    throw new RangeError("percentage must not be negative.");
+  }
+
+  const percentageBasisPoints = Math.round(percentage * 100);
+  assertSafeInteger(percentageBasisPoints, "percentage basis points");
+  return bigintToSafeInteger(
+    divideAndRoundHalfAwayFromZero(
+      BigInt(amountCents) * BigInt(percentageBasisPoints),
+      10_000n,
+    ),
+    "percentage cents",
+  );
+}
+
+export function allocateDiscountCents(
+  lineSubtotalsCents: readonly Cents[],
+  discountCents: Cents,
+): Cents[] {
+  assertNonNegativeCents(discountCents, "discountCents");
+  let remainingCents = Math.min(
+    discountCents,
+    addCents(
+      ...lineSubtotalsCents.map((subtotal, index) => {
+        assertNonNegativeCents(subtotal, `lineSubtotalsCents[${index}]`);
+        return subtotal;
+      }),
+    ),
+  );
+
+  return lineSubtotalsCents.map((subtotal, index) => {
+    assertNonNegativeCents(subtotal, `lineSubtotalsCents[${index}]`);
+    const allocated = Math.min(subtotal, remainingCents);
+    remainingCents -= allocated;
+    return allocated;
+  });
+}
+
 export function splitCents(amountCents: Cents, partCount: number): Cents[] {
   assertCents(amountCents);
   assertSafeInteger(partCount, "partCount");

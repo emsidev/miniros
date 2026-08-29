@@ -6,12 +6,18 @@ import {
   LocationProfitBadge,
   ProfitBadge,
 } from "@/components/shared/feedback";
-import { DataCard, MetricCard, PageHeader } from "@/components/shared/layout";
+import {
+  DataCard,
+  MetricCard,
+  PageHeader,
+  SectionHeader,
+} from "@/components/shared/layout";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
-import { formatMoney } from "@/lib/format";
+import { formatMoney, formatPaymentMethod, formatQuantity } from "@/lib/format";
 import { listLocationProfitability } from "@/server/services/analytics";
+import { getSalesReport } from "@/server/services/sales-reports";
 
 export const dynamic = "force-dynamic";
 
@@ -64,7 +70,10 @@ export default async function ReportsPage({
     from: dateQueryValue(params.from),
     to: dateQueryValue(params.to),
   };
-  const locations = await listLocationProfitability(filters);
+  const [locations, salesReport] = await Promise.all([
+    listLocationProfitability(filters),
+    getSalesReport(filters),
+  ]);
 
   return (
     <div className="space-y-6">
@@ -91,6 +100,83 @@ export default async function ReportsPage({
           Apply dates
         </Button>
       </form>
+
+      <section className="space-y-3">
+        <SectionHeader
+          title="Sales snapshot"
+          description="Completed sales for the selected date range."
+        />
+        <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-4">
+          <MetricCard label="Completed sales" value={salesReport.saleCount} />
+          <MetricCard
+            label="Gross sales"
+            value={formatMoney(salesReport.grossSalesCents)}
+          />
+          <MetricCard
+            label="Discounts"
+            value={formatMoney(salesReport.totalDiscountsCents)}
+          />
+          <MetricCard
+            label="Net sales"
+            value={formatMoney(salesReport.netSalesCents)}
+            emphasis
+          />
+        </div>
+        <div className="grid gap-5 lg:grid-cols-2">
+          <DataCard>
+            <SectionHeader title="Payment mix" />
+            {salesReport.payments.length === 0 ? (
+              <p className="text-sm text-muted-foreground">
+                No payments in this range.
+              </p>
+            ) : (
+              <div className="space-y-3">
+                {salesReport.payments.map((payment) => (
+                  <div
+                    key={payment.paymentMethod}
+                    className="flex items-center justify-between gap-3 text-sm"
+                  >
+                    <div>
+                      <p className="font-semibold">
+                        {formatPaymentMethod(payment.paymentMethod)}
+                      </p>
+                      <p className="text-xs text-muted-foreground">
+                        {payment.count} payment{payment.count === 1 ? "" : "s"}
+                      </p>
+                    </div>
+                    <strong>{formatMoney(payment.amountCents)}</strong>
+                  </div>
+                ))}
+              </div>
+            )}
+          </DataCard>
+          <DataCard>
+            <SectionHeader title="Product sales" />
+            {salesReport.products.length === 0 ? (
+              <p className="text-sm text-muted-foreground">
+                No products sold in this range.
+              </p>
+            ) : (
+              <div className="space-y-3">
+                {salesReport.products.slice(0, 8).map((product) => (
+                  <div
+                    key={product.productName}
+                    className="flex items-center justify-between gap-3 text-sm"
+                  >
+                    <div>
+                      <p className="font-semibold">{product.productName}</p>
+                      <p className="text-xs text-muted-foreground">
+                        {formatQuantity(product.quantity)} sold
+                      </p>
+                    </div>
+                    <strong>{formatMoney(product.revenueCents)}</strong>
+                  </div>
+                ))}
+              </div>
+            )}
+          </DataCard>
+        </div>
+      </section>
 
       {locations.length === 0 ? (
         <EmptyState

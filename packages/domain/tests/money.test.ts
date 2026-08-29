@@ -1,9 +1,11 @@
 import { describe, expect, it } from "vitest";
 import {
   addCents,
+  allocateDiscountCents,
   divideCents,
   formatMoney,
   multiplyCentsByQuantity,
+  percentageOfCents,
   splitCents,
   subtractCents,
 } from "../src/money";
@@ -48,5 +50,16 @@ describe("money utilities", () => {
     expect(formatMoney(123456, { currency: "USD", locale: "en-US" })).toBe(
       "$1,234.56",
     );
+  });
+
+  it("calculates percentage discounts with cent-safe rounding", () => {
+    expect(percentageOfCents(1_000, 10)).toBe(100);
+    expect(percentageOfCents(1, 50)).toBe(1);
+    expect(() => percentageOfCents(100, -1)).toThrow(/negative/);
+  });
+
+  it("allocates a discount across line subtotals without exceeding a line", () => {
+    expect(allocateDiscountCents([100, 250, 300], 275)).toEqual([100, 175, 0]);
+    expect(allocateDiscountCents([100, 250], 500)).toEqual([100, 250]);
   });
 });
