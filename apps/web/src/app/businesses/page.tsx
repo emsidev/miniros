@@ -1,0 +1,102 @@
+import Link from "next/link";
+import { ArrowRight, Building2, Plus } from "lucide-react";
+import { redirect } from "next/navigation";
+import { PageHeader } from "@/components/shared/layout";
+import { Badge } from "@/components/ui/badge";
+import { Button } from "@/components/ui/button";
+import {
+  Card,
+  CardAction,
+  CardContent,
+  CardDescription,
+  CardHeader,
+  CardTitle,
+} from "@/components/ui/card";
+import { listBusinesses } from "@/server/services/businesses";
+
+export const dynamic = "force-dynamic";
+
+export default async function BusinessesPage() {
+  const businesses = await listBusinesses();
+
+  if (businesses.length === 0) {
+    redirect("/businesses/new");
+  }
+
+  return (
+    <>
+      <PageHeader
+        title="Choose a business"
+        description="Select the workspace you want to operate, or create a new one."
+        action={
+          <Button asChild className="h-11 rounded-xl">
+            <Link href="/businesses/new">
+              <Plus aria-hidden="true" />
+              New business
+            </Link>
+          </Button>
+        }
+      />
+
+      <div className="grid gap-4 sm:grid-cols-2">
+        {businesses.map((business) => {
+          const destination =
+            business.role === "owner" || business.role === "admin"
+              ? "/admin/dashboard"
+              : "/shifts";
+
+          return (
+            <Card
+              key={business.id}
+              className="rounded-2xl py-5 shadow-none transition-colors hover:border-foreground/30"
+            >
+              <CardHeader className="grid-cols-[1fr_auto] px-5">
+                <div className="flex min-w-0 items-center gap-3">
+                  <span className="grid size-11 shrink-0 place-items-center rounded-2xl bg-muted">
+                    <Building2 className="size-5" aria-hidden="true" />
+                  </span>
+                  <div className="min-w-0">
+                    <CardTitle className="truncate text-base font-bold">
+                      {business.name}
+                    </CardTitle>
+                    <CardDescription className="capitalize">
+                      {business.role}
+                    </CardDescription>
+                  </div>
+                </div>
+                <CardAction>
+                  {business.isActive ? (
+                    <Badge className="bg-emerald-100 text-emerald-800">
+                      Active
+                    </Badge>
+                  ) : null}
+                </CardAction>
+              </CardHeader>
+              <CardContent className="flex items-center gap-2 px-5">
+                {business.isActive ? (
+                  <Button asChild className="h-10 flex-1 rounded-xl">
+                    <Link href={destination}>
+                      Open workspace
+                      <ArrowRight aria-hidden="true" />
+                    </Link>
+                  </Button>
+                ) : (
+                  <Button
+                    asChild
+                    variant="outline"
+                    className="h-10 flex-1 rounded-xl"
+                  >
+                    <Link href={`/businesses/${business.id}/switch`}>
+                      Select business
+                      <ArrowRight aria-hidden="true" />
+                    </Link>
+                  </Button>
+                )}
+              </CardContent>
+            </Card>
+          );
+        })}
+      </div>
+    </>
+  );
+}

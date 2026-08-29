@@ -1,0 +1,51 @@
+import Link from "next/link";
+import { ArrowRight, Boxes, CookingPot } from "lucide-react";
+import { PageHeader } from "@/components/shared/layout";
+import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+
+const inventoryAreas = [
+  {
+    href: "/admin/inventory/items",
+    title: "Inventory items",
+    description: "Ingredients, consumables, packaging, and finished goods.",
+    icon: Boxes,
+  },
+  {
+    href: "/admin/inventory/recipes",
+    title: "Product recipes",
+    description: "Define what stock each sold product consumes.",
+    icon: CookingPot,
+  },
+] as const;
+
+export default function InventoryPage() {
+  return (
+    <>
+      <PageHeader
+        title="Inventory setup"
+        description="Build the stock catalog first, then connect sellable products to recipes."
+      />
+      <div className="grid gap-4 sm:grid-cols-2">
+        {inventoryAreas.map(({ href, title, description, icon: Icon }) => (
+          <Link key={href} href={href} className="group">
+            <Card className="h-full rounded-2xl py-5 shadow-none transition-colors group-hover:border-foreground/30">
+              <CardHeader className="flex-row items-center gap-3 px-5">
+                <span className="grid size-11 place-items-center rounded-2xl bg-accent text-accent-foreground">
+                  <Icon className="size-5" aria-hidden="true" />
+                </span>
+                <CardTitle className="font-bold">{title}</CardTitle>
+                <ArrowRight
+                  className="ml-auto size-4 text-muted-foreground"
+                  aria-hidden="true"
+                />
+              </CardHeader>
+              <CardContent className="px-5 text-sm leading-relaxed text-muted-foreground">
+                {description}
+              </CardContent>
+            </Card>
+          </Link>
+        ))}
+      </div>
+    </>
+  );
+}

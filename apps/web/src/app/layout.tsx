@@ -1,18 +1,33 @@
-import type { Metadata } from "next";
+import type { Metadata, Viewport } from "next";
+import { Outfit } from "next/font/google";
+import { Toaster } from "@/components/ui/sonner";
 import "./globals.css";
 
+const outfit = Outfit({ subsets: ["latin"], display: "swap" });
+
 export const metadata: Metadata = {
-  title: "MINIROS",
+  title: {
+    default: "MINIROS",
+    template: "%s · MINIROS",
+  },
   description:
-    "Mini Retail Operations System for pop-up sellers, now structured as a shared monorepo.",
+    "Track profit, not just sales. Know if your booth is worth renting again.",
+  manifest: "/manifest.webmanifest",
+};
+
+export const viewport: Viewport = {
+  themeColor: "#111318",
 };
 
 export default function RootLayout({
   children,
 }: Readonly<{ children: React.ReactNode }>) {
   return (
-    <html lang="en">
-      <body>{children}</body>
+    <html lang="en" className={outfit.className}>
+      <body>
+        {children}
+        <Toaster richColors position="top-center" />
+      </body>
     </html>
   );
 }

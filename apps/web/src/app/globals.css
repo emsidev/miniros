@@ -1,10 +1,130 @@
 @import "tailwindcss";
+@import "tw-animate-css";
+@import "shadcn/tailwind.css";
+
+@custom-variant dark (&:is(.dark *));
 
 :root {
   color-scheme: light;
+  --background: #f6f5f0;
+  --foreground: #111318;
+  --card: #ffffff;
+  --card-foreground: #111318;
+  --popover: #ffffff;
+  --popover-foreground: #111318;
+  --primary: #111318;
+  --primary-foreground: #ffffff;
+  --secondary: #ecebe5;
+  --secondary-foreground: #111318;
+  --muted: #ecebe5;
+  --muted-foreground: #778091;
+  --accent: #d9ff35;
+  --accent-foreground: #111318;
+  --destructive: #d92d20;
+  --border: #e4e3dd;
+  --input: #deddd7;
+  --ring: #9dbd00;
+  --chart-1: #111318;
+  --chart-2: #d9ff35;
+  --chart-3: #18a957;
+  --chart-4: #3983f7;
+  --chart-5: #e65b52;
+  --radius: 0.875rem;
+  --sidebar: #111318;
+  --sidebar-foreground: #ffffff;
+  --sidebar-primary: #d9ff35;
+  --sidebar-primary-foreground: #111318;
+  --sidebar-accent: #272a32;
+  --sidebar-accent-foreground: #ffffff;
+  --sidebar-border: #343741;
+  --sidebar-ring: #d9ff35;
 }
 
 body {
   margin: 0;
   min-height: 100vh;
+  text-rendering: optimizeLegibility;
+}
+
+@theme inline {
+  --font-heading:
+    "Outfit", "Outfit Fallback", ui-sans-serif, system-ui, sans-serif;
+  --font-sans:
+    "Outfit", "Outfit Fallback", ui-sans-serif, system-ui, sans-serif;
+  --color-sidebar-ring: var(--sidebar-ring);
+  --color-sidebar-border: var(--sidebar-border);
+  --color-sidebar-accent-foreground: var(--sidebar-accent-foreground);
+  --color-sidebar-accent: var(--sidebar-accent);
+  --color-sidebar-primary-foreground: var(--sidebar-primary-foreground);
+  --color-sidebar-primary: var(--sidebar-primary);
+  --color-sidebar-foreground: var(--sidebar-foreground);
+  --color-sidebar: var(--sidebar);
+  --color-chart-5: var(--chart-5);
+  --color-chart-4: var(--chart-4);
+  --color-chart-3: var(--chart-3);
+  --color-chart-2: var(--chart-2);
+  --color-chart-1: var(--chart-1);
+  --color-ring: var(--ring);
+  --color-input: var(--input);
+  --color-border: var(--border);
+  --color-destructive: var(--destructive);
+  --color-accent-foreground: var(--accent-foreground);
+  --color-accent: var(--accent);
+  --color-muted-foreground: var(--muted-foreground);
+  --color-muted: var(--muted);
+  --color-secondary-foreground: var(--secondary-foreground);
+  --color-secondary: var(--secondary);
+  --color-primary-foreground: var(--primary-foreground);
+  --color-primary: var(--primary);
+  --color-popover-foreground: var(--popover-foreground);
+  --color-popover: var(--popover);
+  --color-card-foreground: var(--card-foreground);
+  --color-card: var(--card);
+  --color-foreground: var(--foreground);
+  --color-background: var(--background);
+  --radius-sm: calc(var(--radius) * 0.6);
+  --radius-md: calc(var(--radius) * 0.8);
+  --radius-lg: var(--radius);
+  --radius-xl: calc(var(--radius) * 1.4);
+  --radius-2xl: calc(var(--radius) * 1.8);
+  --radius-3xl: calc(var(--radius) * 2.2);
+  --radius-4xl: calc(var(--radius) * 2.6);
+}
+
+.dark {
+  --background: #0d0f14;
+  --foreground: #f7f7f4;
+  --card: #171a21;
+  --card-foreground: #f7f7f4;
+  --popover: #171a21;
+  --popover-foreground: #f7f7f4;
+  --primary: #d9ff35;
+  --primary-foreground: #111318;
+  --secondary: #252830;
+  --secondary-foreground: #f7f7f4;
+  --muted: #252830;
+  --muted-foreground: #a1a7b3;
+  --accent: #d9ff35;
+  --accent-foreground: #111318;
+  --border: #2e323b;
+  --input: #343842;
+  --ring: #d9ff35;
+}
+
+@layer base {
+  * {
+    @apply border-border outline-ring/50;
+  }
+  body {
+    @apply bg-background text-foreground;
+  }
+  html {
+    @apply font-sans;
+  }
+}
+
+@layer utilities {
+  .safe-bottom {
+    padding-bottom: max(1rem, env(safe-area-inset-bottom));
+  }
 }

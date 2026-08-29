@@ -1,7 +1,10 @@
 {
   "extends": "../../packages/config/typescript/next.json",
   "compilerOptions": {
-    "baseUrl": "."
+    "baseUrl": ".",
+    "paths": {
+      "@/*": ["./src/*"]
+    }
   },
   "include": [
     "next-env.d.ts",
