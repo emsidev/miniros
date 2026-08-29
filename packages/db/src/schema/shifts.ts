@@ -1,5 +1,6 @@
 import {
   bigint,
+  check,
   date,
   index,
   pgTable,
@@ -8,6 +9,7 @@ import {
   uniqueIndex,
   uuid,
 } from "drizzle-orm/pg-core";
+import { sql } from "drizzle-orm";
 import { businesses } from "./business";
 import { employees } from "./employees";
 import {
@@ -94,6 +96,10 @@ export const shiftAssignments = pgTable(
     businessShiftEmployeeUnique: uniqueIndex(
       "shift_assignments_shift_employee_unique",
     ).on(table.shiftId, table.employeeId),
+    nonnegativeSalaryRate: check(
+      "shift_assignments_salary_rate_nonnegative",
+      sql`${table.salaryRateCents} >= 0`,
+    ),
   }),
 );
 
@@ -125,5 +131,9 @@ export const shiftCosts = pgTable(
   },
   (table) => ({
     shiftIdx: index("shift_costs_shift_id_idx").on(table.shiftId),
+    nonnegativeAmount: check(
+      "shift_costs_amount_nonnegative",
+      sql`${table.amountCents} >= 0`,
+    ),
   }),
 );

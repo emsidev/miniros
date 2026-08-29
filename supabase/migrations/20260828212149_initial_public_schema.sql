@@ -1,5 +1,5 @@
-CREATE SCHEMA "auth";
---> statement-breakpoint
+-- Supabase owns auth and auth.users. The Drizzle auth.users declaration exists
+-- only so public-table foreign keys are typed; this migration must not recreate it.
 CREATE TYPE "public"."business_status" AS ENUM('active', 'suspended', 'closed');--> statement-breakpoint
 CREATE TYPE "public"."closeout_status" AS ENUM('draft', 'submitted', 'approved', 'rejected');--> statement-breakpoint
 CREATE TYPE "public"."discount_type" AS ENUM('fixed_amount', 'percentage');--> statement-breakpoint
@@ -28,10 +28,6 @@ CREATE TYPE "public"."shift_assignment_status" AS ENUM('assigned', 'confirmed', 
 CREATE TYPE "public"."shift_cost_type" AS ENUM('rent', 'transport', 'other');--> statement-breakpoint
 CREATE TYPE "public"."shift_status" AS ENUM('scheduled', 'active', 'closing', 'closed', 'cancelled');--> statement-breakpoint
 CREATE TYPE "public"."stock_transfer_status" AS ENUM('draft', 'completed', 'cancelled');--> statement-breakpoint
-CREATE TABLE "auth"."users" (
-	"id" uuid PRIMARY KEY NOT NULL
-);
---> statement-breakpoint
 CREATE TABLE "profiles" (
 	"id" uuid PRIMARY KEY NOT NULL,
 	"full_name" text,
@@ -79,7 +75,8 @@ CREATE TABLE "employees" (
 	"can_log_production" boolean DEFAULT true NOT NULL,
 	"created_at" timestamp with time zone DEFAULT now() NOT NULL,
 	"updated_at" timestamp with time zone DEFAULT now() NOT NULL,
-	"deleted_at" timestamp with time zone
+	"deleted_at" timestamp with time zone,
+	CONSTRAINT "employees_default_shift_rate_nonnegative" CHECK ("employees"."default_shift_rate_cents" >= 0)
 );
 --> statement-breakpoint
 CREATE TABLE "product_categories" (
@@ -107,7 +104,9 @@ CREATE TABLE "products" (
 	"image_url" text,
 	"created_at" timestamp with time zone DEFAULT now() NOT NULL,
 	"updated_at" timestamp with time zone DEFAULT now() NOT NULL,
-	"deleted_at" timestamp with time zone
+	"deleted_at" timestamp with time zone,
+	CONSTRAINT "products_price_nonnegative" CHECK ("products"."price_cents" >= 0),
+	CONSTRAINT "products_cost_nonnegative" CHECK ("products"."cost_cents" >= 0)
 );
 --> statement-breakpoint
 CREATE TABLE "inventory_balances" (
@@ -157,7 +156,8 @@ CREATE TABLE "inventory_items" (
 	"status" "product_status" DEFAULT 'active' NOT NULL,
 	"created_at" timestamp with time zone DEFAULT now() NOT NULL,
 	"updated_at" timestamp with time zone DEFAULT now() NOT NULL,
-	"deleted_at" timestamp with time zone
+	"deleted_at" timestamp with time zone,
+	CONSTRAINT "inventory_items_unit_cost_nonnegative" CHECK ("inventory_items"."default_unit_cost_cents" >= 0)
 );
 --> statement-breakpoint
 CREATE TABLE "inventory_locations" (
@@ -180,7 +180,10 @@ CREATE TABLE "product_recipe_items" (
 	"inventory_item_id" uuid NOT NULL,
 	"quantity" numeric(14, 3) NOT NULL,
 	"unit" text NOT NULL,
-	"created_at" timestamp with time zone DEFAULT now() NOT NULL
+	"created_at" timestamp with time zone DEFAULT now() NOT NULL,
+	"updated_at" timestamp with time zone DEFAULT now() NOT NULL,
+	"deleted_at" timestamp with time zone,
+	CONSTRAINT "product_recipe_items_quantity_positive" CHECK ("product_recipe_items"."quantity" > 0)
 );
 --> statement-breakpoint
 CREATE TABLE "shift_inventory_counts" (
@@ -219,7 +222,8 @@ CREATE TABLE "shift_assignments" (
 	"salary_rate_cents" bigint DEFAULT 0 NOT NULL,
 	"status" "shift_assignment_status" DEFAULT 'assigned' NOT NULL,
 	"created_at" timestamp with time zone DEFAULT now() NOT NULL,
-	"updated_at" timestamp with time zone DEFAULT now() NOT NULL
+	"updated_at" timestamp with time zone DEFAULT now() NOT NULL,
+	CONSTRAINT "shift_assignments_salary_rate_nonnegative" CHECK ("shift_assignments"."salary_rate_cents" >= 0)
 );
 --> statement-breakpoint
 CREATE TABLE "shift_costs" (
@@ -232,7 +236,8 @@ CREATE TABLE "shift_costs" (
 	"notes" text,
 	"created_by" uuid,
 	"created_at" timestamp with time zone DEFAULT now() NOT NULL,
-	"updated_at" timestamp with time zone DEFAULT now() NOT NULL
+	"updated_at" timestamp with time zone DEFAULT now() NOT NULL,
+	CONSTRAINT "shift_costs_amount_nonnegative" CHECK ("shift_costs"."amount_cents" >= 0)
 );
 --> statement-breakpoint
 CREATE TABLE "shifts" (
@@ -278,7 +283,8 @@ CREATE TABLE "payments" (
 	"status" "payment_status" DEFAULT 'completed' NOT NULL,
 	"paid_at" timestamp with time zone DEFAULT now() NOT NULL,
 	"client_generated_id" uuid,
-	"created_at" timestamp with time zone DEFAULT now() NOT NULL
+	"created_at" timestamp with time zone DEFAULT now() NOT NULL,
+	CONSTRAINT "payments_amount_positive" CHECK ("payments"."amount_cents" > 0)
 );
 --> statement-breakpoint
 CREATE TABLE "sale_items" (
@@ -289,9 +295,12 @@ CREATE TABLE "sale_items" (
 	"product_name_snapshot" text NOT NULL,
 	"quantity" numeric(14, 3) NOT NULL,
 	"unit_price_cents" bigint NOT NULL,
+	"unit_cost_cents" bigint DEFAULT 0 NOT NULL,
 	"discount_cents" bigint DEFAULT 0 NOT NULL,
 	"line_total_cents" bigint NOT NULL,
-	"created_at" timestamp with time zone DEFAULT now() NOT NULL
+	"created_at" timestamp with time zone DEFAULT now() NOT NULL,
+	CONSTRAINT "sale_items_quantity_positive" CHECK ("sale_items"."quantity" > 0),
+	CONSTRAINT "sale_items_money_nonnegative" CHECK ("sale_items"."unit_price_cents" >= 0 and "sale_items"."unit_cost_cents" >= 0 and "sale_items"."discount_cents" >= 0 and "sale_items"."line_total_cents" >= 0)
 );
 --> statement-breakpoint
 CREATE TABLE "sales" (
@@ -310,7 +319,8 @@ CREATE TABLE "sales" (
 	"sold_at" timestamp with time zone DEFAULT now() NOT NULL,
 	"client_generated_id" uuid,
 	"created_at" timestamp with time zone DEFAULT now() NOT NULL,
-	"updated_at" timestamp with time zone DEFAULT now() NOT NULL
+	"updated_at" timestamp with time zone DEFAULT now() NOT NULL,
+	CONSTRAINT "sales_totals_nonnegative" CHECK ("sales"."subtotal_cents" >= 0 and "sales"."discount_cents" >= 0 and "sales"."total_cents" >= 0 and "sales"."amount_paid_cents" >= 0 and "sales"."change_cents" >= 0)
 );
 --> statement-breakpoint
 CREATE TABLE "production_logs" (
@@ -614,6 +624,7 @@ CREATE UNIQUE INDEX "business_members_business_auth_user_unique" ON "business_me
 CREATE UNIQUE INDEX "businesses_slug_unique" ON "businesses" USING btree ("slug");--> statement-breakpoint
 CREATE INDEX "employees_business_id_idx" ON "employees" USING btree ("business_id");--> statement-breakpoint
 CREATE INDEX "employees_member_id_idx" ON "employees" USING btree ("member_id");--> statement-breakpoint
+CREATE UNIQUE INDEX "employees_business_email_unique" ON "employees" USING btree ("business_id","email");--> statement-breakpoint
 CREATE INDEX "product_categories_business_id_idx" ON "product_categories" USING btree ("business_id");--> statement-breakpoint
 CREATE UNIQUE INDEX "product_categories_business_name_unique" ON "product_categories" USING btree ("business_id","name");--> statement-breakpoint
 CREATE INDEX "products_business_id_idx" ON "products" USING btree ("business_id");--> statement-breakpoint
@@ -628,6 +639,7 @@ CREATE INDEX "inventory_items_business_id_idx" ON "inventory_items" USING btree 
 CREATE UNIQUE INDEX "inventory_items_business_sku_unique" ON "inventory_items" USING btree ("business_id","sku");--> statement-breakpoint
 CREATE INDEX "inventory_locations_business_id_idx" ON "inventory_locations" USING btree ("business_id");--> statement-breakpoint
 CREATE INDEX "inventory_locations_shift_id_idx" ON "inventory_locations" USING btree ("shift_id");--> statement-breakpoint
+CREATE UNIQUE INDEX "inventory_locations_shift_id_unique" ON "inventory_locations" USING btree ("shift_id");--> statement-breakpoint
 CREATE INDEX "product_recipe_items_product_id_idx" ON "product_recipe_items" USING btree ("product_id");--> statement-breakpoint
 CREATE UNIQUE INDEX "product_recipe_items_product_item_unique" ON "product_recipe_items" USING btree ("product_id","inventory_item_id");--> statement-breakpoint
 CREATE UNIQUE INDEX "shift_inventory_counts_shift_item_type_unique" ON "shift_inventory_counts" USING btree ("shift_id","inventory_item_id","count_type");--> statement-breakpoint
@@ -650,6 +662,7 @@ CREATE UNIQUE INDEX "production_logs_business_client_generated_id_unique" ON "pr
 CREATE INDEX "cash_deductions_shift_id_idx" ON "cash_deductions" USING btree ("shift_id");--> statement-breakpoint
 CREATE INDEX "inventory_adjustments_shift_id_idx" ON "inventory_adjustments" USING btree ("shift_id");--> statement-breakpoint
 CREATE INDEX "sale_change_requests_sale_id_idx" ON "sale_change_requests" USING btree ("sale_id");--> statement-breakpoint
+CREATE UNIQUE INDEX "cash_reconciliations_closeout_id_unique" ON "cash_reconciliations" USING btree ("closeout_id");--> statement-breakpoint
 CREATE UNIQUE INDEX "shift_closeouts_shift_id_unique" ON "shift_closeouts" USING btree ("shift_id");--> statement-breakpoint
 CREATE UNIQUE INDEX "shift_closeouts_business_client_generated_id_unique" ON "shift_closeouts" USING btree ("business_id","client_generated_id");--> statement-breakpoint
 CREATE UNIQUE INDEX "shift_profit_summaries_shift_id_unique" ON "shift_profit_summaries" USING btree ("shift_id");--> statement-breakpoint

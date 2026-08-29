@@ -53,28 +53,36 @@ export const shiftCloseouts = pgTable(
   }),
 );
 
-export const cashReconciliations = pgTable("cash_reconciliations", {
-  id: uuid("id").primaryKey(),
-  businessId: uuid("business_id")
-    .notNull()
-    .references(() => businesses.id, { onDelete: "cascade" }),
-  closeoutId: uuid("closeout_id")
-    .notNull()
-    .references(() => shiftCloseouts.id, { onDelete: "cascade" }),
-  expectedCashCents: bigint("expected_cash_cents", { mode: "number" })
-    .default(0)
-    .notNull(),
-  actualCashCents: bigint("actual_cash_cents", { mode: "number" })
-    .default(0)
-    .notNull(),
-  cashDifferenceCents: bigint("cash_difference_cents", { mode: "number" })
-    .default(0)
-    .notNull(),
-  notes: text("notes"),
-  createdAt: timestamp("created_at", { withTimezone: true })
-    .defaultNow()
-    .notNull(),
-});
+export const cashReconciliations = pgTable(
+  "cash_reconciliations",
+  {
+    id: uuid("id").primaryKey(),
+    businessId: uuid("business_id")
+      .notNull()
+      .references(() => businesses.id, { onDelete: "cascade" }),
+    closeoutId: uuid("closeout_id")
+      .notNull()
+      .references(() => shiftCloseouts.id, { onDelete: "cascade" }),
+    expectedCashCents: bigint("expected_cash_cents", { mode: "number" })
+      .default(0)
+      .notNull(),
+    actualCashCents: bigint("actual_cash_cents", { mode: "number" })
+      .default(0)
+      .notNull(),
+    cashDifferenceCents: bigint("cash_difference_cents", { mode: "number" })
+      .default(0)
+      .notNull(),
+    notes: text("notes"),
+    createdAt: timestamp("created_at", { withTimezone: true })
+      .defaultNow()
+      .notNull(),
+  },
+  (table) => ({
+    closeoutUnique: uniqueIndex("cash_reconciliations_closeout_id_unique").on(
+      table.closeoutId,
+    ),
+  }),
+);
 
 export const shiftProfitSummaries = pgTable(
   "shift_profit_summaries",

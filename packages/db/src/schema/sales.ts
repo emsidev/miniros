@@ -1,5 +1,6 @@
 import {
   bigint,
+  check,
   index,
   pgTable,
   text,
@@ -8,6 +9,7 @@ import {
   uuid,
   numeric,
 } from "drizzle-orm/pg-core";
+import { sql } from "drizzle-orm";
 import { authUsers } from "./auth";
 import { businesses } from "./business";
 import { employees } from "./employees";
@@ -96,6 +98,10 @@ export const sales = pgTable(
     businessClientIdUnique: uniqueIndex(
       "sales_business_client_generated_id_unique",
     ).on(table.businessId, table.clientGeneratedId),
+    nonnegativeTotals: check(
+      "sales_totals_nonnegative",
+      sql`${table.subtotalCents} >= 0 and ${table.discountCents} >= 0 and ${table.totalCents} >= 0 and ${table.amountPaidCents} >= 0 and ${table.changeCents} >= 0`,
+    ),
   }),
 );
 
@@ -115,6 +121,9 @@ export const saleItems = pgTable(
     productNameSnapshot: text("product_name_snapshot").notNull(),
     quantity: numeric("quantity", { precision: 14, scale: 3 }).notNull(),
     unitPriceCents: bigint("unit_price_cents", { mode: "number" }).notNull(),
+    unitCostCents: bigint("unit_cost_cents", { mode: "number" })
+      .default(0)
+      .notNull(),
     discountCents: bigint("discount_cents", { mode: "number" })
       .default(0)
       .notNull(),
@@ -125,6 +134,14 @@ export const saleItems = pgTable(
   },
   (table) => ({
     saleIdx: index("sale_items_sale_id_idx").on(table.saleId),
+    positiveQuantity: check(
+      "sale_items_quantity_positive",
+      sql`${table.quantity} > 0`,
+    ),
+    nonnegativeMoney: check(
+      "sale_items_money_nonnegative",
+      sql`${table.unitPriceCents} >= 0 and ${table.unitCostCents} >= 0 and ${table.discountCents} >= 0 and ${table.lineTotalCents} >= 0`,
+    ),
   }),
 );
 
@@ -156,5 +173,9 @@ export const payments = pgTable(
     businessClientIdUnique: uniqueIndex(
       "payments_business_client_generated_id_unique",
     ).on(table.businessId, table.clientGeneratedId),
+    positiveAmount: check(
+      "payments_amount_positive",
+      sql`${table.amountCents} > 0`,
+    ),
   }),
 );

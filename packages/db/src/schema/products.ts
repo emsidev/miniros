@@ -1,6 +1,7 @@
 import {
   bigint,
   boolean,
+  check,
   index,
   pgTable,
   text,
@@ -8,6 +9,7 @@ import {
   uniqueIndex,
   uuid,
 } from "drizzle-orm/pg-core";
+import { sql } from "drizzle-orm";
 import { businesses } from "./business";
 import { productStatusEnum } from "./enums";
 
@@ -73,6 +75,14 @@ export const products = pgTable(
     businessSkuUnique: uniqueIndex("products_business_sku_unique").on(
       table.businessId,
       table.sku,
+    ),
+    nonnegativePrice: check(
+      "products_price_nonnegative",
+      sql`${table.priceCents} >= 0`,
+    ),
+    nonnegativeCost: check(
+      "products_cost_nonnegative",
+      sql`${table.costCents} >= 0`,
     ),
   }),
 );

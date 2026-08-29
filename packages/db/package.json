@@ -15,9 +15,9 @@
     "lint": "eslint src --ext .ts",
     "typecheck": "tsc --noEmit -p tsconfig.json",
     "test": "echo No db tests yet",
-    "db:generate": "drizzle-kit generate --config ../../drizzle.config.ts",
-    "db:migrate": "drizzle-kit migrate --config ../../drizzle.config.ts",
-    "db:studio": "drizzle-kit studio --config ../../drizzle.config.ts"
+    "db:generate": "pnpm --dir ../.. db:generate",
+    "db:migrate": "pnpm --dir ../.. db:migrate",
+    "db:studio": "pnpm --dir ../.. db:studio"
   },
   "dependencies": {
     "drizzle-orm": "^0.45.2",

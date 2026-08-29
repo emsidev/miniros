@@ -7,16 +7,18 @@ MINIROS uses a code-first database approach with Drizzle ORM.
 Schema modules live in:
 
 ```txt
-src/db/schema
+packages/db/src/schema
 ```
 
 Generated Drizzle migrations go to:
 
 ```txt
-supabase/migrations/drizzle
+supabase/migrations
 ```
 
-Hand-written Supabase platform migrations for RLS, storage policies, and realtime live in:
+Drizzle uses Supabase-compatible timestamp prefixes. Hand-written platform
+migrations for RLS, Data API grants, Storage, and Realtime share the same ordered
+migration directory:
 
 ```txt
 supabase/migrations

@@ -27,4 +27,13 @@ export function createDatabase(connectionString = process.env.DATABASE_URL) {
 export const db = process.env.DATABASE_URL
   ? createDatabase(process.env.DATABASE_URL)
   : null;
+
+export function requireDatabase() {
+  if (!db) {
+    throw new Error("DATABASE_URL is required for server workflows.");
+  }
+
+  return db;
+}
+
 export type Database = ReturnType<typeof createDatabase>;

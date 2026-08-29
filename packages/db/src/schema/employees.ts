@@ -1,12 +1,15 @@
 import {
   bigint,
   boolean,
+  check,
   index,
   pgTable,
   text,
   timestamp,
+  uniqueIndex,
   uuid,
 } from "drizzle-orm/pg-core";
+import { sql } from "drizzle-orm";
 import { businesses, businessMembers } from "./business";
 import { employeeStatusEnum } from "./enums";
 
@@ -42,5 +45,13 @@ export const employees = pgTable(
   (table) => ({
     businessIdx: index("employees_business_id_idx").on(table.businessId),
     memberIdx: index("employees_member_id_idx").on(table.memberId),
+    businessEmailUnique: uniqueIndex("employees_business_email_unique").on(
+      table.businessId,
+      table.email,
+    ),
+    nonnegativeShiftRate: check(
+      "employees_default_shift_rate_nonnegative",
+      sql`${table.defaultShiftRateCents} >= 0`,
+    ),
   }),
 );

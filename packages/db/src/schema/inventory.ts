@@ -1,6 +1,7 @@
 import {
   bigint,
   boolean,
+  check,
   index,
   numeric,
   pgTable,
@@ -9,6 +10,7 @@ import {
   uniqueIndex,
   uuid,
 } from "drizzle-orm/pg-core";
+import { sql } from "drizzle-orm";
 import { businesses } from "./business";
 import { employees } from "./employees";
 import {
@@ -52,6 +54,10 @@ export const inventoryItems = pgTable(
       table.businessId,
       table.sku,
     ),
+    nonnegativeUnitCost: check(
+      "inventory_items_unit_cost_nonnegative",
+      sql`${table.defaultUnitCostCents} >= 0`,
+    ),
   }),
 );
 
@@ -73,6 +79,10 @@ export const productRecipeItems = pgTable(
     createdAt: timestamp("created_at", { withTimezone: true })
       .defaultNow()
       .notNull(),
+    updatedAt: timestamp("updated_at", { withTimezone: true })
+      .defaultNow()
+      .notNull(),
+    deletedAt: timestamp("deleted_at", { withTimezone: true }),
   },
   (table) => ({
     productIdx: index("product_recipe_items_product_id_idx").on(
@@ -81,6 +91,10 @@ export const productRecipeItems = pgTable(
     productItemUnique: uniqueIndex(
       "product_recipe_items_product_item_unique",
     ).on(table.productId, table.inventoryItemId),
+    positiveQuantity: check(
+      "product_recipe_items_quantity_positive",
+      sql`${table.quantity} > 0`,
+    ),
   }),
 );
 
@@ -114,6 +128,9 @@ export const inventoryLocations = pgTable(
       table.businessId,
     ),
     shiftIdx: index("inventory_locations_shift_id_idx").on(table.shiftId),
+    shiftUnique: uniqueIndex("inventory_locations_shift_id_unique").on(
+      table.shiftId,
+    ),
   }),
 );
 

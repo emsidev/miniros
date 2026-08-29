@@ -1,5 +1,5 @@
 {
-  "id": "68cfa7d5-abeb-4f38-b868-6205e34ab819",
+  "id": "6c65d0ad-a809-4dac-9b61-0eed46ac53e8",
   "prevId": "00000000-0000-0000-0000-000000000000",
   "version": "7",
   "dialect": "postgresql",
@@ -463,6 +463,27 @@
           "concurrently": false,
           "method": "btree",
           "with": {}
+        },
+        "employees_business_email_unique": {
+          "name": "employees_business_email_unique",
+          "columns": [
+            {
+              "expression": "business_id",
+              "isExpression": false,
+              "asc": true,
+              "nulls": "last"
+            },
+            {
+              "expression": "email",
+              "isExpression": false,
+              "asc": true,
+              "nulls": "last"
+            }
+          ],
+          "isUnique": true,
+          "concurrently": false,
+          "method": "btree",
+          "with": {}
         }
       },
       "foreignKeys": {
@@ -488,7 +509,12 @@
       "compositePrimaryKeys": {},
       "uniqueConstraints": {},
       "policies": {},
-      "checkConstraints": {},
+      "checkConstraints": {
+        "employees_default_shift_rate_nonnegative": {
+          "name": "employees_default_shift_rate_nonnegative",
+          "value": "\"employees\".\"default_shift_rate_cents\" >= 0"
+        }
+      },
       "isRLSEnabled": false
     },
     "public.product_categories": {
@@ -775,7 +801,16 @@
       "compositePrimaryKeys": {},
       "uniqueConstraints": {},
       "policies": {},
-      "checkConstraints": {},
+      "checkConstraints": {
+        "products_price_nonnegative": {
+          "name": "products_price_nonnegative",
+          "value": "\"products\".\"price_cents\" >= 0"
+        },
+        "products_cost_nonnegative": {
+          "name": "products_cost_nonnegative",
+          "value": "\"products\".\"cost_cents\" >= 0"
+        }
+      },
       "isRLSEnabled": false
     },
     "public.inventory_balances": {
@@ -1310,7 +1345,12 @@
       "compositePrimaryKeys": {},
       "uniqueConstraints": {},
       "policies": {},
-      "checkConstraints": {},
+      "checkConstraints": {
+        "inventory_items_unit_cost_nonnegative": {
+          "name": "inventory_items_unit_cost_nonnegative",
+          "value": "\"inventory_items\".\"default_unit_cost_cents\" >= 0"
+        }
+      },
       "isRLSEnabled": false
     },
     "public.inventory_locations": {
@@ -1413,6 +1453,21 @@
           "concurrently": false,
           "method": "btree",
           "with": {}
+        },
+        "inventory_locations_shift_id_unique": {
+          "name": "inventory_locations_shift_id_unique",
+          "columns": [
+            {
+              "expression": "shift_id",
+              "isExpression": false,
+              "asc": true,
+              "nulls": "last"
+            }
+          ],
+          "isUnique": true,
+          "concurrently": false,
+          "method": "btree",
+          "with": {}
         }
       },
       "foreignKeys": {
@@ -1496,6 +1551,19 @@
           "primaryKey": false,
           "notNull": true,
           "default": "now()"
+        },
+        "updated_at": {
+          "name": "updated_at",
+          "type": "timestamp with time zone",
+          "primaryKey": false,
+          "notNull": true,
+          "default": "now()"
+        },
+        "deleted_at": {
+          "name": "deleted_at",
+          "type": "timestamp with time zone",
+          "primaryKey": false,
+          "notNull": false
         }
       },
       "indexes": {
@@ -1568,7 +1636,12 @@
       "compositePrimaryKeys": {},
       "uniqueConstraints": {},
       "policies": {},
-      "checkConstraints": {},
+      "checkConstraints": {
+        "product_recipe_items_quantity_positive": {
+          "name": "product_recipe_items_quantity_positive",
+          "value": "\"product_recipe_items\".\"quantity\" > 0"
+        }
+      },
       "isRLSEnabled": false
     },
     "public.shift_inventory_counts": {
@@ -1960,7 +2033,12 @@
       "compositePrimaryKeys": {},
       "uniqueConstraints": {},
       "policies": {},
-      "checkConstraints": {},
+      "checkConstraints": {
+        "shift_assignments_salary_rate_nonnegative": {
+          "name": "shift_assignments_salary_rate_nonnegative",
+          "value": "\"shift_assignments\".\"salary_rate_cents\" >= 0"
+        }
+      },
       "isRLSEnabled": false
     },
     "public.shift_costs": {
@@ -2081,7 +2159,12 @@
       "compositePrimaryKeys": {},
       "uniqueConstraints": {},
       "policies": {},
-      "checkConstraints": {},
+      "checkConstraints": {
+        "shift_costs_amount_nonnegative": {
+          "name": "shift_costs_amount_nonnegative",
+          "value": "\"shift_costs\".\"amount_cents\" >= 0"
+        }
+      },
       "isRLSEnabled": false
     },
     "public.shifts": {
@@ -2549,7 +2632,12 @@
       "compositePrimaryKeys": {},
       "uniqueConstraints": {},
       "policies": {},
-      "checkConstraints": {},
+      "checkConstraints": {
+        "payments_amount_positive": {
+          "name": "payments_amount_positive",
+          "value": "\"payments\".\"amount_cents\" > 0"
+        }
+      },
       "isRLSEnabled": false
     },
     "public.sale_items": {
@@ -2597,6 +2685,13 @@
           "type": "bigint",
           "primaryKey": false,
           "notNull": true
+        },
+        "unit_cost_cents": {
+          "name": "unit_cost_cents",
+          "type": "bigint",
+          "primaryKey": false,
+          "notNull": true,
+          "default": 0
         },
         "discount_cents": {
           "name": "discount_cents",
@@ -2668,7 +2763,16 @@
       "compositePrimaryKeys": {},
       "uniqueConstraints": {},
       "policies": {},
-      "checkConstraints": {},
+      "checkConstraints": {
+        "sale_items_quantity_positive": {
+          "name": "sale_items_quantity_positive",
+          "value": "\"sale_items\".\"quantity\" > 0"
+        },
+        "sale_items_money_nonnegative": {
+          "name": "sale_items_money_nonnegative",
+          "value": "\"sale_items\".\"unit_price_cents\" >= 0 and \"sale_items\".\"unit_cost_cents\" >= 0 and \"sale_items\".\"discount_cents\" >= 0 and \"sale_items\".\"line_total_cents\" >= 0"
+        }
+      },
       "isRLSEnabled": false
     },
     "public.sales": {
@@ -2882,7 +2986,12 @@
       "compositePrimaryKeys": {},
       "uniqueConstraints": {},
       "policies": {},
-      "checkConstraints": {},
+      "checkConstraints": {
+        "sales_totals_nonnegative": {
+          "name": "sales_totals_nonnegative",
+          "value": "\"sales\".\"subtotal_cents\" >= 0 and \"sales\".\"discount_cents\" >= 0 and \"sales\".\"total_cents\" >= 0 and \"sales\".\"amount_paid_cents\" >= 0 and \"sales\".\"change_cents\" >= 0"
+        }
+      },
       "isRLSEnabled": false
     },
     "public.production_logs": {
@@ -3551,7 +3660,23 @@
           "default": "now()"
         }
       },
-      "indexes": {},
+      "indexes": {
+        "cash_reconciliations_closeout_id_unique": {
+          "name": "cash_reconciliations_closeout_id_unique",
+          "columns": [
+            {
+              "expression": "closeout_id",
+              "isExpression": false,
+              "asc": true,
+              "nulls": "last"
+            }
+          ],
+          "isUnique": true,
+          "concurrently": false,
+          "method": "btree",
+          "with": {}
+        }
+      },
       "foreignKeys": {
         "cash_reconciliations_business_id_businesses_id_fk": {
           "name": "cash_reconciliations_business_id_businesses_id_fk",
