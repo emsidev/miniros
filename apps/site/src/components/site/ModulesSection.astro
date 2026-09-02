@@ -1,0 +1,32 @@
+---
+import { capabilityGroups } from "../../content/home";
+---
+
+<section class="section capabilities" id="capabilities">
+  <div class="section-intro compact">
+    <p class="section-context">Focused scope</p>
+    <h2>The tools that carry a selling day from setup to decision.</h2>
+    <p>
+      MINIROS stays narrow on purpose: shift selling, stock, production,
+      closeout, and location profitability.
+    </p>
+  </div>
+
+  <div class="capability-ledger">
+    {
+      capabilityGroups.map((group) => (
+        <article>
+          <div>
+            <h3>{group.title}</h3>
+            <p>{group.description}</p>
+          </div>
+          <ul>
+            {group.items.map((item) => (
+              <li>{item}</li>
+            ))}
+          </ul>
+        </article>
+      ))
+    }
+  </div>
+</section>

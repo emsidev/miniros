@@ -1,0 +1,2 @@
+-- MINIROS seed scaffold
+-- Keep empty until the first real local demo seed is defined.

@@ -1,0 +1,44 @@
+---
+import { navItems } from "../../content/home";
+import BrandMark from "./BrandMark.astro";
+---
+
+<footer class="site-footer" id="early-access">
+  <div class="footer-cta">
+    <div>
+      <p class="section-context">Early access</p>
+      <h2>Put the next location decision on a better record.</h2>
+      <p>
+        Join the early access list for pop-up sellers, booth owners, and small
+        retail teams.
+      </p>
+    </div>
+    <form class="waitlist-form" aria-label="Early access interest form">
+      <label for="early-access-email">Work email</label>
+      <div>
+        <input
+          id="early-access-email"
+          name="email"
+          type="email"
+          placeholder="you@example.com"
+          autocomplete="email"
+          required
+        />
+        <button type="submit">Join early access</button>
+      </div>
+      <small>Limited invitations will be sent before public availability.</small
+      >
+    </form>
+  </div>
+
+  <div class="footer-bottom">
+    <a class="footer-brand" href="#top">
+      <BrandMark variant="inverse" />
+      <span>MINIROS</span>
+    </a>
+    <nav aria-label="Footer navigation">
+      {navItems.map((item) => <a href={item.href}>{item.label}</a>)}
+    </nav>
+    <p>© 2026 MINIROS</p>
+  </div>
+</footer>

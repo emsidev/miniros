@@ -1,0 +1,36 @@
+---
+import { hiddenCosts } from "../../content/home";
+---
+
+<section class="section problem" id="problem">
+  <div class="section-intro">
+    <p class="section-context">A busy booth can still lose money.</p>
+    <h2>
+      Sales are easy to count. Profit is the operating record around them.
+    </h2>
+    <p>
+      A POS total cannot tell you whether a location worked when the expenses
+      and stock changes live in separate notes, chats, photos, and spreadsheets.
+    </p>
+  </div>
+
+  <div class="cost-ledger" aria-label="Costs included in location profit">
+    <div class="ledger-heading">
+      <span>What the shift must account for</span>
+      <strong>Beyond sales</strong>
+    </div>
+    <dl>
+      {
+        hiddenCosts.map(([term, detail]) => (
+          <div>
+            <dt>{term}</dt>
+            <dd>{detail}</dd>
+          </div>
+        ))
+      }
+    </dl>
+    <p class="ledger-result">
+      The result is a location decision, not another report to interpret.
+    </p>
+  </div>
+</section>

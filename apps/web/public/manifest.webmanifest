@@ -1,0 +1,17 @@
+{
+  "name": "MINIROS",
+  "short_name": "MINIROS",
+  "description": "Track profit, not just sales. Know if your booth is worth renting again.",
+  "start_url": "/",
+  "display": "standalone",
+  "background_color": "#F5F5F5",
+  "theme_color": "#111318",
+  "icons": [
+    {
+      "src": "/icon.svg",
+      "sizes": "any",
+      "type": "image/svg+xml",
+      "purpose": "any maskable"
+    }
+  ]
+}

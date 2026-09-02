@@ -1,0 +1,12 @@
+---
+import { audiences } from "../../content/home";
+---
+
+<section class="audience-strip" aria-label="Who MINIROS is for">
+  <div>
+    <strong>One operating record for location-based retail.</strong>
+    <ul>
+      {audiences.map((audience) => <li>{audience}</li>)}
+    </ul>
+  </div>
+</section>

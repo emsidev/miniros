@@ -1,0 +1,25 @@
+---
+import { faqs } from "../../content/home";
+---
+
+<section class="section faq" id="faq">
+  <div class="faq-heading">
+    <p class="section-context">Practical answers</p>
+    <h2>What teams need to know before the first shift.</h2>
+    <p>MINIROS is being prepared for early access with a focused MVP scope.</p>
+  </div>
+
+  <div class="faq-list">
+    {
+      faqs.map((item) => (
+        <details>
+          <summary>
+            {item.question}
+            <span aria-hidden="true">+</span>
+          </summary>
+          <p>{item.answer}</p>
+        </details>
+      ))
+    }
+  </div>
+</section>

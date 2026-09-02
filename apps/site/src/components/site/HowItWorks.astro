@@ -1,0 +1,43 @@
+---
+import { workflowSteps } from "../../content/home";
+---
+
+<section class="section workflow" id="how-it-works">
+  <div class="workflow-heading">
+    <div>
+      <p class="section-context">The operating loop</p>
+      <h2>Open cleanly. Sell quickly. Close with the full picture.</h2>
+    </div>
+    <p>
+      Each step preserves the numbers needed for the final profitability answer.
+      The order matters because the closeout is only as reliable as the shift
+      record before it.
+    </p>
+  </div>
+
+  <div class="workflow-list">
+    {
+      workflowSteps.map((step) => (
+        <article class="workflow-item">
+          <div class="workflow-copy">
+            <p class="step-label">
+              <span>{step.number}</span>
+              {step.title}
+            </p>
+            <h3>{step.headline}</h3>
+            <p>{step.body}</p>
+          </div>
+          <figure>
+            {step.title === "Sell" ? (
+              <div class="live-device workflow-device">
+                <img src={step.image} alt={step.alt} loading="lazy" />
+              </div>
+            ) : (
+              <img src={step.image} alt={step.alt} loading="lazy" />
+            )}
+          </figure>
+        </article>
+      ))
+    }
+  </div>
+</section>

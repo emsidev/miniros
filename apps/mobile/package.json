@@ -1,0 +1,29 @@
+{
+  "name": "@miniros/mobile",
+  "version": "0.1.0",
+  "private": true,
+  "main": "./index.js",
+  "scripts": {
+    "dev": "expo start",
+    "build": "expo export --platform web",
+    "lint": "eslint . --ext .ts,.tsx,.js",
+    "typecheck": "tsc --noEmit -p tsconfig.json",
+    "test": "echo No mobile tests yet"
+  },
+  "dependencies": {
+    "@babel/runtime": "7.29.7",
+    "@expo/metro-runtime": "~4.0.1",
+    "@miniros/contracts": "workspace:*",
+    "@miniros/domain": "workspace:*",
+    "@miniros/ui": "workspace:*",
+    "expo": "~52.0.28",
+    "expo-status-bar": "~2.0.1",
+    "react": "18.3.1",
+    "react-dom": "18.3.1",
+    "react-native": "0.76.6",
+    "react-native-web": "^0.19.13"
+  },
+  "devDependencies": {
+    "@types/react": "^18.3.12"
+  }
+}

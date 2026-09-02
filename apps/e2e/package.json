@@ -1,0 +1,12 @@
+{
+  "name": "@miniros/e2e",
+  "version": "0.1.0",
+  "private": true,
+  "scripts": {
+    "dev": "echo Add e2e tooling when the first shared flow is stable",
+    "build": "echo No build step for e2e yet",
+    "lint": "eslint src --ext .ts",
+    "typecheck": "tsc --noEmit -p tsconfig.json",
+    "test": "echo No e2e specs yet"
+  }
+}

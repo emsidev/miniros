@@ -1,0 +1,15 @@
+{
+  "name": "@miniros/config",
+  "version": "0.1.0",
+  "private": true,
+  "type": "module",
+  "exports": {
+    "./eslint/base": "./eslint/base.cjs",
+    "./eslint/next": "./eslint/next.cjs",
+    "./eslint/node": "./eslint/node.cjs",
+    "./typescript/base": "./typescript/base.json",
+    "./typescript/next": "./typescript/next.json",
+    "./typescript/node": "./typescript/node.json",
+    "./typescript/react-native": "./typescript/react-native.json"
+  }
+}
