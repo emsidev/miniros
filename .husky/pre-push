@@ -1,3 +1,1 @@
-export PATH="/c/Users/McJoseph/AppData/Local/pnpm:/c/Program Files/nodejs:$PATH"
-
-cmd.exe /d /s /c '"%LOCALAPPDATA%\pnpm\pnpm.cmd" turbo run typecheck lint test'
+pnpm exec turbo run typecheck lint test
