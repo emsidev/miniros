@@ -6,7 +6,7 @@ export async function createClient() {
   const cookieStore = await cookies();
   const { url, publishableKey } = getSupabasePublicEnv();
 
-  return createServerClient(url, publishableKey, {
+  const client = createServerClient(url, publishableKey, {
     cookies: {
       getAll() {
         return cookieStore.getAll();
@@ -22,4 +22,8 @@ export async function createClient() {
       },
     },
   });
+
+  // Server-side relational queries go through Drizzle. This client exists only
+  // for cookie-aware Supabase Auth operations.
+  return client as Pick<typeof client, "auth">;
 }

@@ -161,7 +161,7 @@ export default async function AdminDashboardPage() {
           }
         />
         {dashboard.recentCloseouts.length === 0 ? (
-          <p className="rounded-2xl border bg-card p-5 text-sm text-muted-foreground">
+          <p className="rounded-xl border bg-card p-5 text-sm text-muted-foreground">
             No shift closeouts yet.
           </p>
         ) : (

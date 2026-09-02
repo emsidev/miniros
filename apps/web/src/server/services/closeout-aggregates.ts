@@ -1,6 +1,7 @@
 import {
   cashDeductions,
   payments,
+  saleItems,
   sales,
   shiftAssignments,
   shiftCosts,
@@ -9,6 +10,7 @@ import {
   addCents,
   assertNonNegativeCents,
   calculateShiftProfit,
+  multiplyCentsByQuantity,
   subtractCents,
 } from "@miniros/domain";
 import { and, eq, ne, sql } from "drizzle-orm";
@@ -30,20 +32,43 @@ export async function aggregateCloseoutFinancials(
   businessId: string,
   shiftId: string,
 ) {
-  const [saleTotals] = await tx
-    .select({
-      gross: sql<string>`coalesce(sum(${sales.totalCents}), 0)`,
-      discounts: sql<string>`coalesce(sum(${sales.discountCents}), 0)`,
-      change: sql<string>`coalesce(sum(${sales.changeCents}), 0)`,
-    })
-    .from(sales)
-    .where(
-      and(
-        eq(sales.businessId, businessId),
-        eq(sales.shiftId, shiftId),
-        eq(sales.status, "completed"),
+  const [saleTotalRows, productCostRows] = await Promise.all([
+    tx
+      .select({
+        gross: sql<string>`coalesce(sum(${sales.totalCents}), 0)`,
+        discounts: sql<string>`coalesce(sum(${sales.discountCents}), 0)`,
+        change: sql<string>`coalesce(sum(${sales.changeCents}), 0)`,
+      })
+      .from(sales)
+      .where(
+        and(
+          eq(sales.businessId, businessId),
+          eq(sales.shiftId, shiftId),
+          eq(sales.status, "completed"),
+        ),
       ),
-    );
+    tx
+      .select({
+        unitCostCents: saleItems.unitCostCents,
+        quantity: saleItems.quantity,
+      })
+      .from(saleItems)
+      .innerJoin(
+        sales,
+        and(
+          eq(sales.id, saleItems.saleId),
+          eq(sales.businessId, saleItems.businessId),
+        ),
+      )
+      .where(
+        and(
+          eq(saleItems.businessId, businessId),
+          eq(sales.shiftId, shiftId),
+          eq(sales.status, "completed"),
+        ),
+      ),
+  ]);
+  const saleTotals = saleTotalRows[0];
   const [paymentTotals] = await tx
     .select({
       cash: sql<string>`coalesce(sum(case when ${payments.paymentMethod} = 'cash' then ${payments.amountCents} else 0 end), 0)`,
@@ -123,6 +148,11 @@ export async function aggregateCloseoutFinancials(
     deductionTotals?.approved,
     "approvedDeductionsCents",
   );
+  const productCostCents = addCents(
+    ...productCostRows.map((item) =>
+      multiplyCentsByQuantity(item.unitCostCents, item.quantity),
+    ),
+  );
   const summary = calculateShiftProfit({
     grossSalesCents,
     totalDiscountsCents: aggregateCents(
@@ -139,6 +169,7 @@ export async function aggregateCloseoutFinancials(
       "transportCostCents",
     ),
     otherCostsCents: aggregateCents(costTotals?.other, "otherCostsCents"),
+    productCostCents,
     approvedDeductionsCents,
   });
 

@@ -34,10 +34,14 @@ export default async function AdminShiftDetailPage({
         description={`${shift.locationName} · ${formatDate(shift.shiftDate)}`}
         action={<StatusBadge status={shift.status} />}
       />
-      <div className="grid gap-3 sm:grid-cols-3">
+      <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-4">
         <MetricCard
           label="Gross sales"
           value={formatMoney(shift.grossSalesCents ?? 0)}
+        />
+        <MetricCard
+          label="Product costs"
+          value={formatMoney(shift.productCostCents ?? 0)}
         />
         <MetricCard
           label="Total costs"

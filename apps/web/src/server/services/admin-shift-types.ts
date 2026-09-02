@@ -6,28 +6,19 @@ export type ShiftAssignmentInput = {
   salaryRateCents: number;
 };
 
-export type ShiftWriteInput = {
+type ShiftDetailsInput = {
   sellingLocationId: string;
-  title: string | null;
-  shiftDate: string;
-  scheduledStartAt: string | null;
-  scheduledEndAt: string | null;
-  notes: string | null;
+  title: string;
   assignments: ShiftAssignmentInput[];
-  rentalCostCents?: number;
-  transportCostCents?: number;
-  otherCostCents: number;
-  otherCostLabel: string | null;
 };
 
-export type ShiftUpdateInput = ShiftWriteInput & {
-  status: "scheduled" | "cancelled";
+export type ShiftCreateInput = ShiftDetailsInput & {
+  shiftDates: string[];
 };
 
-export function nullableText(value: string | null) {
-  const normalized = value?.trim();
-  return normalized ? normalized : null;
-}
+export type ShiftUpdateInput = ShiftDetailsInput & {
+  shiftDate: string;
+};
 
 export function assertAssignments(assignments: ShiftAssignmentInput[]) {
   if (assignments.length === 0) {
@@ -46,7 +37,7 @@ export function assertAssignments(assignments: ShiftAssignmentInput[]) {
   }
 }
 
-function isValidShiftDate(value: string) {
+export function isValidShiftDate(value: string) {
   const match = /^(\d{4})-(\d{2})-(\d{2})$/.exec(value);
   if (!match) return false;
   const year = Number(match[1]);
@@ -60,27 +51,33 @@ function isValidShiftDate(value: string) {
   );
 }
 
-export function assertShiftInput(input: ShiftWriteInput) {
-  const start = input.scheduledStartAt
-    ? new Date(input.scheduledStartAt)
-    : null;
-  const end = input.scheduledEndAt ? new Date(input.scheduledEndAt) : null;
-
-  if (start && Number.isNaN(start.getTime())) {
-    throw new AccessError("Scheduled start time is invalid.");
-  }
-  if (end && Number.isNaN(end.getTime())) {
-    throw new AccessError("Scheduled end time is invalid.");
-  }
-  if (start && end && end <= start) {
-    throw new AccessError("Scheduled end time must be after the start time.");
-  }
-  if (!isValidShiftDate(input.shiftDate)) {
-    throw new AccessError("Shift date must be a valid YYYY-MM-DD date.");
+function assertShiftDetails(input: ShiftDetailsInput) {
+  if (!input.title.trim()) {
+    throw new AccessError("Enter a shift title.");
   }
   assertAssignments(input.assignments);
+}
 
-  if (input.otherCostCents > 0 && !nullableText(input.otherCostLabel)) {
-    throw new AccessError("Add a label for the other shift cost.");
+export function assertShiftCreateInput(input: ShiftCreateInput) {
+  assertShiftDetails(input);
+  if (input.shiftDates.length === 0) {
+    throw new AccessError("Select at least one shift date.");
+  }
+  if (new Set(input.shiftDates).size !== input.shiftDates.length) {
+    throw new AccessError("Each shift date can be selected only once.");
+  }
+  if (input.shiftDates.some((date) => !isValidShiftDate(date))) {
+    throw new AccessError("Every shift date must be a valid YYYY-MM-DD date.");
+  }
+  const sortedDates = [...input.shiftDates].sort();
+  if (sortedDates.some((date, index) => date !== input.shiftDates[index])) {
+    throw new AccessError("Shift dates must be in ascending order.");
+  }
+}
+
+export function assertShiftUpdateInput(input: ShiftUpdateInput) {
+  assertShiftDetails(input);
+  if (!isValidShiftDate(input.shiftDate)) {
+    throw new AccessError("Shift date must be a valid YYYY-MM-DD date.");
   }
 }

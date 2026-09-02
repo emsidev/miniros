@@ -35,7 +35,9 @@ export default async function SwitchBusinessPage({
   const destination =
     business.role === "owner" || business.role === "admin"
       ? "/admin/dashboard"
-      : "/shifts";
+      : business.canLogProduction && !business.canUsePos
+        ? "/production"
+        : "/shifts";
 
   return (
     <div className="mx-auto max-w-lg space-y-5">
@@ -45,9 +47,9 @@ export default async function SwitchBusinessPage({
           Back to businesses
         </Link>
       </Button>
-      <Card className="rounded-3xl py-7 text-center shadow-none">
+      <Card className="rounded-xl py-7 text-center shadow-none">
         <CardHeader className="items-center px-6 sm:px-8">
-          <span className="mb-2 grid size-14 place-items-center rounded-2xl bg-muted">
+          <span className="mb-2 grid size-14 place-items-center rounded-xl bg-muted">
             <Building2 className="size-6" aria-hidden="true" />
           </span>
           <CardTitle className="text-2xl font-extrabold tracking-tight">

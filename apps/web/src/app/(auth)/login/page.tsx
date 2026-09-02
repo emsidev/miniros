@@ -16,7 +16,7 @@ export const metadata: Metadata = {
 
 export default function LoginPage() {
   return (
-    <Card className="rounded-3xl py-7 shadow-none">
+    <Card className="rounded-xl py-7 shadow-none">
       <CardHeader className="px-6 sm:px-8">
         <CardTitle className="text-2xl font-extrabold tracking-tight">
           Welcome back
@@ -27,6 +27,14 @@ export default function LoginPage() {
       </CardHeader>
       <CardContent className="space-y-6 px-6 sm:px-8">
         <AuthForm mode="login" />
+        <p className="text-center text-sm">
+          <Link
+            href="/reset-password"
+            className="font-bold text-muted-foreground underline-offset-4 hover:text-foreground hover:underline"
+          >
+            Forgot your password?
+          </Link>
+        </p>
         <p className="text-center text-sm text-muted-foreground">
           New to MINIROS?{" "}
           <Link

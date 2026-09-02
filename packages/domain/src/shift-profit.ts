@@ -16,6 +16,7 @@ export type ShiftProfitInput = Readonly<{
   netSalesCents?: Cents;
   nonCashSalesCents?: Cents;
   otherCostsCents?: Cents;
+  productCostCents?: Cents;
   rentalCostCents?: Cents;
   salaryCostCents?: Cents;
   totalDiscountsCents?: Cents;
@@ -29,6 +30,7 @@ export type ShiftProfitSummary = Readonly<{
   netSalesCents: Cents;
   nonCashSalesCents: Cents;
   otherCostsCents: Cents;
+  productCostCents: Cents;
   profitCents: Cents;
   rentalCostCents: Cents;
   result: ProfitResult;
@@ -62,6 +64,7 @@ export function calculateShiftProfit(
     netSalesCents: input.netSalesCents ?? input.grossSalesCents,
     nonCashSalesCents: input.nonCashSalesCents ?? 0,
     otherCostsCents: input.otherCostsCents ?? 0,
+    productCostCents: input.productCostCents ?? 0,
     rentalCostCents: input.rentalCostCents ?? 0,
     salaryCostCents: input.salaryCostCents ?? 0,
     totalDiscountsCents: input.totalDiscountsCents ?? 0,
@@ -78,6 +81,7 @@ export function calculateShiftProfit(
     summaryValues.transportCostCents,
     summaryValues.approvedDeductionsCents,
     summaryValues.otherCostsCents,
+    summaryValues.productCostCents,
   );
   // The MVP brief defines completed-sale totals as the authoritative gross value.
   const profitCents = subtractCents(

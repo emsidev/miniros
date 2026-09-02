@@ -1,12 +1,13 @@
 import { requireDatabase } from "@miniros/db";
 import {
+  inventoryLocations,
   productionLogs,
   products,
   sellingLocations,
   shifts,
 } from "@miniros/db/schema";
 import { sumQuantities } from "@miniros/domain";
-import { and, desc, eq, gte, lte } from "drizzle-orm";
+import { and, desc, eq, gte, isNull, lt } from "drizzle-orm";
 import { z } from "zod";
 import { requireActiveBusiness } from "./access";
 
@@ -23,19 +24,34 @@ const productionFiltersSchema = z.object({
 
 export type ProductionFilters = z.infer<typeof productionFiltersSchema>;
 
+function startOfDay(value: string) {
+  return new Date(`${value}T00:00:00.000Z`);
+}
+
+function dayAfter(value: string) {
+  const date = startOfDay(value);
+  date.setUTCDate(date.getUTCDate() + 1);
+  return date;
+}
+
 export async function listProductionOverview(
   rawFilters: ProductionFilters = {},
 ) {
   const filters = productionFiltersSchema.parse(rawFilters);
-  const { business } = await requireActiveBusiness({ admin: true });
+  const { business } = await requireActiveBusiness({
+    admin: true,
+    feature: "production",
+  });
   const rows = await requireDatabase()
     .select({
       id: productionLogs.id,
       productName: products.name,
       quantityProduced: productionLogs.quantityProduced,
       unit: productionLogs.unit,
+      shiftId: productionLogs.shiftId,
       shiftDate: shifts.shiftDate,
-      locationName: sellingLocations.name,
+      inventoryLocationName: inventoryLocations.name,
+      legacyBoothName: sellingLocations.name,
       createdAt: productionLogs.createdAt,
     })
     .from(productionLogs)
@@ -46,35 +62,53 @@ export async function listProductionOverview(
         eq(products.businessId, productionLogs.businessId),
       ),
     )
-    .innerJoin(
+    .leftJoin(
       shifts,
       and(
         eq(shifts.id, productionLogs.shiftId),
         eq(shifts.businessId, productionLogs.businessId),
       ),
     )
-    .innerJoin(
+    .leftJoin(
       sellingLocations,
       and(
         eq(sellingLocations.id, shifts.sellingLocationId),
         eq(sellingLocations.businessId, shifts.businessId),
       ),
     )
+    .leftJoin(
+      inventoryLocations,
+      and(
+        eq(inventoryLocations.id, productionLogs.inventoryLocationId),
+        eq(inventoryLocations.businessId, productionLogs.businessId),
+        isNull(inventoryLocations.deletedAt),
+      ),
+    )
     .where(
       and(
         eq(productionLogs.businessId, business.id),
-        filters.from ? gte(shifts.shiftDate, filters.from) : undefined,
-        filters.to ? lte(shifts.shiftDate, filters.to) : undefined,
+        filters.from
+          ? gte(productionLogs.createdAt, startOfDay(filters.from))
+          : undefined,
+        filters.to
+          ? lt(productionLogs.createdAt, dayAfter(filters.to))
+          : undefined,
       ),
     )
     .orderBy(desc(productionLogs.createdAt))
     .limit(100);
 
+  const normalizedRows = rows.map((row) => ({
+    ...row,
+    locationName: row.shiftId
+      ? (row.legacyBoothName ?? row.inventoryLocationName ?? "Former booth")
+      : (row.inventoryLocationName ?? "Central inventory"),
+  }));
   const totals = new Map<
     string,
     { productName: string; unit: string; quantities: string[] }
   >();
-  rows.forEach((row) => {
+  normalizedRows.forEach((row) => {
     const key = `${row.productName}:${row.unit}`;
     const current = totals.get(key) ?? {
       productName: row.productName,
@@ -86,7 +120,7 @@ export async function listProductionOverview(
   });
 
   return {
-    rows,
+    rows: normalizedRows,
     totals: [...totals.values()]
       .map((total) => ({
         productName: total.productName,

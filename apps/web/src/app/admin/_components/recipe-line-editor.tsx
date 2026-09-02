@@ -1,9 +1,12 @@
 "use client";
 
 import { Plus, Trash2 } from "lucide-react";
+import { calculateIngredientCostCents } from "@miniros/domain";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
+import { NumericExpressionInput } from "@/components/ui/numeric-expression-input";
+import { formatMoney } from "@/lib/format";
 import {
   Select,
   SelectContent,
@@ -37,6 +40,15 @@ export function RecipeLineEditor({
 }) {
   const usedItemIds = new Set(lines.map((line) => line.inventoryItemId));
   const canAddLine = inventoryItems.some((item) => !usedItemIds.has(item.id));
+  const lineCost = (line: EditableRecipeLine) => {
+    try {
+      return calculateIngredientCostCents([
+        { quantity: line.quantity, unitCostCents: line.unitCostCents },
+      ]);
+    } catch {
+      return 0;
+    }
+  };
 
   return (
     <fieldset className="space-y-3">
@@ -50,7 +62,7 @@ export function RecipeLineEditor({
         lines.map((line) => (
           <div
             key={line.key}
-            className="grid gap-3 rounded-xl border p-3 sm:grid-cols-[1fr_0.42fr_0.32fr_auto] sm:items-end"
+            className="grid gap-3 rounded-xl border p-3 sm:grid-cols-[1fr_0.38fr_0.28fr_0.38fr_auto] sm:items-end"
           >
             <div className="space-y-2">
               <Label htmlFor={`${line.key}-item`}>Inventory item</Label>
@@ -83,15 +95,14 @@ export function RecipeLineEditor({
             </div>
             <div className="space-y-2">
               <Label htmlFor={`${line.key}-quantity`}>Quantity</Label>
-              <Input
+              <NumericExpressionInput
                 id={`${line.key}-quantity`}
-                type="number"
-                inputMode="decimal"
+                precision={3}
                 min="0.001"
                 step="0.001"
                 value={line.quantity}
-                onChange={(event) =>
-                  onChangeQuantity(line.key, event.target.value)
+                onValueChange={(quantity) =>
+                  onChangeQuantity(line.key, quantity)
                 }
                 disabled={disabled}
                 className="h-11 rounded-xl"
@@ -105,6 +116,12 @@ export function RecipeLineEditor({
                 readOnly
                 className="h-11 rounded-xl bg-muted"
               />
+            </div>
+            <div className="space-y-2">
+              <Label>Ingredient cost</Label>
+              <div className="flex h-11 items-center rounded-xl bg-muted px-3 text-sm font-semibold">
+                {formatMoney(lineCost(line))}
+              </div>
             </div>
             <Button
               type="button"

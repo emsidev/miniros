@@ -1,10 +1,12 @@
 ---
-import { trustMarks } from "../../content/home";
+import { audiences } from "../../content/home";
 ---
 
-<section class="trust-bar section" aria-label="MINIROS audience examples">
-  <p>Built for pop-up sellers, booth owners, and small retail teams</p>
-  <div class="trust-list">
-    {trustMarks.map((name) => <span>{name}</span>)}
+<section class="audience-strip" aria-label="Who MINIROS is for">
+  <div>
+    <strong>One operating record for location-based retail.</strong>
+    <ul>
+      {audiences.map((audience) => <li>{audience}</li>)}
+    </ul>
   </div>
 </section>

@@ -19,6 +19,7 @@ import {
 
 export type SubmitInventoryAdjustmentInput = {
   adjustmentId: string;
+  inventoryEventId: string;
   shiftId: string;
   inventoryItemId: string;
   quantityDelta: number | string;
@@ -39,6 +40,7 @@ export async function submitInventoryAdjustment(
   }
 
   return requireDatabase().transaction(async (tx) => {
+    const approvalsEnabled = access.business.features.approvalsEnabled;
     const [existing] = await tx
       .select({
         id: inventoryAdjustments.id,
@@ -101,6 +103,8 @@ export async function submitInventoryAdjustment(
       .limit(1);
     if (!item) throw new AccessError("Inventory item not found.");
 
+    const reviewedAt = approvalsEnabled ? null : new Date();
+    const status = approvalsEnabled ? "pending" : "applied";
     const [created] = await tx
       .insert(inventoryAdjustments)
       .values({
@@ -111,8 +115,9 @@ export async function submitInventoryAdjustment(
         inventoryItemId: item.id,
         quantityDelta: databaseQuantity(quantityDelta),
         reason: input.reason.trim(),
-        status: "pending",
+        status,
         requestedBy: access.employee.id,
+        reviewedAt,
       })
       .onConflictDoNothing()
       .returning({ id: inventoryAdjustments.id });
@@ -137,17 +142,43 @@ export async function submitInventoryAdjustment(
       }
       throw new AccessError("The inventory adjustment ID is already in use.");
     }
+    if (!approvalsEnabled) {
+      await applyInventoryDeltas(tx, {
+        businessId: access.business.id,
+        shiftId: shift.id,
+        inventoryLocationId: inventoryLocation.id,
+        eventId: input.inventoryEventId,
+        eventType: "adjustment",
+        sourceType: "inventory_adjustment",
+        sourceId: input.adjustmentId,
+        employeeId: access.employee.id,
+        notes: input.reason,
+        lines: [
+          {
+            inventoryItemId: item.id,
+            quantityDelta: databaseQuantity(quantityDelta),
+          },
+        ],
+      });
+    }
     await insertAuditLog(tx, access, {
-      action: "inventory_adjustment.submitted",
+      action: approvalsEnabled
+        ? "inventory_adjustment.submitted"
+        : "inventory_adjustment.applied_without_approval",
       entityType: "inventory_adjustment",
       entityId: input.adjustmentId,
       shiftId: shift.id,
-      metadata: { inventoryItemId: item.id, quantityDelta },
+      metadata: {
+        inventoryItemId: item.id,
+        quantityDelta,
+        inventoryEventId: approvalsEnabled ? null : input.inventoryEventId,
+        approvalsEnabled,
+      },
     });
     return {
       id: input.adjustmentId,
       shiftId: shift.id,
-      status: "pending" as const,
+      status,
       quantityDelta: databaseQuantity(quantityDelta),
       idempotent: false,
     };
@@ -167,7 +198,10 @@ export async function reviewInventoryAdjustment(
         decision: "rejected";
       },
 ) {
-  const access = await requireActiveBusiness({ admin: true });
+  const access = await requireActiveBusiness({
+    admin: true,
+    feature: "approvals",
+  });
   return requireDatabase().transaction(async (tx) => {
     const [adjustment] = await tx
       .select({

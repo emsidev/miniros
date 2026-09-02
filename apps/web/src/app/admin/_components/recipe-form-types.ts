@@ -7,6 +7,7 @@ export type InventoryItemOption = {
   id: string;
   name: string;
   unit: string;
+  defaultUnitCostCents: number;
 };
 
 export type SavedRecipeLine = {
@@ -14,8 +15,15 @@ export type SavedRecipeLine = {
   inventoryItemId: string;
   quantity: string;
   unit: string;
+  unitCostCents: number;
 };
 
 export type EditableRecipeLine = SavedRecipeLine & {
   key: string;
+};
+
+export type RecipeEditorValue = {
+  lines: SavedRecipeLine[];
+  laborCostCents: number;
+  overheadCostCents: number;
 };

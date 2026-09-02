@@ -13,7 +13,7 @@ export function optionalText(value: FormDataEntryValue | null) {
 }
 
 export function moneyToCents(value: FormDataEntryValue | null) {
-  const amount = Number(String(value ?? ""));
+  const amount = numericExpressionToNumber(value);
   return Number.isFinite(amount) ? Math.round(amount * 100) : Number.NaN;
 }
 
@@ -23,3 +23,4 @@ export function humanize(value: string) {
     .map((part) => part.charAt(0).toUpperCase() + part.slice(1))
     .join(" ");
 }
+import { numericExpressionToNumber } from "@/lib/numeric-expression";

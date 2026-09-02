@@ -10,14 +10,14 @@ import { Skeleton } from "@/components/ui/skeleton";
 import { cn } from "@/lib/utils";
 
 const statusStyles: Record<string, string> = {
-  active: "bg-emerald-100 text-emerald-800",
-  scheduled: "bg-blue-100 text-blue-700",
-  closing: "bg-amber-100 text-amber-800",
-  closed: "bg-slate-100 text-slate-700",
-  cancelled: "bg-red-100 text-red-700",
-  pending: "bg-amber-100 text-amber-800",
-  approved: "bg-emerald-100 text-emerald-800",
-  rejected: "bg-red-100 text-red-700",
+  active: "bg-success-surface text-success",
+  scheduled: "bg-info-surface text-info",
+  closing: "bg-warning-surface text-warning",
+  closed: "bg-muted text-muted-foreground",
+  cancelled: "bg-destructive-surface text-destructive",
+  pending: "bg-warning-surface text-warning",
+  approved: "bg-success-surface text-success",
+  rejected: "bg-destructive-surface text-destructive",
 };
 
 export function StatusBadge({ status }: { status: string }) {
@@ -50,9 +50,9 @@ export function ProfitBadge({
     <Badge
       className={cn(
         "border-0 shadow-none",
-        result === "profit" && "bg-emerald-100 text-emerald-800",
-        result === "break_even" && "bg-amber-100 text-amber-800",
-        result === "loss" && "bg-red-100 text-red-700",
+        result === "profit" && "bg-success-surface text-success",
+        result === "break_even" && "bg-warning-surface text-warning",
+        result === "loss" && "bg-destructive-surface text-destructive",
       )}
     >
       {label}
@@ -77,10 +77,10 @@ export function LocationProfitBadge({
       className={cn(
         "border-0 shadow-none",
         recommendation === "worth_renting_again" &&
-          "bg-emerald-100 text-emerald-800",
-        recommendation === "needs_review" && "bg-amber-100 text-amber-800",
+          "bg-success-surface text-success",
+        recommendation === "needs_review" && "bg-warning-surface text-warning",
         recommendation === "not_worth_renting_again" &&
-          "bg-red-100 text-red-700",
+          "bg-destructive-surface text-destructive",
       )}
     >
       {copy}
@@ -98,9 +98,9 @@ export function EmptyState({
   action?: ReactNode;
 }) {
   return (
-    <Card className="rounded-2xl border-dashed py-12 text-center shadow-none">
+    <Card className="rounded-xl border-dashed py-12 text-center shadow-none">
       <CardContent className="mx-auto max-w-md space-y-3">
-        <span className="mx-auto grid size-11 place-items-center rounded-2xl bg-muted">
+        <span className="mx-auto grid size-11 place-items-center rounded-lg bg-muted">
           <Inbox className="size-5" aria-hidden="true" />
         </span>
         <div>
@@ -123,7 +123,7 @@ export function ErrorState({
   retry?: () => void;
 }) {
   return (
-    <Alert variant="destructive" className="rounded-2xl">
+    <Alert variant="destructive" className="rounded-xl">
       <AlertCircle aria-hidden="true" />
       <AlertTitle>{title}</AlertTitle>
       <AlertDescription className="space-y-3">
@@ -144,7 +144,7 @@ export function LoadingSkeleton({ rows = 3 }: { rows?: number }) {
     <div className="space-y-3" aria-label="Loading">
       <Skeleton className="h-8 w-48" />
       {Array.from({ length: rows }, (_, index) => (
-        <Skeleton key={index} className="h-24 w-full rounded-2xl" />
+        <Skeleton key={index} className="h-24 w-full rounded-xl" />
       ))}
     </div>
   );

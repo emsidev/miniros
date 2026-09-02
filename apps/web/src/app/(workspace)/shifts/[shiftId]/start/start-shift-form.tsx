@@ -6,9 +6,10 @@ import { AlertCircle, Play } from "lucide-react";
 
 import { Alert, AlertDescription } from "@/components/ui/alert";
 import { Button } from "@/components/ui/button";
-import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
+import { NumericExpressionInput } from "@/components/ui/numeric-expression-input";
 import { Textarea } from "@/components/ui/textarea";
+import { normalizeNumericExpression } from "@/lib/numeric-expression";
 import { startAssignedShiftAction } from "@/server/actions/operations";
 
 type CountItem = { id: string; name: string; unit: string };
@@ -40,7 +41,7 @@ export function StartShiftForm({
         notes: String(form.get("notes") ?? "") || null,
         counts: items.map((item) => ({
           inventoryItemId: item.id,
-          quantity: String(form.get(`count-${item.id}`) ?? ""),
+          quantity: normalizeNumericExpression(form.get(`count-${item.id}`), 3),
         })),
       });
       if (!result.ok) {
@@ -72,11 +73,10 @@ export function StartShiftForm({
               </Label>
               <p className="text-sm text-muted-foreground">Unit: {item.unit}</p>
             </div>
-            <Input
+            <NumericExpressionInput
               id={`count-${item.id}`}
               name={`count-${item.id}`}
-              type="number"
-              inputMode="decimal"
+              precision={3}
               min="0"
               step="0.001"
               defaultValue="0"

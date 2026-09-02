@@ -9,7 +9,7 @@ import {
 } from "drizzle-orm/pg-core";
 import { businesses } from "./business";
 import { employees } from "./employees";
-import { inventoryLocations } from "./inventory";
+import { inventoryItems, inventoryLocations } from "./inventory";
 import { products } from "./products";
 import { shifts } from "./shifts";
 
@@ -49,5 +49,34 @@ export const productionLogs = pgTable(
     businessClientIdUnique: uniqueIndex(
       "production_logs_business_client_generated_id_unique",
     ).on(table.businessId, table.clientGeneratedId),
+  }),
+);
+
+export const productProductionOutputs = pgTable(
+  "product_production_outputs",
+  {
+    productId: uuid("product_id")
+      .primaryKey()
+      .references(() => products.id, { onDelete: "cascade" }),
+    businessId: uuid("business_id")
+      .notNull()
+      .references(() => businesses.id, { onDelete: "cascade" }),
+    inventoryItemId: uuid("inventory_item_id")
+      .notNull()
+      .references(() => inventoryItems.id, { onDelete: "restrict" }),
+    createdAt: timestamp("created_at", { withTimezone: true })
+      .defaultNow()
+      .notNull(),
+    updatedAt: timestamp("updated_at", { withTimezone: true })
+      .defaultNow()
+      .notNull(),
+  },
+  (table) => ({
+    businessIdx: index("product_production_outputs_business_id_idx").on(
+      table.businessId,
+    ),
+    businessInventoryItemUnique: uniqueIndex(
+      "product_production_outputs_business_inventory_item_unique",
+    ).on(table.businessId, table.inventoryItemId),
   }),
 );

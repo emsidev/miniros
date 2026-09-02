@@ -38,8 +38,10 @@ export type OfflineActionPayloadMap = {
     localBlobId: string;
   }>;
   CREATE_PRODUCTION_LOG: Readonly<{
-    shiftId: string;
     productionLogId: string;
+    productionInputEventId: string;
+    productionOutputEventId: string;
+    inventoryLocationId: string;
     productId: string;
     quantity: string;
   }>;
@@ -52,6 +54,7 @@ export type OfflineActionPayloadMap = {
   CREATE_INVENTORY_ADJUSTMENT: Readonly<{
     shiftId: string;
     inventoryAdjustmentId: string;
+    inventoryEventId: string;
     inventoryItemId: string;
     quantityDelta: string;
     reason: string;

@@ -3,6 +3,7 @@
 import { useRef, useState, useTransition } from "react";
 import { useRouter } from "next/navigation";
 import { Plus } from "lucide-react";
+import { calculateStandardRecipeCost } from "@miniros/domain";
 import { toast } from "sonner";
 import { Button } from "@/components/ui/button";
 import {
@@ -16,6 +17,9 @@ import {
   DialogTrigger,
 } from "@/components/ui/dialog";
 import { Label } from "@/components/ui/label";
+import { formatMoney } from "@/lib/format";
+import { normalizeNumericExpression } from "@/lib/numeric-expression";
+import { NumericExpressionInput } from "@/components/ui/numeric-expression-input";
 import {
   Select,
   SelectContent,
@@ -25,17 +29,33 @@ import {
 } from "@/components/ui/select";
 import { replaceRecipeAction } from "@/server/actions/recipes";
 import { ActionErrorAlert } from "./form-controls";
-import { firstFieldError, type ActionFeedback } from "./form-utils";
+import {
+  firstFieldError,
+  moneyToCents,
+  type ActionFeedback,
+} from "./form-utils";
 import { RecipeLineEditor } from "./recipe-line-editor";
 import type {
   EditableRecipeLine,
   InventoryItemOption,
   ProductOption,
-  SavedRecipeLine,
+  RecipeEditorValue,
 } from "./recipe-form-types";
 
-function editableLines(lines: SavedRecipeLine[]): EditableRecipeLine[] {
+function editableLines(
+  lines: RecipeEditorValue["lines"],
+): EditableRecipeLine[] {
   return lines.map((line) => ({ ...line, key: line.id }));
+}
+
+const emptyRecipe: RecipeEditorValue = {
+  lines: [],
+  laborCostCents: 0,
+  overheadCostCents: 0,
+};
+
+function centsInput(value: number) {
+  return (value / 100).toFixed(2);
 }
 
 export function ManageRecipeDialog({
@@ -45,7 +65,7 @@ export function ManageRecipeDialog({
 }: {
   products: ProductOption[];
   inventoryItems: InventoryItemOption[];
-  recipes: Record<string, SavedRecipeLine[]>;
+  recipes: Record<string, RecipeEditorValue>;
 }) {
   const router = useRouter();
   const nextLineId = useRef(0);
@@ -55,14 +75,24 @@ export function ManageRecipeDialog({
     products[0]?.id ?? "",
   );
   const [lines, setLines] = useState<EditableRecipeLine[]>(
-    editableLines(recipes[products[0]?.id ?? ""] ?? []),
+    editableLines(recipes[products[0]?.id ?? ""]?.lines ?? []),
+  );
+  const initialRecipe = recipes[products[0]?.id ?? ""] ?? emptyRecipe;
+  const [laborCost, setLaborCost] = useState(
+    centsInput(initialRecipe.laborCostCents),
+  );
+  const [overheadCost, setOverheadCost] = useState(
+    centsInput(initialRecipe.overheadCostCents),
   );
   const [feedback, setFeedback] = useState<ActionFeedback>({});
   const linesError = firstFieldError(feedback, "lines");
 
   function selectProduct(productId: string) {
+    const recipe = recipes[productId] ?? emptyRecipe;
     setSelectedProductId(productId);
-    setLines(editableLines(recipes[productId] ?? []));
+    setLines(editableLines(recipe.lines));
+    setLaborCost(centsInput(recipe.laborCostCents));
+    setOverheadCost(centsInput(recipe.overheadCostCents));
     setFeedback({});
   }
 
@@ -70,8 +100,11 @@ export function ManageRecipeDialog({
     setOpen(nextOpen);
     if (nextOpen) {
       const productId = products[0]?.id ?? "";
+      const recipe = recipes[productId] ?? emptyRecipe;
       setSelectedProductId(productId);
-      setLines(editableLines(recipes[productId] ?? []));
+      setLines(editableLines(recipe.lines));
+      setLaborCost(centsInput(recipe.laborCostCents));
+      setOverheadCost(centsInput(recipe.overheadCostCents));
       setFeedback({});
     }
   }
@@ -90,6 +123,7 @@ export function ManageRecipeDialog({
         inventoryItemId: item.id,
         quantity: "1",
         unit: item.unit,
+        unitCostCents: item.defaultUnitCostCents,
       },
     ]);
   }
@@ -97,7 +131,10 @@ export function ManageRecipeDialog({
   function updateLine(
     key: string,
     patch: Partial<
-      Pick<EditableRecipeLine, "inventoryItemId" | "quantity" | "unit">
+      Pick<
+        EditableRecipeLine,
+        "inventoryItemId" | "quantity" | "unit" | "unitCostCents"
+      >
     >,
   ) {
     setLines((current) =>
@@ -108,7 +145,11 @@ export function ManageRecipeDialog({
   function changeInventoryItem(key: string, inventoryItemId: string) {
     const item = inventoryItems.find((option) => option.id === inventoryItemId);
     if (!item) return;
-    updateLine(key, { inventoryItemId, unit: item.unit });
+    updateLine(key, {
+      inventoryItemId,
+      unit: item.unit,
+      unitCostCents: item.defaultUnitCostCents,
+    });
   }
 
   function removeLine(key: string) {
@@ -122,9 +163,11 @@ export function ManageRecipeDialog({
         productId: selectedProductId,
         lines: lines.map(({ inventoryItemId, quantity, unit }) => ({
           inventoryItemId,
-          quantity,
+          quantity: normalizeNumericExpression(quantity, 3),
           unit,
         })),
+        laborCostCents: moneyToCents(laborCost),
+        overheadCostCents: moneyToCents(overheadCost),
       });
 
       if (!result.ok) {
@@ -145,6 +188,25 @@ export function ManageRecipeDialog({
     });
   }
 
+  let preview = {
+    ingredientCostCents: 0,
+    laborCostCents: 0,
+    overheadCostCents: 0,
+    totalCostCents: 0,
+  };
+  try {
+    preview = calculateStandardRecipeCost({
+      lines: lines.map((line) => ({
+        quantity: line.quantity,
+        unitCostCents: line.unitCostCents,
+      })),
+      laborCostCents: moneyToCents(laborCost),
+      overheadCostCents: moneyToCents(overheadCost),
+    });
+  } catch {
+    // Invalid in-progress input is validated when the recipe is saved.
+  }
+
   return (
     <Dialog open={open} onOpenChange={handleOpenChange}>
       <DialogTrigger asChild>
@@ -157,7 +219,7 @@ export function ManageRecipeDialog({
         <DialogHeader>
           <DialogTitle>Manage product recipe</DialogTitle>
           <DialogDescription>
-            Inventory is deducted using these quantities for every unit sold.
+            Set the ingredients and standard costs used for each product unit.
           </DialogDescription>
         </DialogHeader>
         <div className="space-y-5">
@@ -195,6 +257,69 @@ export function ManageRecipeDialog({
             onChangeQuantity={(key, quantity) => updateLine(key, { quantity })}
             onRemove={removeLine}
           />
+
+          <fieldset className="space-y-3">
+            <legend className="text-sm font-bold">
+              Standard per-unit costs
+            </legend>
+            <div className="grid gap-3 sm:grid-cols-2">
+              <div className="space-y-2">
+                <Label htmlFor="recipe-labor-cost">Labor (₱)</Label>
+                <NumericExpressionInput
+                  id="recipe-labor-cost"
+                  precision={2}
+                  min="0"
+                  step="0.01"
+                  value={laborCost}
+                  onValueChange={setLaborCost}
+                  disabled={isPending}
+                  className="h-11 rounded-xl"
+                />
+              </div>
+              <div className="space-y-2">
+                <Label htmlFor="recipe-overhead-cost">Overhead (₱)</Label>
+                <NumericExpressionInput
+                  id="recipe-overhead-cost"
+                  precision={2}
+                  min="0"
+                  step="0.01"
+                  value={overheadCost}
+                  onValueChange={setOverheadCost}
+                  disabled={isPending}
+                  className="h-11 rounded-xl"
+                />
+              </div>
+            </div>
+            <div className="grid grid-cols-2 gap-2 rounded-xl bg-muted/60 p-3 text-sm sm:grid-cols-4">
+              <div>
+                <p className="text-muted-foreground">Ingredients</p>
+                <p className="font-bold">
+                  {formatMoney(preview.ingredientCostCents)}
+                </p>
+              </div>
+              <div>
+                <p className="text-muted-foreground">Labor</p>
+                <p className="font-bold">
+                  {formatMoney(preview.laborCostCents)}
+                </p>
+              </div>
+              <div>
+                <p className="text-muted-foreground">Overhead</p>
+                <p className="font-bold">
+                  {formatMoney(preview.overheadCostCents)}
+                </p>
+              </div>
+              <div>
+                <p className="text-muted-foreground">Calculated total</p>
+                <p className="font-bold">
+                  {formatMoney(preview.totalCostCents)}
+                </p>
+              </div>
+            </div>
+            <p className="text-xs text-muted-foreground">
+              Saving any costing input clears a temporary product cost override.
+            </p>
+          </fieldset>
 
           <DialogFooter>
             <DialogClose asChild>

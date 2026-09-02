@@ -25,6 +25,7 @@ const nullableEmailSchema = z
 
 const employeeWriteSchema = z.object({
   memberId: z.string().uuid().nullable().optional().default(null),
+  memberRole: z.enum(["admin", "employee"]).default("employee"),
   displayName: z.string().trim().min(2).max(100),
   email: nullableEmailSchema,
   phone: z.string().trim().max(40).nullable().optional().default(null),

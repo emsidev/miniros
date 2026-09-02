@@ -5,165 +5,39 @@ import Footer from "../components/site/Footer.astro";
 import Header from "../components/site/Header.astro";
 import Hero from "../components/site/Hero.astro";
 import HowItWorks from "../components/site/HowItWorks.astro";
-import MetricsSection from "../components/site/MetricsSection.astro";
 import ModulesSection from "../components/site/ModulesSection.astro";
 import ProblemSection from "../components/site/ProblemSection.astro";
 import TrustBar from "../components/site/TrustBar.astro";
 import { meta } from "../content/home";
+import "@miniros/ui/tokens.css";
 import "../styles/home.css";
-import "../styles/home-fixes.css";
 ---
 
 <html lang="en">
   <head>
     <meta charset="utf-8" />
-    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <meta name="viewport" content="width=device-width" />
     <meta name="description" content={meta.description} />
-    <meta name="theme-color" content="#101319" />
+    <meta name="theme-color" content="#111318" />
     <title>{meta.title}</title>
     <link rel="preconnect" href="https://fonts.googleapis.com" />
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
     <link
-      href="https://fonts.googleapis.com/css2?family=Outfit:wght@300;400;500;600;700;800&display=swap"
+      href="https://fonts.googleapis.com/css2?family=Barlow+Condensed:wght@700;800&family=Outfit:wght@400;500;600;700;800&display=swap"
       rel="stylesheet"
     />
   </head>
   <body>
-    <main class="page-shell">
-      <div class="ambient ambient-a" aria-hidden="true"></div>
-      <div class="ambient ambient-b" aria-hidden="true"></div>
-
-      <Header />
+    <Header />
+    <main>
       <Hero />
       <TrustBar />
       <ProblemSection />
       <HowItWorks />
       <ModulesSection />
       <AdminMockups />
-      <MetricsSection />
       <FaqSection />
     </main>
-
     <Footer />
-
-    <script>
-      import gsap from "gsap";
-      import { ScrollTrigger } from "gsap/ScrollTrigger";
-
-      gsap.registerPlugin(ScrollTrigger);
-
-      const prefersReducedMotion = window.matchMedia(
-        "(prefers-reduced-motion: reduce)",
-      ).matches;
-
-      const faqItems = Array.from(
-        document.querySelectorAll<HTMLElement>(".faq-item"),
-      );
-
-      const setFaqOpen = (item: HTMLElement, isOpen: boolean) => {
-        const button = item.querySelector<HTMLButtonElement>(".faq-trigger");
-        const answer = item.querySelector<HTMLElement>(".faq-answer");
-
-        item.classList.toggle("is-open", isOpen);
-        button?.setAttribute("aria-expanded", String(isOpen));
-        answer?.setAttribute("aria-hidden", String(!isOpen));
-      };
-
-      faqItems.forEach((item) => {
-        const button = item.querySelector<HTMLButtonElement>(".faq-trigger");
-
-        button?.addEventListener("click", () => {
-          if (item.classList.contains("is-open")) {
-            return;
-          }
-
-          faqItems.forEach((candidate) => {
-            setFaqOpen(candidate, candidate === item);
-          });
-        });
-      });
-
-      if (!prefersReducedMotion) {
-        gsap.from(".site-header", {
-          y: -18,
-          opacity: 0,
-          duration: 0.8,
-          ease: "power3.out",
-        });
-
-        gsap.from(".hero-copy > *", {
-          y: 28,
-          opacity: 0,
-          duration: 0.9,
-          ease: "power3.out",
-          stagger: 0.08,
-          delay: 0.08,
-        });
-
-        gsap.from(".hero-shot, .hero-admin-card, .hero-visual-orb", {
-          y: 30,
-          scale: 0.94,
-          opacity: 0,
-          duration: 0.9,
-          ease: "back.out(1.35)",
-          stagger: 0.1,
-          delay: 0.18,
-        });
-
-        gsap.utils
-          .toArray<HTMLElement>(".section, .problem-band, .trust-bar, .site-footer")
-          .forEach((section) => {
-            gsap.fromTo(
-              section,
-              { opacity: 0.92, y: 34 },
-              {
-                opacity: 1,
-                y: 0,
-                duration: 0.9,
-                ease: "power3.out",
-                scrollTrigger: {
-                  trigger: section,
-                  start: "top 88%",
-                },
-              },
-            );
-          });
-
-        gsap.utils.toArray<HTMLElement>(".reveal-target").forEach((element) => {
-          gsap.fromTo(
-            element,
-            { y: 36, opacity: 0 },
-            {
-              y: 0,
-              opacity: 1,
-              duration: 0.85,
-              ease: "power3.out",
-              scrollTrigger: {
-                trigger: element,
-                start: "top 86%",
-              },
-            },
-          );
-        });
-
-        gsap.utils.toArray<HTMLElement>(".problem-card").forEach((card) => {
-          gsap.fromTo(
-            card,
-            { y: 30, rotate: -1.5, opacity: 0 },
-            {
-              y: 0,
-              rotate: 0,
-              opacity: 1,
-              duration: 0.75,
-              ease: "back.out(1.15)",
-              scrollTrigger: {
-                trigger: card,
-                start: "top 88%",
-              },
-            },
-          );
-        });
-      }
-    </script>
   </body>
 </html>

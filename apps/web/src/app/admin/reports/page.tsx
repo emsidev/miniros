@@ -48,8 +48,8 @@ function Trend({ profits }: { profits: readonly number[] }) {
           key={`${index}-${profit}`}
           className={
             profit >= 0
-              ? "flex-1 rounded-t bg-emerald-500"
-              : "flex-1 rounded-t bg-red-400"
+              ? "flex-1 rounded-t bg-success"
+              : "flex-1 rounded-t bg-destructive"
           }
           style={{
             height: `${Math.max(8, (Math.abs(profit) / maximum) * 100)}%`,
@@ -82,7 +82,7 @@ export default async function ReportsPage({
         description="Did this location actually make money—and should we rent it again?"
       />
 
-      <form className="grid gap-3 rounded-2xl border bg-card p-4 sm:grid-cols-[1fr_1fr_auto] sm:items-end">
+      <form className="grid gap-3 rounded-xl border bg-card p-4 sm:grid-cols-[1fr_1fr_auto] sm:items-end">
         <div className="space-y-1.5">
           <Label htmlFor="from">From</Label>
           <Input

@@ -120,6 +120,7 @@ export async function createEmployee(input: EmployeeWriteInput) {
       metadata: {
         displayName: created.displayName,
         memberId: member?.id ?? null,
+        memberRole: member?.role ?? null,
         memberStatus: member?.status ?? null,
         canUsePos: created.canUsePos,
         canLogProduction: created.canLogProduction,
@@ -189,6 +190,7 @@ export async function updateEmployee(
       metadata: {
         previousStatus: existing.status,
         status: updated.status,
+        memberRole: member?.role ?? null,
         canUsePos: updated.canUsePos,
         canLogProduction: updated.canLogProduction,
       },

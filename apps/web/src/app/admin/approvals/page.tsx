@@ -1,4 +1,5 @@
 import { EmptyState } from "@/components/shared/feedback";
+import { FeatureUnavailable } from "@/components/shared/feature-unavailable";
 import {
   DataCard,
   PageHeader,
@@ -7,10 +8,22 @@ import {
 import { formatDateTime, formatMoney, formatQuantity } from "@/lib/format";
 import { listPendingApprovals } from "@/server/services/approval-read";
 import { ApprovalActions } from "./approval-actions";
+import { requireActiveBusiness } from "@/server/services/access";
 
 export const dynamic = "force-dynamic";
 
 export default async function ApprovalsPage() {
+  const { business } = await requireActiveBusiness({ admin: true });
+  if (!business.features.approvalsEnabled) {
+    return (
+      <FeatureUnavailable
+        feature="Approvals"
+        destination="/admin/settings"
+        destinationLabel="Open settings"
+      />
+    );
+  }
+
   const approvals = await listPendingApprovals();
   const empty = approvals.cash.length === 0 && approvals.inventory.length === 0;
 

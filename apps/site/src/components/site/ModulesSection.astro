@@ -1,31 +1,30 @@
 ---
-import { modules } from "../../content/home";
+import { capabilityGroups } from "../../content/home";
 ---
 
-<section class="modules section" id="features">
-  <div class="modules-copy reveal-target">
-    <p class="section-label">
-      <span aria-hidden="true">✺</span> Built for real operations
-    </p>
-    <h2>
-      Everything you need.
-      <span>Nothing you do not.</span>
-    </h2>
+<section class="section capabilities" id="capabilities">
+  <div class="section-intro compact">
+    <p class="section-context">Focused scope</p>
+    <h2>The tools that carry a selling day from setup to decision.</h2>
     <p>
-      MINIROS brings daily operations into one simple, mobile-first system built
-      for how small selling teams actually work.
+      MINIROS stays narrow on purpose: shift selling, stock, production,
+      closeout, and location profitability.
     </p>
   </div>
 
-  <div class="module-grid">
+  <div class="capability-ledger">
     {
-      modules.map((item) => (
-        <article class="module-card reveal-target">
-          <span class="module-icon" aria-hidden="true">{item.icon}</span>
+      capabilityGroups.map((group) => (
+        <article>
           <div>
-            <h3>{item.title}</h3>
-            <p>{item.body}</p>
+            <h3>{group.title}</h3>
+            <p>{group.description}</p>
           </div>
+          <ul>
+            {group.items.map((item) => (
+              <li>{item}</li>
+            ))}
+          </ul>
         </article>
       ))
     }

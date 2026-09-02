@@ -1,6 +1,7 @@
 import { redirect } from "next/navigation";
 import { AdminShell } from "@/components/shared/admin-shell";
 import { AccessError, requireActiveBusiness } from "@/server/services/access";
+import { listBusinesses } from "@/server/services/businesses";
 
 export const dynamic = "force-dynamic";
 
@@ -30,10 +31,15 @@ export default async function AdminLayout({
     throw error;
   }
 
+  const businesses = await listBusinesses();
+
   return (
     <AdminShell
-      businessName={access.business.name}
       businessId={access.business.id}
+      businessFeatures={access.business.features}
+      businesses={businesses}
+      membershipRole={access.membership.role}
+      employeePermissions={access.employee}
     >
       {children}
     </AdminShell>

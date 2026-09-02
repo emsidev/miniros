@@ -32,7 +32,7 @@ export const inventoryItems = pgTable(
       .notNull()
       .references(() => businesses.id, { onDelete: "cascade" }),
     name: text("name").notNull(),
-    sku: text("sku"),
+    sku: text("sku").notNull(),
     itemType: inventoryItemTypeEnum("item_type").notNull(),
     unit: text("unit").notNull(),
     defaultUnitCostCents: bigint("default_unit_cost_cents", { mode: "number" })
@@ -57,6 +57,14 @@ export const inventoryItems = pgTable(
     nonnegativeUnitCost: check(
       "inventory_items_unit_cost_nonnegative",
       sql`${table.defaultUnitCostCents} >= 0`,
+    ),
+    allowedUnit: check(
+      "inventory_items_unit_allowed",
+      sql`${table.unit} in ('pcs', 'pack', 'box', 'bottle', 'cup', 'g', 'kg', 'ml', 'l')`,
+    ),
+    nonblankSku: check(
+      "inventory_items_sku_nonblank",
+      sql`length(trim(${table.sku})) > 0`,
     ),
   }),
 );

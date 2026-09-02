@@ -1,6 +1,7 @@
 import { requireDatabase } from "@miniros/db";
 import {
   payments,
+  productProductionOutputs,
   products,
   saleItems,
   sales,
@@ -108,8 +109,16 @@ export async function finalizeSale(input: FinalizeSaleInput) {
         priceCents: products.priceCents,
         costCents: products.costCents,
         requiresRecipeDeduction: products.requiresRecipeDeduction,
+        producedInventoryItemId: productProductionOutputs.inventoryItemId,
       })
       .from(products)
+      .leftJoin(
+        productProductionOutputs,
+        and(
+          eq(productProductionOutputs.productId, products.id),
+          eq(productProductionOutputs.businessId, products.businessId),
+        ),
+      )
       .where(
         and(
           eq(products.businessId, access.business.id),
@@ -153,7 +162,11 @@ export async function finalizeSale(input: FinalizeSaleInput) {
         discountCents,
         lineTotalCents: beforeDiscount - discountCents,
         beforeDiscount,
-        requiresRecipeDeduction: product.requiresRecipeDeduction,
+        producedInventoryItemId: product.producedInventoryItemId,
+        requiresRecipeDeduction:
+          access.business.features.recipesEnabled &&
+          product.requiresRecipeDeduction &&
+          !product.producedInventoryItemId,
       };
     });
     const subtotalCents = addCents(

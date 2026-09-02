@@ -1,7 +1,15 @@
 "use client";
 
-import { Input } from "@/components/ui/input";
+import { CalendarDays, ChevronDown } from "lucide-react";
+import type { DateRange } from "react-day-picker";
+import { Button } from "@/components/ui/button";
+import { Calendar } from "@/components/ui/calendar";
 import { Label } from "@/components/ui/label";
+import {
+  Popover,
+  PopoverContent,
+  PopoverTrigger,
+} from "@/components/ui/popover";
 import {
   Select,
   SelectContent,
@@ -9,12 +17,19 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
-import { Textarea } from "@/components/ui/textarea";
+import { ToggleGroup, ToggleGroupItem } from "@/components/ui/toggle-group";
+import { cn } from "@/lib/utils";
 import { SetupInput } from "./form-controls";
+import {
+  datesFromRange,
+  datesFromSelection,
+  formatDateSelection,
+} from "./shift-date-utils";
 import type { ActionFeedback } from "./form-utils";
 import { firstFieldError } from "./form-utils";
 import type { LocationOption, ShiftRecord } from "./shift-form-types";
-import { toLocalDateTime } from "./shift-form-types";
+
+export type DateSelectionMode = "range" | "dates";
 
 export function ShiftScheduleFields({
   locations,
@@ -22,20 +37,47 @@ export function ShiftScheduleFields({
   shift,
   feedback,
   disabled,
+  dateMode,
+  dateRange,
+  specificDates,
+  editDate,
   onLocationChange,
+  onDateModeChange,
+  onDateRangeChange,
+  onSpecificDatesChange,
+  onEditDateChange,
 }: {
   locations: LocationOption[];
   locationId: string;
   shift?: ShiftRecord;
   feedback: ActionFeedback;
   disabled: boolean;
+  dateMode: DateSelectionMode;
+  dateRange: DateRange | undefined;
+  specificDates: Date[];
+  editDate: Date | undefined;
   onLocationChange: (locationId: string) => void;
+  onDateModeChange: (mode: DateSelectionMode) => void;
+  onDateRangeChange: (range: DateRange | undefined) => void;
+  onSpecificDatesChange: (dates: Date[]) => void;
+  onEditDateChange: (date: Date | undefined) => void;
 }) {
   const locationError = firstFieldError(feedback, "sellingLocationId");
+  const dateError = firstFieldError(
+    feedback,
+    shift ? "shiftDate" : "shiftDates",
+  );
+  const selectedDateKeys = shift
+    ? editDate
+      ? datesFromSelection([editDate])
+      : []
+    : dateMode === "range"
+      ? datesFromRange(dateRange)
+      : datesFromSelection(specificDates);
 
   return (
-    <fieldset className="space-y-4">
-      <legend className="text-sm font-bold">Schedule</legend>
+    <fieldset className="space-y-5">
+      <legend className="sr-only">Shift details</legend>
       <div className="space-y-2">
         <Label htmlFor="shift-location">Selling location</Label>
         <Select
@@ -51,7 +93,7 @@ export function ShiftScheduleFields({
               locationError ? "shift-location-error" : undefined
             }
           >
-            <SelectValue />
+            <SelectValue placeholder="Select a location" />
           </SelectTrigger>
           <SelectContent>
             {locations.map((location) => (
@@ -70,149 +112,109 @@ export function ShiftScheduleFields({
           </p>
         ) : null}
       </div>
-      <div className="grid gap-4 sm:grid-cols-[1fr_0.7fr]">
-        <SetupInput
-          label="Shift title"
-          feedback={feedback}
-          name="title"
-          maxLength={120}
-          disabled={disabled}
-          placeholder="Saturday market"
-          defaultValue={shift?.title ?? ""}
-        />
-        <SetupInput
-          label="Shift date"
-          feedback={feedback}
-          name="shiftDate"
-          type="date"
-          required
-          disabled={disabled}
-          defaultValue={shift?.shiftDate}
-        />
-      </div>
-      <div className="grid gap-4 sm:grid-cols-2">
-        <SetupInput
-          label="Scheduled start"
-          feedback={feedback}
-          name="scheduledStartAt"
-          type="datetime-local"
-          disabled={disabled}
-          defaultValue={toLocalDateTime(shift?.scheduledStartAt ?? null)}
-        />
-        <SetupInput
-          label="Scheduled end"
-          feedback={feedback}
-          name="scheduledEndAt"
-          type="datetime-local"
-          disabled={disabled}
-          defaultValue={toLocalDateTime(shift?.scheduledEndAt ?? null)}
-        />
-      </div>
-    </fieldset>
-  );
-}
 
-export function ShiftCostAndNotesFields({
-  rentalCost,
-  transportCost,
-  shift,
-  feedback,
-  disabled,
-  onRentalCostChange,
-  onTransportCostChange,
-}: {
-  rentalCost: string;
-  transportCost: string;
-  shift?: ShiftRecord;
-  feedback: ActionFeedback;
-  disabled: boolean;
-  onRentalCostChange: (value: string) => void;
-  onTransportCostChange: (value: string) => void;
-}) {
-  const notesError = firstFieldError(feedback, "notes");
-  const otherCostLabel =
-    shift?.costs.find((cost) => cost.costType === "other")?.label ?? "";
+      <SetupInput
+        label="Shift title"
+        feedback={feedback}
+        name="title"
+        maxLength={120}
+        required
+        disabled={disabled}
+        placeholder="Manila City Events"
+        defaultValue={shift?.title ?? ""}
+      />
 
-  return (
-    <>
-      <fieldset className="space-y-4">
-        <legend className="text-sm font-bold">Expected location costs</legend>
-        <div className="grid gap-4 sm:grid-cols-2">
-          <div className="space-y-2">
-            <Label htmlFor="shift-rent">Rental cost (₱)</Label>
-            <Input
-              id="shift-rent"
-              type="number"
-              inputMode="decimal"
-              min="0"
-              step="0.01"
-              value={rentalCost}
-              onChange={(event) => onRentalCostChange(event.target.value)}
-              disabled={disabled}
-              className="h-11 rounded-xl"
-            />
-          </div>
-          <div className="space-y-2">
-            <Label htmlFor="shift-transport">Transport cost (₱)</Label>
-            <Input
-              id="shift-transport"
-              type="number"
-              inputMode="decimal"
-              min="0"
-              step="0.01"
-              value={transportCost}
-              onChange={(event) => onTransportCostChange(event.target.value)}
-              disabled={disabled}
-              className="h-11 rounded-xl"
-            />
-          </div>
-        </div>
-        <div className="grid gap-4 sm:grid-cols-2">
-          <SetupInput
-            label="Other cost (₱)"
-            feedback={feedback}
-            name="otherCostCents"
-            type="number"
-            inputMode="decimal"
-            min="0"
-            step="0.01"
-            defaultValue={((shift?.otherCostCents ?? 0) / 100).toFixed(2)}
-            required
-            disabled={disabled}
-          />
-          <SetupInput
-            label="Other cost label"
-            feedback={feedback}
-            name="otherCostLabel"
-            maxLength={120}
-            disabled={disabled}
-            placeholder="Event fee"
-            defaultValue={otherCostLabel}
-          />
-        </div>
-      </fieldset>
       <div className="space-y-2">
-        <Label htmlFor="shift-notes">Notes</Label>
-        <Textarea
-          id="shift-notes"
-          name="notes"
-          maxLength={2000}
-          disabled={disabled}
-          aria-invalid={Boolean(notesError)}
-          aria-describedby={notesError ? "shift-notes-error" : undefined}
-          className="min-h-20 rounded-xl"
-          placeholder="Ingress, special setup, or team reminders…"
-          defaultValue={shift?.notes ?? ""}
-        />
-        {notesError ? (
+        <Label htmlFor="shift-dates">
+          {shift ? "Shift date" : "Shift dates"}
+        </Label>
+        <Popover>
+          <PopoverTrigger asChild>
+            <Button
+              id="shift-dates"
+              type="button"
+              variant="outline"
+              disabled={disabled}
+              aria-invalid={Boolean(dateError)}
+              aria-describedby={dateError ? "shift-dates-error" : undefined}
+              className={cn(
+                "h-11 w-full justify-between rounded-xl px-3 font-normal",
+                selectedDateKeys.length === 0 && "text-muted-foreground",
+              )}
+            >
+              <span className="flex min-w-0 items-center gap-2 truncate">
+                <CalendarDays className="size-4 shrink-0" aria-hidden="true" />
+                <span className="truncate">
+                  {formatDateSelection(selectedDateKeys)}
+                </span>
+              </span>
+              <ChevronDown className="size-4 shrink-0 text-muted-foreground" />
+            </Button>
+          </PopoverTrigger>
+          <PopoverContent
+            align="start"
+            className="w-[calc(100vw-3rem)] max-w-sm gap-3 p-3 sm:w-auto"
+          >
+            {!shift ? (
+              <ToggleGroup
+                type="single"
+                value={dateMode}
+                onValueChange={(value) => {
+                  if (value === "range" || value === "dates") {
+                    onDateModeChange(value);
+                  }
+                }}
+                variant="outline"
+                spacing={0}
+                className="grid w-full grid-cols-2"
+              >
+                <ToggleGroupItem value="range">Date range</ToggleGroupItem>
+                <ToggleGroupItem value="dates">Specific dates</ToggleGroupItem>
+              </ToggleGroup>
+            ) : null}
+
+            {shift ? (
+              <Calendar
+                mode="single"
+                selected={editDate}
+                onSelect={onEditDateChange}
+                defaultMonth={editDate}
+                className="mx-auto"
+              />
+            ) : dateMode === "range" ? (
+              <Calendar
+                mode="range"
+                selected={dateRange}
+                onSelect={onDateRangeChange}
+                defaultMonth={dateRange?.from}
+                className="mx-auto"
+              />
+            ) : (
+              <Calendar
+                mode="multiple"
+                selected={specificDates}
+                onSelect={(dates) => onSpecificDatesChange(dates ?? [])}
+                defaultMonth={specificDates[0]}
+                className="mx-auto"
+              />
+            )}
+
+            <p className="border-t pt-3 text-xs text-muted-foreground">
+              {selectedDateKeys.length === 0
+                ? "Select at least one date."
+                : `${selectedDateKeys.length} ${selectedDateKeys.length === 1 ? "shift" : "shifts"} will be ${shift ? "updated" : "created"}.`}
+            </p>
+          </PopoverContent>
+        </Popover>
+        {dateError ? (
           <p
-            id="shift-notes-error"
+            id="shift-dates-error"
             className="text-xs font-medium text-destructive"
           >
-            {notesError}
+            {dateError}
           </p>
         ) : null}
       </div>
-    </>
+    </fieldset>
   );
 }

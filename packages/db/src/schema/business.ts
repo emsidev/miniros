@@ -1,4 +1,5 @@
 import {
+  boolean,
   index,
   pgTable,
   text,
@@ -16,6 +17,10 @@ export const businesses = pgTable(
     name: text("name").notNull(),
     slug: text("slug"),
     status: businessStatusEnum("status").default("active").notNull(),
+    recipesEnabled: boolean("recipes_enabled").default(true).notNull(),
+    productionEnabled: boolean("production_enabled").default(true).notNull(),
+    approvalsEnabled: boolean("approvals_enabled").default(true).notNull(),
+    promosEnabled: boolean("promos_enabled").default(true).notNull(),
     createdBy: uuid("created_by").references(() => authUsers.id, {
       onDelete: "set null",
     }),

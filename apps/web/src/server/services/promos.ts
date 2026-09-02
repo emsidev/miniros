@@ -62,7 +62,10 @@ function validateWindow(input: PromoWriteInput) {
 }
 
 export async function listPromos() {
-  const { business } = await requireActiveBusiness({ admin: true });
+  const { business } = await requireActiveBusiness({
+    admin: true,
+    feature: "promos",
+  });
   const rows = await requireDatabase()
     .select()
     .from(promoRules)
@@ -72,7 +75,10 @@ export async function listPromos() {
 }
 
 export async function createPromo(input: PromoWriteInput) {
-  const access = await requireActiveBusiness({ admin: true });
+  const access = await requireActiveBusiness({
+    admin: true,
+    feature: "promos",
+  });
   const { startsAt, endsAt } = validateWindow(input);
   const database = requireDatabase();
   const id = randomUUID();
@@ -117,7 +123,10 @@ export async function setPromoStatus(
   promoId: string,
   status: "active" | "inactive",
 ) {
-  const access = await requireActiveBusiness({ admin: true });
+  const access = await requireActiveBusiness({
+    admin: true,
+    feature: "promos",
+  });
   const database = requireDatabase();
   const updated = await database.transaction(async (tx) => {
     const [record] = await tx

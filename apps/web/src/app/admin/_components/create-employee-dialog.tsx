@@ -16,22 +16,29 @@ import {
   DialogTrigger,
 } from "@/components/ui/dialog";
 import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
+import { Label } from "@/components/ui/label";
+import {
   createEmployeeAction,
   softDeleteEmployeeAction,
   updateEmployeeAction,
 } from "@/server/actions/employees";
 import {
   ActionErrorAlert,
-  FieldGroup,
   SetupInput,
   SoftDeleteButton,
-  ToggleField,
 } from "./form-controls";
 import { moneyToCents, optionalText, type ActionFeedback } from "./form-utils";
 
 type EmployeeRecord = {
   id: string;
   memberId: string | null;
+  memberRole: "owner" | "admin" | "operator" | "employee" | null;
   displayName: string;
   email: string | null;
   phone: string | null;
@@ -40,6 +47,60 @@ type EmployeeRecord = {
   canUsePos: boolean;
   canLogProduction: boolean;
 };
+
+type AccessPreset =
+  "shift_employee" | "pos_operator" | "production" | "multi_role" | "admin";
+
+const accessPresets: Record<
+  AccessPreset,
+  {
+    label: string;
+    description: string;
+    canUsePos: boolean;
+    canLogProduction: boolean;
+  }
+> = {
+  shift_employee: {
+    label: "Shift Employee",
+    description: "Shift access only; no POS or production access.",
+    canUsePos: false,
+    canLogProduction: false,
+  },
+  pos_operator: {
+    label: "POS Operator",
+    description: "Can complete sales on assigned shifts.",
+    canUsePos: true,
+    canLogProduction: false,
+  },
+  production: {
+    label: "Production",
+    description: "Can make finished goods from central inventory.",
+    canUsePos: false,
+    canLogProduction: true,
+  },
+  multi_role: {
+    label: "Multi-role",
+    description: "Can use POS and log production.",
+    canUsePos: true,
+    canLogProduction: true,
+  },
+  admin: {
+    label: "Admin",
+    description: "Full admin access, including POS and production.",
+    canUsePos: true,
+    canLogProduction: true,
+  },
+};
+
+function accessPresetFor(employee?: EmployeeRecord): AccessPreset {
+  if (employee?.memberRole === "owner" || employee?.memberRole === "admin") {
+    return "admin";
+  }
+  if (employee?.canUsePos && employee.canLogProduction) return "multi_role";
+  if (employee?.canUsePos) return "pos_operator";
+  if (employee?.canLogProduction) return "production";
+  return "shift_employee";
+}
 
 export function CreateEmployeeDialog({
   employee,
@@ -50,17 +111,15 @@ export function CreateEmployeeDialog({
   const formRef = useRef<HTMLFormElement>(null);
   const [open, setOpen] = useState(false);
   const [isPending, startTransition] = useTransition();
-  const [canUsePos, setCanUsePos] = useState(employee?.canUsePos ?? false);
-  const [canLogProduction, setCanLogProduction] = useState(
-    employee?.canLogProduction ?? true,
+  const [accessPreset, setAccessPreset] = useState<AccessPreset>(() =>
+    accessPresetFor(employee),
   );
   const [feedback, setFeedback] = useState<ActionFeedback>({});
   const isEditing = Boolean(employee);
 
   function resetForm() {
     formRef.current?.reset();
-    setCanUsePos(employee?.canUsePos ?? false);
-    setCanLogProduction(employee?.canLogProduction ?? true);
+    setAccessPreset(accessPresetFor(employee));
     setFeedback({});
   }
 
@@ -77,6 +136,7 @@ export function CreateEmployeeDialog({
     startTransition(async () => {
       const values = {
         memberId: employee?.memberId ?? null,
+        memberRole: accessPreset === "admin" ? "admin" : "employee",
         displayName: String(formData.get("displayName") ?? ""),
         email: optionalText(formData.get("email")),
         phone: optionalText(formData.get("phone")),
@@ -84,8 +144,8 @@ export function CreateEmployeeDialog({
         defaultShiftRateCents: moneyToCents(
           formData.get("defaultShiftRateCents"),
         ),
-        canUsePos,
-        canLogProduction,
+        canUsePos: accessPresets[accessPreset].canUsePos,
+        canLogProduction: accessPresets[accessPreset].canLogProduction,
       };
       const result = employee
         ? await updateEmployeeAction({ employeeId: employee.id, ...values })
@@ -193,24 +253,33 @@ export function CreateEmployeeDialog({
             disabled={isPending}
             hint="This becomes the starting salary snapshot when assigned."
           />
-          <FieldGroup label="Permissions">
-            <ToggleField
-              id="employee-pos-access"
-              label="Can use POS"
-              description="Allows this employee to finalize sales on assigned shifts."
-              checked={canUsePos}
-              onCheckedChange={setCanUsePos}
+          <div className="space-y-2">
+            <Label htmlFor="employee-access-preset">Access preset</Label>
+            <Select
+              value={accessPreset}
+              onValueChange={(value) => setAccessPreset(value as AccessPreset)}
               disabled={isPending}
-            />
-            <ToggleField
-              id="employee-production-access"
-              label="Can log production"
-              description="Allows this employee to record prepared or manufactured stock."
-              checked={canLogProduction}
-              onCheckedChange={setCanLogProduction}
-              disabled={isPending}
-            />
-          </FieldGroup>
+            >
+              <SelectTrigger
+                id="employee-access-preset"
+                className="h-11 rounded-xl"
+              >
+                <SelectValue />
+              </SelectTrigger>
+              <SelectContent>
+                {(Object.keys(accessPresets) as AccessPreset[]).map(
+                  (preset) => (
+                    <SelectItem key={preset} value={preset}>
+                      {accessPresets[preset].label}
+                    </SelectItem>
+                  ),
+                )}
+              </SelectContent>
+            </Select>
+            <p className="text-xs text-muted-foreground">
+              {accessPresets[accessPreset].description}
+            </p>
+          </div>
           <DialogFooter>
             {employee ? (
               <SoftDeleteButton

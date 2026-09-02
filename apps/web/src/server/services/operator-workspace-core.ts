@@ -6,18 +6,27 @@ import {
   shifts,
 } from "@miniros/db/schema";
 import { and, desc, eq, inArray, isNull } from "drizzle-orm";
+import type { BusinessFeatureKey } from "@miniros/domain";
 
-import { AccessError, requireActiveBusiness } from "./access";
+import { requireActiveBusiness } from "./access";
+import { AccessError } from "./access-error";
+import { OperationalShiftUnavailableError } from "./operator-workspace-errors";
+export {
+  OperationalShiftUnavailableError,
+  type OperationalShiftUnavailableReason,
+} from "./operator-workspace-errors";
 
 export type OperationalPermission = "pos" | "production";
 export type OpenShiftStatus = "scheduled" | "active" | "closing";
 
 export async function resolveOperationalShift(input: {
   permission?: OperationalPermission;
+  feature?: BusinessFeatureKey;
   shiftId?: string;
   statuses: readonly OpenShiftStatus[];
 }) {
   const access = await requireActiveBusiness({
+    feature: input.feature,
     employeePermission: input.permission,
   });
   if (!access.employee) {
@@ -43,8 +52,6 @@ export async function resolveOperationalShift(input: {
       title: shifts.title,
       shiftDate: shifts.shiftDate,
       status: shifts.status,
-      scheduledStartAt: shifts.scheduledStartAt,
-      scheduledEndAt: shifts.scheduledEndAt,
       locationId: sellingLocations.id,
       locationName: sellingLocations.name,
       inventoryLocationId: inventoryLocations.id,
@@ -75,14 +82,12 @@ export async function resolveOperationalShift(input: {
       ),
     )
     .where(and(...conditions))
-    .orderBy(desc(shifts.shiftDate), desc(shifts.scheduledStartAt))
+    .orderBy(desc(shifts.shiftDate), desc(shifts.createdAt))
     .limit(1);
 
   if (!shift) {
-    throw new AccessError(
-      input.shiftId
-        ? "No eligible assigned shift was found."
-        : "You do not have an eligible active shift.",
+    throw new OperationalShiftUnavailableError(
+      input.shiftId ? "requested_shift_unavailable" : "no_active_shift",
     );
   }
 

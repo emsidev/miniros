@@ -6,7 +6,7 @@ import {
   shiftProfitSummaries,
   shifts,
 } from "@miniros/db/schema";
-import { and, asc, desc, eq, inArray, isNull } from "drizzle-orm";
+import { and, asc, eq, inArray, isNull } from "drizzle-orm";
 
 import { AccessError, requireActiveBusiness } from "./access";
 
@@ -20,8 +20,6 @@ export async function listAssignedShifts() {
       id: shifts.id,
       title: shifts.title,
       shiftDate: shifts.shiftDate,
-      scheduledStartAt: shifts.scheduledStartAt,
-      scheduledEndAt: shifts.scheduledEndAt,
       actualStartAt: shifts.actualStartAt,
       actualEndAt: shifts.actualEndAt,
       status: shifts.status,
@@ -66,7 +64,7 @@ export async function listAssignedShifts() {
         isNull(shifts.deletedAt),
       ),
     )
-    .orderBy(desc(shifts.shiftDate), asc(shifts.scheduledStartAt));
+    .orderBy(asc(shifts.shiftDate), asc(shifts.createdAt));
 }
 
 export async function getAssignedShift(shiftId: string) {

@@ -14,7 +14,7 @@ import {
   submitInventoryAdjustment,
 } from "../services/inventory-adjustment-operations";
 import { attachPaymentProof } from "../services/payment-proofs";
-import { logShiftProduction } from "../services/production-operations";
+import { logProduction } from "../services/production-operations";
 import { finalizeSale } from "../services/sales-operations";
 import { submitShiftCloseout } from "../services/shift-closeout";
 import { startAssignedShift } from "../services/shift-start";
@@ -109,13 +109,18 @@ const saleSchema = z
 const productionSchema = z
   .object({
     productionLogId: uuidSchema,
-    inventoryEventId: uuidSchema,
-    shiftId: uuidSchema,
+    productionInputEventId: uuidSchema,
+    productionOutputEventId: uuidSchema,
+    inventoryLocationId: uuidSchema,
     productId: uuidSchema,
     quantityProduced: positiveQuantitySchema,
     notes: nullableText(2_000),
   })
-  .strict();
+  .strict()
+  .refine(
+    (input) => input.productionInputEventId !== input.productionOutputEventId,
+    "Production input and output event IDs must be different.",
+  );
 const cashDeductionSchema = z
   .object({
     deductionId: uuidSchema,
@@ -128,6 +133,7 @@ const cashDeductionSchema = z
 const inventoryAdjustmentSchema = z
   .object({
     adjustmentId: uuidSchema,
+    inventoryEventId: uuidSchema,
     shiftId: uuidSchema,
     inventoryItemId: uuidSchema,
     quantityDelta: nonzeroQuantitySchema,
@@ -238,8 +244,8 @@ export async function uploadPaymentProofAction(input: unknown) {
     operatorPaths,
   );
 }
-export async function logShiftProductionAction(input: unknown) {
-  return execute(productionSchema, input, logShiftProduction, operatorPaths);
+export async function logProductionAction(input: unknown) {
+  return execute(productionSchema, input, logProduction, operatorPaths);
 }
 export async function submitCashDeductionAction(input: unknown) {
   return execute(

@@ -30,9 +30,9 @@ export default async function EmployeesPage() {
       ) : (
         <div className="grid gap-4 lg:grid-cols-2">
           {employees.map((employee) => (
-            <Card key={employee.id} className="rounded-2xl py-5 shadow-none">
+            <Card key={employee.id} className="rounded-xl py-5 shadow-none">
               <CardHeader className="flex-row items-start gap-3 px-5">
-                <span className="grid size-11 shrink-0 place-items-center rounded-2xl bg-muted">
+                <span className="grid size-11 shrink-0 place-items-center rounded-xl bg-muted">
                   <UserRound className="size-5" aria-hidden="true" />
                 </span>
                 <div className="min-w-0 flex-1">

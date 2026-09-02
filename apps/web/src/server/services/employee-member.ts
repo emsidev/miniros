@@ -7,6 +7,7 @@ import { AccessError } from "./access";
 
 export type EmployeeWriteInput = {
   memberId: string | null;
+  memberRole: "admin" | "employee";
   displayName: string;
   email: string | null;
   phone: string | null;
@@ -111,6 +112,22 @@ export async function resolveEmployeeMember(
         throw new Error("Employee invitation update did not return a row.");
       member = updated;
     }
+
+    if (member.role !== "owner" && member.role !== input.memberRole) {
+      const [updated] = await tx
+        .update(businessMembers)
+        .set({ role: input.memberRole, updatedAt: new Date() })
+        .where(
+          and(
+            eq(businessMembers.id, member.id),
+            eq(businessMembers.businessId, businessId),
+          ),
+        )
+        .returning(memberSelection);
+      if (!updated)
+        throw new Error("Employee role update did not return a row.");
+      member = updated;
+    }
   } else if (input.email) {
     const email = input.email.trim().toLowerCase();
     const matches = await tx
@@ -134,7 +151,7 @@ export async function resolveEmployeeMember(
         .values({
           id: randomUUID(),
           businessId,
-          role: "employee",
+          role: input.memberRole,
           status: "pending",
           invitedEmail: email,
         })
@@ -147,10 +164,7 @@ export async function resolveEmployeeMember(
       const [reopened] = await tx
         .update(businessMembers)
         .set({
-          role:
-            member.role === "owner" || member.role === "admin"
-              ? member.role
-              : "employee",
+          role: member.role === "owner" ? "owner" : input.memberRole,
           status: hasAccount ? "active" : "pending",
           invitedEmail: email,
           approvedBy: null,
@@ -168,6 +182,22 @@ export async function resolveEmployeeMember(
       if (!reopened)
         throw new Error("Employee invitation update did not return a row.");
       member = reopened;
+    }
+
+    if (member && member.role !== "owner" && member.role !== input.memberRole) {
+      const [updated] = await tx
+        .update(businessMembers)
+        .set({ role: input.memberRole, updatedAt: new Date() })
+        .where(
+          and(
+            eq(businessMembers.id, member.id),
+            eq(businessMembers.businessId, businessId),
+          ),
+        )
+        .returning(memberSelection);
+      if (!updated)
+        throw new Error("Employee role update did not return a row.");
+      member = updated;
     }
   }
 

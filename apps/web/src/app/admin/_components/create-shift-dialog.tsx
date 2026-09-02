@@ -1,8 +1,15 @@
 "use client";
 
-import { useRef, useState, useTransition, type FormEvent } from "react";
+import {
+  useMemo,
+  useRef,
+  useState,
+  useTransition,
+  type FormEvent,
+} from "react";
 import { useRouter } from "next/navigation";
 import { Pencil, Plus } from "lucide-react";
+import type { DateRange } from "react-day-picker";
 import { toast } from "sonner";
 import { Button } from "@/components/ui/button";
 import {
@@ -16,26 +23,31 @@ import {
   DialogTrigger,
 } from "@/components/ui/dialog";
 import {
+  cancelAdminShiftAction,
   createAdminShiftAction,
   updateAdminShiftAction,
 } from "@/server/actions/admin-shifts";
 import { ActionErrorAlert, SoftDeleteButton } from "./form-controls";
+import { ensureOperator } from "./shift-assignment-utils";
+import {
+  datesFromRange,
+  datesFromSelection,
+  fromDateKey,
+  toDateKey,
+} from "./shift-date-utils";
 import {
   firstFieldError,
   moneyToCents,
-  optionalText,
   type ActionFeedback,
 } from "./form-utils";
 import { ShiftAssignmentFields } from "./shift-assignment-fields";
 import {
-  ShiftCostAndNotesFields,
   ShiftScheduleFields,
+  type DateSelectionMode,
 } from "./shift-schedule-cost-fields";
 import {
-  cancelledShiftInput,
   centsToInput,
   initialAssignments,
-  toIsoDateTime,
   type EditableAssignment,
   type EmployeeOption,
   type LocationOption,
@@ -56,20 +68,18 @@ export function CreateShiftDialog({
   const initialLocation =
     locations.find((location) => location.id === shift?.sellingLocationId) ??
     locations[0];
+  const employeeById = useMemo(
+    () => new Map(employees.map((employee) => [employee.id, employee])),
+    [employees],
+  );
   const [open, setOpen] = useState(false);
   const [isPending, startTransition] = useTransition();
   const [locationId, setLocationId] = useState(initialLocation?.id ?? "");
-  const [rentalCost, setRentalCost] = useState(
-    centsToInput(
-      shift?.rentalCostCents ?? initialLocation?.defaultRentalCostCents ?? 0,
-    ),
-  );
-  const [transportCost, setTransportCost] = useState(
-    centsToInput(
-      shift?.transportCostCents ??
-        initialLocation?.defaultTransportCostCents ??
-        0,
-    ),
+  const [dateMode, setDateMode] = useState<DateSelectionMode>("range");
+  const [dateRange, setDateRange] = useState<DateRange>();
+  const [specificDates, setSpecificDates] = useState<Date[]>([]);
+  const [editDate, setEditDate] = useState<Date | undefined>(() =>
+    shift ? fromDateKey(shift.shiftDate) : undefined,
   );
   const [assignments, setAssignments] = useState<EditableAssignment[]>(
     initialAssignments(employees, shift),
@@ -84,16 +94,10 @@ export function CreateShiftDialog({
       locations[0];
     formRef.current?.reset();
     setLocationId(location?.id ?? "");
-    setRentalCost(
-      centsToInput(
-        shift?.rentalCostCents ?? location?.defaultRentalCostCents ?? 0,
-      ),
-    );
-    setTransportCost(
-      centsToInput(
-        shift?.transportCostCents ?? location?.defaultTransportCostCents ?? 0,
-      ),
-    );
+    setDateMode("range");
+    setDateRange(undefined);
+    setSpecificDates([]);
+    setEditDate(shift ? fromDateKey(shift.shiftDate) : undefined);
     setAssignments(initialAssignments(employees, shift));
     setFeedback({});
   }
@@ -103,31 +107,27 @@ export function CreateShiftDialog({
     if (nextOpen) resetForm();
   }
 
-  function changeLocation(nextLocationId: string) {
-    const location = locations.find((item) => item.id === nextLocationId);
-    setLocationId(nextLocationId);
-    if (location) {
-      setRentalCost(centsToInput(location.defaultRentalCostCents));
-      setTransportCost(centsToInput(location.defaultTransportCostCents));
-    }
-  }
-
   function toggleEmployee(employee: EmployeeOption, checked: boolean) {
     setAssignments((current) => {
       if (!checked) {
-        return current.filter((item) => item.employeeId !== employee.id);
+        return ensureOperator(
+          current.filter((item) => item.employeeId !== employee.id),
+          employeeById,
+        );
       }
-      if (current.some((item) => item.employeeId === employee.id))
+      if (current.some((item) => item.employeeId === employee.id)) {
         return current;
+      }
       const hasOperator = current.some(
         (item) => item.roleOnShift === "operator",
       );
+      const roleOnShift: EditableAssignment["roleOnShift"] =
+        employee.canUsePos && !hasOperator ? "operator" : "employee";
       return [
         ...current,
         {
           employeeId: employee.id,
-          roleOnShift:
-            employee.canUsePos && !hasOperator ? "operator" : "employee",
+          roleOnShift,
           salary: centsToInput(employee.defaultShiftRateCents),
         },
       ];
@@ -138,52 +138,71 @@ export function CreateShiftDialog({
     employeeId: string,
     patch: Partial<Pick<EditableAssignment, "roleOnShift" | "salary">>,
   ) {
-    setAssignments((current) =>
-      current.map((item) =>
+    setAssignments((current) => {
+      const next = current.map((item) =>
         item.employeeId === employeeId ? { ...item, ...patch } : item,
-      ),
-    );
+      );
+      return patch.roleOnShift && patch.roleOnShift !== "operator"
+        ? ensureOperator(next, employeeById, employeeId)
+        : next;
+    });
   }
 
-  function valuesFrom(formData: FormData) {
-    return {
-      sellingLocationId: locationId,
-      title: optionalText(formData.get("title")),
-      shiftDate: String(formData.get("shiftDate") ?? ""),
-      scheduledStartAt: toIsoDateTime(formData.get("scheduledStartAt")),
-      scheduledEndAt: toIsoDateTime(formData.get("scheduledEndAt")),
-      notes: optionalText(formData.get("notes")),
-      assignments: assignments.map((assignment) => ({
-        employeeId: assignment.employeeId,
-        roleOnShift: assignment.roleOnShift,
-        salaryRateCents: moneyToCents(assignment.salary),
-      })),
-      rentalCostCents: moneyToCents(rentalCost),
-      transportCostCents: moneyToCents(transportCost),
-      otherCostCents: moneyToCents(formData.get("otherCostCents")),
-      otherCostLabel: optionalText(formData.get("otherCostLabel")),
-    };
+  function handleDateModeChange(mode: DateSelectionMode) {
+    setDateMode(mode);
+    setDateRange(undefined);
+    setSpecificDates([]);
+  }
+
+  function assignmentValues() {
+    return assignments.map((assignment) => ({
+      employeeId: assignment.employeeId,
+      roleOnShift: assignment.roleOnShift,
+      salaryRateCents: moneyToCents(assignment.salary),
+    }));
   }
 
   function handleSubmit(event: FormEvent<HTMLFormElement>) {
     event.preventDefault();
-    const values = valuesFrom(new FormData(event.currentTarget));
+    const formData = new FormData(event.currentTarget);
+    const sharedValues = {
+      sellingLocationId: locationId,
+      title: String(formData.get("title") ?? "").trim(),
+      assignments: assignmentValues(),
+    };
     setFeedback({});
+
     startTransition(async () => {
-      const result = shift
-        ? await updateAdminShiftAction({
-            shiftId: shift.id,
-            ...values,
-            status: "scheduled",
-          })
-        : await createAdminShiftAction(values);
-      if (!result.ok) {
-        setFeedback({ error: result.error, fieldErrors: result.fieldErrors });
-        return;
+      if (shift) {
+        const result = await updateAdminShiftAction({
+          shiftId: shift.id,
+          ...sharedValues,
+          shiftDate: editDate ? toDateKey(editDate) : "",
+        });
+        if (!result.ok) {
+          setFeedback({ error: result.error, fieldErrors: result.fieldErrors });
+          return;
+        }
+        toast.success(`${result.data.title} was updated.`);
+      } else {
+        const shiftDates =
+          dateMode === "range"
+            ? datesFromRange(dateRange)
+            : datesFromSelection(specificDates);
+        const result = await createAdminShiftAction({
+          ...sharedValues,
+          shiftDates,
+        });
+        if (!result.ok) {
+          setFeedback({ error: result.error, fieldErrors: result.fieldErrors });
+          return;
+        }
+        toast.success(
+          result.data.createdCount === 1
+            ? "Shift created."
+            : `${result.data.createdCount} shifts created.`,
+        );
       }
-      toast.success(
-        `${result.data.title ?? result.data.locationName} was ${isEditing ? "updated" : "scheduled"}.`,
-      );
       setOpen(false);
       router.refresh();
     });
@@ -196,10 +215,7 @@ export function CreateShiftDialog({
         error: "Shift form unavailable.",
       });
     }
-    return updateAdminShiftAction({
-      shiftId: shift.id,
-      ...cancelledShiftInput(shift),
-    });
+    return cancelAdminShiftAction({ shiftId: shift.id });
   }
 
   return (
@@ -218,11 +234,11 @@ export function CreateShiftDialog({
           {isEditing ? "Edit" : "Create shift"}
         </Button>
       </DialogTrigger>
-      <DialogContent className="max-h-[calc(100vh-2rem)] overflow-y-auto sm:max-w-2xl">
+      <DialogContent className="max-h-[calc(100vh-2rem)] overflow-y-auto sm:max-w-xl">
         <DialogHeader>
           <DialogTitle>{isEditing ? "Edit shift" : "Create shift"}</DialogTitle>
           <DialogDescription>
-            Schedule the venue, expected costs, and salary snapshots together.
+            Choose the location, dates, and employees for this shift.
           </DialogDescription>
         </DialogHeader>
         <form
@@ -238,7 +254,15 @@ export function CreateShiftDialog({
             shift={shift}
             feedback={feedback}
             disabled={isPending}
-            onLocationChange={changeLocation}
+            dateMode={dateMode}
+            dateRange={dateRange}
+            specificDates={specificDates}
+            editDate={editDate}
+            onLocationChange={setLocationId}
+            onDateModeChange={handleDateModeChange}
+            onDateRangeChange={setDateRange}
+            onSpecificDatesChange={setSpecificDates}
+            onEditDateChange={setEditDate}
           />
           <ShiftAssignmentFields
             employees={employees}
@@ -247,15 +271,6 @@ export function CreateShiftDialog({
             disabled={isPending}
             onToggle={toggleEmployee}
             onUpdate={updateAssignment}
-          />
-          <ShiftCostAndNotesFields
-            rentalCost={rentalCost}
-            transportCost={transportCost}
-            shift={shift}
-            feedback={feedback}
-            disabled={isPending}
-            onRentalCostChange={setRentalCost}
-            onTransportCostChange={setTransportCost}
           />
           <DialogFooter>
             {shift ? (
@@ -282,7 +297,7 @@ export function CreateShiftDialog({
               {isPending
                 ? isEditing
                   ? "Saving shift…"
-                  : "Creating shift…"
+                  : "Creating shifts…"
                 : isEditing
                   ? "Save changes"
                   : "Create shift"}

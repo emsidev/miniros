@@ -1,0 +1,19 @@
+---
+interface Props {
+  variant?: "primary" | "inverse";
+  class?: string;
+}
+
+const { variant = "primary", class: className = "" } = Astro.props;
+---
+
+<span
+  class:list={["brand-mark", `brand-mark--${variant}`, className]}
+  aria-hidden="true"
+>
+  <svg viewBox="0 0 512 512" role="presentation">
+    <path
+      d="M112 344V168h62l82 94 82-94h62v176h-64v-82l-80 88-80-88v82z"
+      fill="currentColor"></path>
+  </svg>
+</span>

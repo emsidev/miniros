@@ -1,5 +1,5 @@
 import Link from "next/link";
-import { CalendarDays, Clock3, MapPin, UsersRound } from "lucide-react";
+import { CalendarDays, MapPin, UsersRound } from "lucide-react";
 import { EmptyState, StatusBadge } from "@/components/shared/feedback";
 import { PageHeader } from "@/components/shared/layout";
 import { Badge } from "@/components/ui/badge";
@@ -19,24 +19,8 @@ const dateFormatter = new Intl.DateTimeFormat("en-PH", {
   timeZone: "UTC",
 });
 
-const timeFormatter = new Intl.DateTimeFormat("en-PH", {
-  hour: "numeric",
-  minute: "2-digit",
-  timeZone: "Asia/Manila",
-});
-
 function formatShiftDate(value: string) {
   return dateFormatter.format(new Date(`${value}T00:00:00Z`));
-}
-
-function formatSchedule(start: string | null, end: string | null) {
-  if (!start && !end) return "Time not set";
-  if (start && end) {
-    return `${timeFormatter.format(new Date(start))}–${timeFormatter.format(new Date(end))}`;
-  }
-  return start
-    ? `Starts ${timeFormatter.format(new Date(start))}`
-    : `Ends ${timeFormatter.format(new Date(end!))}`;
 }
 
 function visibleAssignments<T extends { status: string }>(shift: {
@@ -65,14 +49,7 @@ export default async function AdminShiftsPage() {
   const hasOperator = activeEmployees.some((employee) => employee.canUsePos);
   const canCreateShift =
     activeLocations.length > 0 && activeEmployees.length > 0 && hasOperator;
-  const locationOptions = activeLocations.map(
-    ({ id, name, defaultRentalCostCents, defaultTransportCostCents }) => ({
-      id,
-      name,
-      defaultRentalCostCents,
-      defaultTransportCostCents,
-    }),
-  );
+  const locationOptions = activeLocations.map(({ id, name }) => ({ id, name }));
   const employeeOptions = activeEmployees.map(
     ({ id, displayName, defaultShiftRateCents, canUsePos }) => ({
       id,
@@ -92,7 +69,7 @@ export default async function AdminShiftsPage() {
     <>
       <PageHeader
         title="Shifts"
-        description="Schedule the venue, expected costs, and employee salary snapshots."
+        description="Choose the location, dates, and team for each selling shift."
         action={shifts.length > 0 ? createAction : undefined}
       />
 
@@ -139,9 +116,9 @@ export default async function AdminShiftsPage() {
           {shifts.map((shift) => {
             const assignments = visibleAssignments(shift);
             return (
-              <Card key={shift.id} className="rounded-2xl py-5 shadow-none">
+              <Card key={shift.id} className="rounded-xl py-5 shadow-none">
                 <CardHeader className="flex-row items-start gap-3 px-5">
-                  <span className="grid size-11 shrink-0 place-items-center rounded-2xl bg-muted">
+                  <span className="grid size-11 shrink-0 place-items-center rounded-xl bg-muted">
                     <CalendarDays className="size-5" aria-hidden="true" />
                   </span>
                   <div className="min-w-0 flex-1">
@@ -164,24 +141,15 @@ export default async function AdminShiftsPage() {
                   </div>
                 </CardHeader>
                 <CardContent className="space-y-4 px-5">
-                  <div className="grid gap-2 text-sm text-muted-foreground sm:grid-cols-2">
+                  <div className="text-sm text-muted-foreground">
                     <p className="flex items-center gap-2">
                       <MapPin className="size-4" aria-hidden="true" />
                       <span className="truncate">{shift.locationName}</span>
                     </p>
-                    <p className="flex items-center gap-2">
-                      <Clock3 className="size-4" aria-hidden="true" />
-                      <span>
-                        {formatSchedule(
-                          shift.scheduledStartAt,
-                          shift.scheduledEndAt,
-                        )}
-                      </span>
-                    </p>
                   </div>
                   <div className="rounded-xl bg-muted/60 p-3">
                     <div className="mb-2 flex items-center justify-between gap-4">
-                      <p className="flex items-center gap-2 text-xs font-bold uppercase tracking-wide text-muted-foreground">
+                      <p className="flex items-center gap-2 text-xs font-semibold text-muted-foreground">
                         <UsersRound className="size-3.5" aria-hidden="true" />
                         Assigned team
                       </p>

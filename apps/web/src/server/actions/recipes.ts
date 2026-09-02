@@ -27,6 +27,12 @@ const recipeSchema = z
   .object({
     productId: z.string().uuid(),
     lines: z.array(recipeLineSchema).max(100),
+    laborCostCents: z.number().int().nonnegative().max(Number.MAX_SAFE_INTEGER),
+    overheadCostCents: z
+      .number()
+      .int()
+      .nonnegative()
+      .max(Number.MAX_SAFE_INTEGER),
   })
   .superRefine((value, context) => {
     const seen = new Set<string>();
@@ -55,8 +61,12 @@ export async function listRecipeAction(input: unknown) {
 
 export async function replaceRecipeAction(input: unknown) {
   try {
-    const { productId, lines } = recipeSchema.parse(input);
-    const result = await replaceRecipe(productId, lines);
+    const { productId, lines, laborCostCents, overheadCostCents } =
+      recipeSchema.parse(input);
+    const result = await replaceRecipe(productId, lines, {
+      laborCostCents,
+      overheadCostCents,
+    });
     revalidatePath("/admin/inventory/recipes");
     revalidatePath("/admin/products");
     revalidatePath("/pos");

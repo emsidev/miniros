@@ -1,93 +1,102 @@
 "use client";
 
-import { useMemo, useState, useTransition, type FormEvent } from "react";
-import { useRouter } from "next/navigation";
 import {
-  addCents,
-  allocateDiscountCents,
-  multiplyCentsByQuantity,
-  percentageOfCents,
-} from "@miniros/domain";
-import type { PaymentMethod } from "@miniros/contracts";
-import { AlertCircle, Minus, Plus, ShoppingBag, Trash2 } from "lucide-react";
+  useCallback,
+  useEffect,
+  useMemo,
+  useReducer,
+  useState,
+  useTransition,
+  type FormEvent,
+} from "react";
+import { useRouter } from "next/navigation";
+import { calculatePosAvailableQuantity } from "@miniros/domain";
 
-import { Alert, AlertDescription } from "@/components/ui/alert";
-import { Badge } from "@/components/ui/badge";
-import { Button } from "@/components/ui/button";
-import { Input } from "@/components/ui/input";
-import { Label } from "@/components/ui/label";
-import { formatMoney, formatPaymentMethod } from "@/lib/format";
+import {
+  Sheet,
+  SheetContent,
+  SheetDescription,
+  SheetHeader,
+  SheetTitle,
+} from "@/components/ui/sheet";
 import {
   finalizeSaleAction,
   uploadPaymentProofAction,
 } from "@/server/actions/operations";
+import {
+  calculateCheckout,
+  createPaymentDraft,
+  preparePayments,
+  syncExactTender,
+  validateCheckout,
+} from "./pos-checkout";
+import { PosCatalog } from "./pos-catalog";
+import { PosHeader } from "./pos-header";
+import { PosOrder } from "./pos-order";
+import { posCartReducer } from "./pos-state";
+import type {
+  PaymentDraft,
+  PosProduct,
+  PosPromo,
+  SaleReceipt,
+  SubmittedPayment,
+} from "./pos-types";
 
-type Product = {
-  id: string;
-  name: string;
-  categoryName: string | null;
-  priceCents: number;
-  requiresRecipeDeduction: boolean;
-};
-type Promo = {
-  id: string;
-  name: string;
-  discountType: "fixed_amount" | "percentage";
-  discountValue: number;
-};
-type PaymentDraft = {
-  id: string;
-  proofFileId: string;
-  method: PaymentMethod;
-  amount: string;
-  reference: string;
-  file: File | null;
-};
+function useDesktopCheckout() {
+  const [isDesktop, setIsDesktop] = useState(false);
 
-function pesosToCents(value: string) {
-  const pesos = Number(value);
-  return Number.isFinite(pesos) ? Math.round(pesos * 100) : Number.NaN;
-}
+  useEffect(() => {
+    const media = window.matchMedia("(min-width: 1024px)");
+    const update = () => setIsDesktop(media.matches);
+    update();
+    media.addEventListener("change", update);
+    return () => media.removeEventListener("change", update);
+  }, []);
 
-function newPayment(method: PaymentMethod): PaymentDraft {
-  return {
-    id: crypto.randomUUID(),
-    proofFileId: crypto.randomUUID(),
-    method,
-    amount: "",
-    reference: "",
-    file: null,
-  };
+  return isDesktop;
 }
 
 export function PosForm({
   shiftId,
+  locationName,
+  shiftSummary,
+  inventoryBalances,
   products,
+  promosEnabled,
   promos,
 }: {
   shiftId: string;
-  products: readonly Product[];
-  promos: readonly Promo[];
+  locationName: string;
+  shiftSummary: { saleCount: number; itemCount: number; salesCents: number };
+  inventoryBalances: readonly {
+    inventoryItemId: string;
+    quantity: string;
+  }[];
+  products: readonly PosProduct[];
+  promosEnabled: boolean;
+  promos: readonly PosPromo[];
 }) {
   const router = useRouter();
+  const isDesktop = useDesktopCheckout();
   const [isPending, startTransition] = useTransition();
   const [search, setSearch] = useState("");
   const [category, setCategory] = useState("all");
-  const [cart, setCart] = useState<Record<string, number>>({});
+  const [mobileSearchOpen, setMobileSearchOpen] = useState(false);
+  const [orderOpen, setOrderOpen] = useState(false);
+  const [cart, dispatchCart] = useReducer(posCartReducer, {});
   const [discount, setDiscount] = useState("0");
   const [promoId, setPromoId] = useState("none");
   const [payments, setPayments] = useState<PaymentDraft[]>(() => [
-    newPayment("cash"),
+    createPaymentDraft("cash"),
   ]);
   const [saleRequestId, setSaleRequestId] = useState(() => crypto.randomUUID());
   const [inventoryEventId, setInventoryEventId] = useState(() =>
     crypto.randomUUID(),
   );
   const [error, setError] = useState<string>();
-  const [receipt, setReceipt] = useState<{
-    saleId: string;
-    totalCents: number;
-  }>();
+  const [stockNotice, setStockNotice] = useState<string>();
+  const [receipt, setReceipt] = useState<SaleReceipt>();
+  const [proofError, setProofError] = useState<string>();
 
   const categories = useMemo(
     () => [
@@ -95,93 +104,197 @@ export function PosForm({
     ],
     [products],
   );
-  const filtered = products.filter((product) => {
-    const matchesSearch = product.name
-      .toLowerCase()
-      .includes(search.toLowerCase());
-    return (
-      matchesSearch &&
-      (category === "all" || (product.categoryName ?? "Other") === category)
-    );
-  });
-  const cartLines = products
-    .filter((product) => cart[product.id])
-    .map((product) => ({ ...product, quantity: cart[product.id] ?? 0 }));
-  const subtotalCents = addCents(
-    ...cartLines.map((line) =>
-      multiplyCentsByQuantity(line.priceCents, line.quantity),
-    ),
+  const filteredProducts = useMemo(() => {
+    const query = search.trim().toLowerCase();
+    return products.filter((product) => {
+      const matchesSearch =
+        !query || product.name.toLowerCase().includes(query);
+      return (
+        matchesSearch &&
+        (category === "all" || (product.categoryName ?? "Other") === category)
+      );
+    });
+  }, [category, products, search]);
+  const checkout = useMemo(
+    () => calculateCheckout({ products, cart, discount, promoId, promos }),
+    [cart, discount, products, promoId, promos],
   );
-  const discountCents = Math.max(0, pesosToCents(discount) || 0);
-  const selectedPromo = promos.find((promo) => promo.id === promoId);
-  const promoDiscountCents = selectedPromo
-    ? selectedPromo.discountType === "fixed_amount"
-      ? Math.round(selectedPromo.discountValue * 100)
-      : percentageOfCents(subtotalCents, selectedPromo.discountValue)
-    : 0;
-  const appliedDiscountCents = selectedPromo
-    ? promoDiscountCents
-    : discountCents;
-  const totalCents = Math.max(0, subtotalCents - appliedDiscountCents);
-  const lineSubtotalsCents = cartLines.map((line) =>
-    multiplyCentsByQuantity(line.priceCents, line.quantity),
+  const stockProducts = useMemo(
+    () =>
+      products.map((product) => ({
+        productId: product.id,
+        stockTracked: product.stockTracked,
+        requirements: product.stockRequirements,
+      })),
+    [products],
   );
-  const lineDiscountsCents = allocateDiscountCents(
-    lineSubtotalsCents,
-    appliedDiscountCents,
+  const cartQuantities = useMemo(
+    () =>
+      Object.entries(cart).map(([productId, quantity]) => ({
+        productId,
+        quantity,
+      })),
+    [cart],
   );
-  const cartItems = cartLines.map((line, index) => ({
-    ...line,
-    lineDiscountCents: lineDiscountsCents[index] ?? 0,
-  }));
+  const getAvailability = useCallback(
+    (productId: string) =>
+      calculatePosAvailableQuantity({
+        productId,
+        products: stockProducts,
+        balances: inventoryBalances,
+        cart: cartQuantities,
+      }),
+    [cartQuantities, inventoryBalances, stockProducts],
+  );
+  const stockError = useMemo(() => {
+    for (const line of checkout.cartLines) {
+      const available = getAvailability(line.id);
+      if (available !== null && line.quantity > available) {
+        return `${line.name} now has only ${available} available. Reduce its quantity before charging.`;
+      }
+    }
+    return undefined;
+  }, [checkout.cartLines, getAvailability]);
+  const cartCount = checkout.cartLines.reduce(
+    (sum, line) => sum + line.quantity,
+    0,
+  );
+
+  useEffect(() => {
+    setPayments((current) => {
+      const next = syncExactTender(current, checkout.totalCents);
+      const unchanged = next.every(
+        (payment, index) => payment.amount === current[index]?.amount,
+      );
+      return unchanged ? current : next;
+    });
+  }, [checkout.totalCents]);
 
   function changeQuantity(productId: string, delta: number) {
-    setCart((current) => {
-      const next = Math.max(0, (current[productId] ?? 0) + delta);
-      if (next === 0) {
-        const updated = { ...current };
-        delete updated[productId];
-        return updated;
+    const product = products.find((candidate) => candidate.id === productId);
+    if (!product) return;
+    setStockNotice(undefined);
+    setError(undefined);
+    const currentQuantity = cart[productId] ?? 0;
+    const nextQuantity = Math.max(0, currentQuantity + delta);
+    if (delta > 0) {
+      const available = getAvailability(productId);
+      if (available !== null && nextQuantity > available) {
+        setStockNotice(
+          available === 0
+            ? `${product.name} is sold out.`
+            : `Only ${available} ${product.name} available for this order.`,
+        );
+        return;
       }
-      return { ...current, [productId]: next };
-    });
+    }
+    dispatchCart({ type: "set_quantity", productId, quantity: nextQuantity });
   }
 
   function updatePayment(index: number, patch: Partial<PaymentDraft>) {
     setPayments((current) =>
-      current.map((payment, paymentIndex) =>
-        paymentIndex === index ? { ...payment, ...patch } : payment,
+      current.map((payment, paymentIndex) => {
+        if (paymentIndex !== index) return payment;
+        const next = { ...payment, ...patch };
+        if (
+          patch.method &&
+          current.length === 1 &&
+          payment.amountMode === "exact"
+        ) {
+          return syncExactTender(
+            [{ ...next, amount: "", amountMode: "exact" }],
+            checkout.totalCents,
+          )[0]!;
+        }
+        return next;
+      }),
+    );
+  }
+
+  function splitPayment() {
+    setPayments((current) => {
+      if (current.length > 1) return current;
+      return [
+        { ...current[0]!, amount: "", amountMode: "manual" },
+        { ...createPaymentDraft("gcash"), amount: "", amountMode: "manual" },
+      ];
+    });
+  }
+
+  function cancelSplitPayment() {
+    setPayments((current) =>
+      syncExactTender(
+        [{ ...current[0]!, amount: "", amountMode: "exact" }],
+        checkout.totalCents,
       ),
     );
   }
 
   function resetSale() {
-    setCart({});
+    dispatchCart({ type: "reset" });
     setDiscount("0");
     setPromoId("none");
-    setPayments([newPayment("cash")]);
+    setPayments([createPaymentDraft("cash")]);
     setSaleRequestId(crypto.randomUUID());
     setInventoryEventId(crypto.randomUUID());
     setReceipt(undefined);
     setError(undefined);
+    setStockNotice(undefined);
+    setProofError(undefined);
+    setOrderOpen(false);
+  }
+
+  async function uploadProof(payment: SubmittedPayment) {
+    if (!payment.file || payment.method === "cash") return true;
+    const proof = new FormData();
+    proof.set("paymentId", payment.id);
+    proof.set("fileId", payment.proofFileId);
+    proof.set("file", payment.file);
+    const result = await uploadPaymentProofAction(proof);
+    return result.ok ? true : result.error;
+  }
+
+  function retryPaymentProofs() {
+    if (!receipt || receipt.pendingProofs.length === 0) return;
+    setProofError(undefined);
+    startTransition(async () => {
+      const failed: SubmittedPayment[] = [];
+      let latestError: string | undefined;
+      for (const payment of receipt.pendingProofs) {
+        const result = await uploadProof(payment);
+        if (result !== true) {
+          failed.push(payment);
+          latestError = result;
+        }
+      }
+      setReceipt((current) =>
+        current ? { ...current, pendingProofs: failed } : current,
+      );
+      setProofError(
+        failed.length > 0
+          ? `Payment proof retry failed: ${latestError ?? "Please try again."}`
+          : undefined,
+      );
+      if (failed.length === 0) router.refresh();
+    });
   }
 
   function handleSubmit(event: FormEvent<HTMLFormElement>) {
     event.preventDefault();
+    if (isPending) return;
     setError(undefined);
-    const paymentRows = payments
-      .map((payment) => ({
-        ...payment,
-        amountCents: pesosToCents(payment.amount),
-      }))
-      .filter((payment) => payment.amountCents > 0);
-    const invalidNonCash = paymentRows.some(
-      (payment) => payment.method !== "cash" && !payment.reference.trim(),
-    );
-    if (cartLines.length === 0 || paymentRows.length === 0 || invalidNonCash) {
-      setError(
-        "Add a product and payment. Non-cash payments need a reference number.",
-      );
+    if (stockError) {
+      setError(stockError);
+      return;
+    }
+    const paymentRows = preparePayments(payments);
+    const validationError = validateCheckout({
+      itemCount: checkout.cartLines.length,
+      totalCents: checkout.totalCents,
+      payments: paymentRows,
+    });
+    if (validationError) {
+      setError(validationError);
       return;
     }
 
@@ -191,7 +304,7 @@ export function PosForm({
         saleId,
         shiftId,
         inventoryEventId,
-        items: cartItems.map((line) => ({
+        items: checkout.cartItems.map((line) => ({
           id: crypto.randomUUID(),
           productId: line.id,
           quantity: line.quantity,
@@ -208,283 +321,119 @@ export function PosForm({
         setError(result.error);
         return;
       }
-      setReceipt({ saleId, totalCents: result.data.totalCents });
 
+      const proofUploads = paymentRows.filter(
+        (payment) => payment.method !== "cash" && payment.file,
+      );
+      setReceipt({
+        saleId,
+        totalCents: result.data.totalCents,
+        amountPaidCents: result.data.amountPaidCents,
+        changeCents: result.data.changeCents,
+        payments: paymentRows,
+        pendingProofs: proofUploads,
+      });
+      setOrderOpen(true);
+
+      const failedProofs: SubmittedPayment[] = [];
+      let latestProofError: string | undefined;
       for (const payment of paymentRows) {
-        if (!payment.file || payment.method === "cash") continue;
-        const proof = new FormData();
-        proof.set("paymentId", payment.id);
-        proof.set("fileId", payment.proofFileId);
-        proof.set("file", payment.file);
-        const proofResult = await uploadPaymentProofAction(proof);
-        if (!proofResult.ok) {
-          setError(
-            `Sale completed, but a payment proof still needs attention: ${proofResult.error}`,
-          );
-          router.refresh();
-          return;
+        const proofResult = await uploadProof(payment);
+        if (proofResult !== true) {
+          failedProofs.push(payment);
+          latestProofError = proofResult;
         }
       }
+      setReceipt((current) =>
+        current ? { ...current, pendingProofs: failedProofs } : current,
+      );
+      setProofError(
+        failedProofs.length > 0
+          ? `Sale completed, but ${failedProofs.length} payment proof${failedProofs.length === 1 ? "" : "s"} still need attention: ${latestProofError}`
+          : undefined,
+      );
       router.refresh();
     });
   }
 
+  const order = (
+    <PosOrder
+      checkout={checkout}
+      cart={cart}
+      payments={payments}
+      promosEnabled={promosEnabled}
+      promos={promos}
+      promoId={promoId}
+      discount={discount}
+      error={error}
+      stockError={stockError ?? stockNotice}
+      receipt={receipt}
+      proofError={proofError}
+      isPending={isPending}
+      onQuantityChange={changeQuantity}
+      onPromoChange={setPromoId}
+      onDiscountChange={setDiscount}
+      onPaymentUpdate={updatePayment}
+      onSplitPayment={splitPayment}
+      onCancelSplit={cancelSplitPayment}
+      onSubmit={handleSubmit}
+      onRetryProofs={retryPaymentProofs}
+      onNewSale={resetSale}
+    />
+  );
+
   return (
-    <form onSubmit={handleSubmit} className="space-y-8">
-      {error ? (
-        <Alert variant="destructive">
-          <AlertCircle aria-hidden="true" />
-          <AlertDescription>{error}</AlertDescription>
-        </Alert>
-      ) : null}
-      {receipt && !error ? (
-        <Alert className="border-emerald-200 bg-emerald-50 text-emerald-950">
-          <ShoppingBag aria-hidden="true" />
-          <AlertDescription className="flex items-center justify-between gap-3">
-            <span>Sale complete · {formatMoney(receipt.totalCents)}</span>
-            <Button
-              type="button"
-              size="sm"
-              variant="outline"
-              onClick={resetSale}
-            >
-              New sale
-            </Button>
-          </AlertDescription>
-        </Alert>
-      ) : null}
-
-      <section className="space-y-3">
-        <Input
-          value={search}
-          onChange={(event) => setSearch(event.target.value)}
-          placeholder="Search products"
-          className="h-12 rounded-xl"
+    <div className="min-h-screen bg-background">
+      <PosHeader
+        shiftId={shiftId}
+        locationName={locationName}
+        saleCount={shiftSummary.saleCount}
+        itemCount={shiftSummary.itemCount}
+        salesCents={shiftSummary.salesCents}
+        cartCount={cartCount}
+        onOpenCart={() => setOrderOpen(true)}
+      />
+      <div className="mx-auto grid w-full max-w-[1440px] gap-8 px-4 py-5 pb-28 sm:px-6 lg:grid-cols-[minmax(0,1fr)_390px] lg:px-8 lg:py-8 lg:pb-8">
+        <PosCatalog
+          products={filteredProducts}
+          categories={categories}
+          search={search}
+          category={category}
+          cart={cart}
+          mobileSearchOpen={mobileSearchOpen}
+          onSearchChange={setSearch}
+          onCategoryChange={setCategory}
+          onToggleMobileSearch={() => setMobileSearchOpen((open) => !open)}
+          onAdd={(product) => changeQuantity(product.id, 1)}
+          getAvailability={getAvailability}
         />
-        <div className="flex gap-2 overflow-x-auto pb-1">
-          {["all", ...categories].map((value) => (
-            <Button
-              key={value}
-              type="button"
-              size="sm"
-              variant={category === value ? "default" : "outline"}
-              className="shrink-0 rounded-full"
-              onClick={() => setCategory(value)}
-            >
-              {value === "all" ? "All" : value}
-            </Button>
-          ))}
-        </div>
-        <div className="grid grid-cols-2 gap-3 sm:grid-cols-3 lg:grid-cols-4">
-          {filtered.map((product) => (
-            <button
-              key={product.id}
-              type="button"
-              onClick={() => changeQuantity(product.id, 1)}
-              className="min-h-28 rounded-2xl border bg-card p-4 text-left transition active:scale-[0.98]"
-            >
-              <span className="font-bold">{product.name}</span>
-              <span className="mt-2 block text-sm text-muted-foreground">
-                {formatMoney(product.priceCents)}
-              </span>
-              {product.requiresRecipeDeduction ? (
-                <Badge variant="outline" className="mt-2">
-                  Recipe
-                </Badge>
-              ) : null}
-            </button>
-          ))}
-        </div>
-      </section>
 
-      <section className="space-y-3 rounded-2xl border bg-card p-4">
-        <h2 className="font-extrabold">Cart</h2>
-        {cartLines.length === 0 ? (
-          <p className="text-sm text-muted-foreground">
-            Tap a product to add it.
-          </p>
-        ) : (
-          cartLines.map((line) => (
-            <div
-              key={line.id}
-              className="flex items-center gap-3 border-b py-3 last:border-0"
-            >
-              <div className="min-w-0 flex-1">
-                <p className="truncate font-semibold">{line.name}</p>
-                <p className="text-sm text-muted-foreground">
-                  {formatMoney(
-                    multiplyCentsByQuantity(line.priceCents, line.quantity),
-                  )}
-                </p>
-              </div>
-              <Button
-                type="button"
-                size="icon"
-                variant="outline"
-                onClick={() => changeQuantity(line.id, -1)}
-              >
-                {line.quantity === 1 ? (
-                  <Trash2 aria-hidden="true" />
-                ) : (
-                  <Minus aria-hidden="true" />
-                )}
-              </Button>
-              <span className="w-7 text-center font-bold">{line.quantity}</span>
-              <Button
-                type="button"
-                size="icon"
-                variant="outline"
-                onClick={() => changeQuantity(line.id, 1)}
-              >
-                <Plus aria-hidden="true" />
-              </Button>
-            </div>
-          ))
-        )}
-        <div className="grid gap-3 sm:grid-cols-2">
-          <div>
-            <Label htmlFor="promo">Saved promo</Label>
-            <select
-              id="promo"
-              value={promoId}
-              onChange={(event) => setPromoId(event.target.value)}
-              className="h-10 w-full rounded-md border bg-background px-3"
-            >
-              <option value="none">No promo</option>
-              {promos.map((promo) => (
-                <option key={promo.id} value={promo.id}>
-                  {promo.name} ·{" "}
-                  {promo.discountType === "fixed_amount"
-                    ? `₱${promo.discountValue.toFixed(2)}`
-                    : `${promo.discountValue}%`}
-                </option>
-              ))}
-            </select>
-          </div>
-          <div>
-            <Label htmlFor="discount">Manual discount (₱)</Label>
-            <Input
-              id="discount"
-              type="number"
-              min="0"
-              step="0.01"
-              value={discount}
-              onChange={(event) => setDiscount(event.target.value)}
-              disabled={Boolean(selectedPromo)}
-            />
-          </div>
-          <div className="rounded-xl bg-muted p-3 text-right">
-            <p className="text-xs text-muted-foreground">Amount due</p>
-            <p className="text-2xl font-extrabold">{formatMoney(totalCents)}</p>
-          </div>
-        </div>
-      </section>
-
-      <section className="space-y-4 rounded-2xl border bg-card p-4">
-        <div className="flex items-center justify-between">
-          <h2 className="font-extrabold">Payments</h2>
-          {payments.length < 2 ? (
-            <Button
-              type="button"
-              size="sm"
-              variant="outline"
-              onClick={() =>
-                setPayments((rows) => [...rows, newPayment("gcash")])
-              }
-            >
-              <Plus aria-hidden="true" /> Split payment
-            </Button>
-          ) : null}
-        </div>
-        {payments.map((payment, index) => (
-          <div
-            key={payment.id}
-            className="grid gap-3 rounded-xl bg-muted/60 p-3 sm:grid-cols-2"
+        {isDesktop ? (
+          <aside
+            aria-label="Current order"
+            className="sticky top-8 max-h-[calc(100vh-4rem)] overflow-y-auto rounded-[var(--mi-radius-xl)] bg-card p-5 shadow-[var(--mi-shadow-overlay)]"
           >
-            <div>
-              <Label htmlFor={`method-${payment.id}`}>Method</Label>
-              <select
-                id={`method-${payment.id}`}
-                value={payment.method}
-                onChange={(event) =>
-                  updatePayment(index, {
-                    method: event.target.value as PaymentMethod,
-                  })
-                }
-                className="h-10 w-full rounded-md border bg-background px-3"
-              >
-                {(
-                  [
-                    "cash",
-                    "gcash",
-                    "maya",
-                    "bank_transfer",
-                    "card",
-                    "other",
-                  ] as const
-                ).map((method) => (
-                  <option key={method} value={method}>
-                    {formatPaymentMethod(method)}
-                  </option>
-                ))}
-              </select>
-            </div>
-            <div>
-              <Label htmlFor={`amount-${payment.id}`}>Amount (₱)</Label>
-              <Input
-                id={`amount-${payment.id}`}
-                type="number"
-                min="0.01"
-                step="0.01"
-                value={payment.amount}
-                onChange={(event) =>
-                  updatePayment(index, { amount: event.target.value })
-                }
-                required={index === 0}
-              />
-            </div>
-            {payment.method !== "cash" ? (
-              <>
-                <div>
-                  <Label htmlFor={`reference-${payment.id}`}>
-                    Reference number
-                  </Label>
-                  <Input
-                    id={`reference-${payment.id}`}
-                    value={payment.reference}
-                    onChange={(event) =>
-                      updatePayment(index, { reference: event.target.value })
-                    }
-                    required
-                  />
-                </div>
-                <div>
-                  <Label htmlFor={`proof-${payment.id}`}>Payment proof</Label>
-                  <Input
-                    id={`proof-${payment.id}`}
-                    type="file"
-                    accept="image/jpeg,image/png,image/webp,application/pdf"
-                    onChange={(event) =>
-                      updatePayment(index, {
-                        file: event.target.files?.[0] ?? null,
-                      })
-                    }
-                  />
-                </div>
-              </>
-            ) : null}
-          </div>
-        ))}
-      </section>
-
-      <Button
-        type="submit"
-        size="lg"
-        className="sticky bottom-24 h-12 w-full rounded-xl"
-        disabled={isPending || Boolean(receipt && !error)}
-      >
-        {isPending ? "Completing sale…" : "Complete sale"}
-      </Button>
-    </form>
+            {order}
+          </aside>
+        ) : (
+          <Sheet open={orderOpen} onOpenChange={setOrderOpen}>
+            <SheetContent
+              side="bottom"
+              className="max-h-[calc(100dvh-5rem)] gap-0 rounded-t-[var(--mi-radius-xl)] p-0"
+            >
+              <SheetHeader className="sr-only">
+                <SheetTitle>Current order</SheetTitle>
+                <SheetDescription>
+                  Review products, discounts, and payment before charging.
+                </SheetDescription>
+              </SheetHeader>
+              <div className="safe-bottom overflow-y-auto p-4 pt-5 sm:p-6">
+                {order}
+              </div>
+            </SheetContent>
+          </Sheet>
+        )}
+      </div>
+    </div>
   );
 }

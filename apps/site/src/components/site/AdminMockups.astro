@@ -1,108 +1,40 @@
 ---
-import { adminScreens, screens } from "../../content/home";
+import { screens } from "../../content/home";
 ---
 
-<section class="admin-showcase section" id="admin">
-  <div class="section-heading reveal-target">
-    <p class="section-label">
-      <span aria-hidden="true">🧭</span> Web app for admins
-    </p>
-    <h2>Admin controls for the work behind every booth.</h2>
-    <p>
-      Operators get the mobile POS flow. Admins get a desktop workspace for
-      setup, staffing, inventory, deductions, reporting, and rent-again
-      decisions.
-    </p>
-  </div>
-
-  <div class="admin-layout reveal-target">
-    <div class="desktop-shell">
-      <div class="desktop-topbar">
-        <div class="mock-window-dots" aria-hidden="true">
-          <span></span>
-          <span></span>
-          <span></span>
+<section class="profit-band" id="profitability">
+  <div class="profit-inner">
+    <div class="profit-copy">
+      <p class="section-context dark">The answer owners need</p>
+      <h2>Turn a closed shift into a rent-again decision.</h2>
+      <p>
+        Review each location with sales, product cost, staff, rent, transport,
+        and recorded deductions in the same profitability view.
+      </p>
+      <div class="verdict">
+        <div>
+          <span>Weekend Bazaar</span>
+          <strong>₱11,240 profit</strong>
         </div>
-        <strong>MINIROS Admin</strong>
-        <span>Location Profitability</span>
-      </div>
-
-      <div class="desktop-body">
-        <aside class="desktop-sidebar" aria-label="Admin navigation mockup">
-          <span class="active">Dashboard</span>
-          <span>Locations</span>
-          <span>Inventory</span>
-          <span>Shifts</span>
-          <span>Costs</span>
-          <span>Reports</span>
-        </aside>
-
-        <div class="desktop-content">
-          <div class="admin-summary-grid">
-            <article>
-              <span>Today sales</span>
-              <strong>₱18,420</strong>
-              <small>+12% vs last shift</small>
-            </article>
-            <article>
-              <span>Net profit</span>
-              <strong>₱5,200</strong>
-              <small>After rent and staff</small>
-            </article>
-            <article>
-              <span>Closeout</span>
-              <strong>5 / 6</strong>
-              <small>One shift pending</small>
-            </article>
-          </div>
-
-          <div class="admin-table-card">
-            <div class="table-heading">
-              <div>
-                <span>Locations</span>
-                <strong>Worth renting again</strong>
-              </div>
-              <em>Profit verdict</em>
-            </div>
-            <div class="admin-row good">
-              <span>SM Megamall Bazaar</span>
-              <strong>Rent again</strong>
-              <em>₱5,100</em>
-            </div>
-            <div class="admin-row neutral">
-              <span>Weekend Market</span>
-              <strong>Watch costs</strong>
-              <em>₱1,260</em>
-            </div>
-            <div class="admin-row poor">
-              <span>Pop-up Stall C</span>
-              <strong>Reconsider</strong>
-              <em>-₱840</em>
-            </div>
-          </div>
-        </div>
+        <b>Worth renting again</b>
       </div>
     </div>
 
-    <figure class="admin-phone-card">
-      <img
-        src={screens.locationAnalysis}
-        alt="MINIROS admin mobile location profitability screen"
-        loading="lazy"
-      />
-    </figure>
-  </div>
-
-  <div class="admin-card-grid">
-    {
-      adminScreens.map((screen) => (
-        <article class="admin-feature-card reveal-target">
-          <span>{screen.label}</span>
-          <strong>{screen.metric}</strong>
-          <h3>{screen.title}</h3>
-          <p>{screen.body}</p>
-        </article>
-      ))
-    }
+    <div class="profit-screens">
+      <figure>
+        <img
+          src={screens.locations}
+          alt="MINIROS location profitability list"
+          loading="lazy"
+        />
+      </figure>
+      <figure>
+        <img
+          src={screens.locationAnalysis}
+          alt="MINIROS detailed location profit analysis"
+          loading="lazy"
+        />
+      </figure>
+    </div>
   </div>
 </section>

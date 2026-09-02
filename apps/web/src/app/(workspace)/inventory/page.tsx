@@ -5,6 +5,10 @@ import {
 } from "@/components/shared/layout";
 import { formatDateTime, formatQuantity } from "@/lib/format";
 import { getInventoryWorkspace } from "@/server/services/operator-workspaces";
+import {
+  isProductionOnlyEmployee,
+  requireActiveBusiness,
+} from "@/server/services/access";
 import { RequestForms } from "./request-forms";
 
 export const dynamic = "force-dynamic";
@@ -14,6 +18,8 @@ export default async function InventoryPage({
 }: {
   searchParams: Promise<{ shift?: string }>;
 }) {
+  const { employee } = await requireActiveBusiness();
+  if (isProductionOnlyEmployee(employee)) redirect("/production");
   const { shift } = await searchParams;
   const workspace = await getInventoryWorkspace(shift);
 
@@ -47,7 +53,11 @@ export default async function InventoryPage({
           ))}
         </div>
       </section>
-      <RequestForms shiftId={workspace.shift.id} items={workspace.balances} />
+      <RequestForms
+        shiftId={workspace.shift.id}
+        items={workspace.balances}
+        approvalsEnabled={workspace.approvalsEnabled}
+      />
       <section>
         <SectionHeader title="Recent inventory events" />
         <div className="space-y-2">
@@ -80,3 +90,4 @@ export default async function InventoryPage({
     </div>
   );
 }
+import { redirect } from "next/navigation";

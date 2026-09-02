@@ -43,8 +43,6 @@ function shiftDto(
     locationName,
     title: row.title,
     shiftDate: row.shiftDate,
-    scheduledStartAt: row.scheduledStartAt?.toISOString() ?? null,
-    scheduledEndAt: row.scheduledEndAt?.toISOString() ?? null,
     actualStartAt: row.actualStartAt?.toISOString() ?? null,
     actualEndAt: row.actualEndAt?.toISOString() ?? null,
     status: row.status,

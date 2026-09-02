@@ -7,6 +7,8 @@ import { toast } from "sonner";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
+import { NumericExpressionInput } from "@/components/ui/numeric-expression-input";
+import { normalizeNumericExpression } from "@/lib/numeric-expression";
 import {
   createCentralInventoryLocationAction,
   receiveStockAction,
@@ -35,7 +37,7 @@ export function StockMovementForm({
     const form = event.currentTarget;
     const values = new FormData(form);
     const itemId = String(values.get("inventoryItemId") ?? "");
-    const quantity = String(values.get("quantity") ?? "");
+    const quantity = normalizeNumericExpression(values.get("quantity"), 3);
     setFeedback({});
     startTransition(async () => {
       const common = {
@@ -161,10 +163,10 @@ export function StockMovementForm({
         </div>
         <div className="space-y-2">
           <Label htmlFor="quantity">Quantity</Label>
-          <Input
+          <NumericExpressionInput
             id="quantity"
             name="quantity"
-            type="number"
+            precision={3}
             min="0.001"
             step="0.001"
             required

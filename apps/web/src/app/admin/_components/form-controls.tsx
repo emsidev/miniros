@@ -23,6 +23,7 @@ import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
 import { Button } from "@/components/ui/button";
 import { Checkbox } from "@/components/ui/checkbox";
 import { Input } from "@/components/ui/input";
+import { NumericExpressionInput } from "@/components/ui/numeric-expression-input";
 import { Label } from "@/components/ui/label";
 import type { ActionFeedback } from "./form-utils";
 import { firstFieldError } from "./form-utils";
@@ -42,30 +43,46 @@ export function SetupInput({
   feedback,
   hint,
   className,
+  onValueChange,
   ...props
 }: ComponentProps<typeof Input> & {
   label: string;
   feedback: ActionFeedback;
   hint?: string;
+  onValueChange?: (value: string) => void;
 }) {
   const inputId = props.id ?? props.name;
+  const { type, ...numericProps } = props;
   const error = props.name ? firstFieldError(feedback, props.name) : undefined;
   const helpId = error
     ? `${inputId}-error`
     : hint
       ? `${inputId}-hint`
       : undefined;
+  const precision = props.step === "0.001" ? 3 : 2;
 
   return (
     <div className="space-y-2">
       <Label htmlFor={inputId}>{label}</Label>
-      <Input
-        {...props}
-        id={inputId}
-        aria-invalid={Boolean(error)}
-        aria-describedby={helpId}
-        className={`h-11 rounded-xl ${className ?? ""}`}
-      />
+      {type === "number" ? (
+        <NumericExpressionInput
+          {...numericProps}
+          id={inputId}
+          precision={precision}
+          onValueChange={onValueChange}
+          aria-invalid={Boolean(error)}
+          aria-describedby={helpId}
+          className={`h-11 rounded-xl ${className ?? ""}`}
+        />
+      ) : (
+        <Input
+          {...props}
+          id={inputId}
+          aria-invalid={Boolean(error)}
+          aria-describedby={helpId}
+          className={`h-11 rounded-xl ${className ?? ""}`}
+        />
+      )}
       {error ? (
         <p id={helpId} className="text-xs font-medium text-destructive">
           {error}

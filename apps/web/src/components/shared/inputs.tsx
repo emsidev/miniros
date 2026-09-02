@@ -4,6 +4,7 @@ import type { ComponentProps } from "react";
 import { Search } from "lucide-react";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
+import { NumericExpressionInput } from "@/components/ui/numeric-expression-input";
 import { cn } from "@/lib/utils";
 
 export function SearchInput({
@@ -16,7 +17,7 @@ export function SearchInput({
         className="pointer-events-none absolute left-3 top-1/2 size-4 -translate-y-1/2 text-muted-foreground"
         aria-hidden="true"
       />
-      <Input type="search" className="h-11 rounded-xl pl-9" {...props} />
+      <Input type="search" className="pl-9" {...props} />
     </div>
   );
 }
@@ -35,13 +36,12 @@ export function MoneyInput({ label, error, id, ...props }: LabeledInputProps) {
         <span className="pointer-events-none absolute left-3 top-1/2 -translate-y-1/2 font-semibold text-muted-foreground">
           ₱
         </span>
-        <Input
+        <NumericExpressionInput
           id={inputId}
-          type="number"
-          inputMode="decimal"
+          precision={2}
           min="0"
           step="0.01"
-          className="h-12 rounded-xl pl-8"
+          className="pl-8"
           aria-invalid={Boolean(error)}
           {...props}
         />
@@ -63,12 +63,10 @@ export function QuantityInput({
   return (
     <div className="space-y-2">
       <Label htmlFor={inputId}>{label}</Label>
-      <Input
+      <NumericExpressionInput
         id={inputId}
-        type="number"
-        inputMode="decimal"
+        precision={3}
         step="0.001"
-        className="h-12 rounded-xl"
         aria-invalid={Boolean(error)}
         {...props}
       />
@@ -102,20 +100,13 @@ export function DateRangeFilter({
           name={fromName}
           type="date"
           defaultValue={defaultFrom}
-          className="h-11 rounded-xl"
         />
       </div>
       <div>
         <Label htmlFor={toName} className="sr-only">
           To date
         </Label>
-        <Input
-          id={toName}
-          name={toName}
-          type="date"
-          defaultValue={defaultTo}
-          className="h-11 rounded-xl"
-        />
+        <Input id={toName} name={toName} type="date" defaultValue={defaultTo} />
       </div>
     </fieldset>
   );

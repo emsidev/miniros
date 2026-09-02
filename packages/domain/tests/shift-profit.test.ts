@@ -1,5 +1,9 @@
 import { describe, expect, it } from "vitest";
-import { calculateShiftProfit, classifyProfit } from "../src/shift-profit";
+import {
+  calculateShiftProfit,
+  classifyProfit,
+  multiplyCentsByQuantity,
+} from "../src";
 
 describe("shift profit", () => {
   it("calculates the complete shift snapshot using the required formula", () => {
@@ -15,6 +19,7 @@ describe("shift profit", () => {
         transportCostCents: 2_000,
         approvedDeductionsCents: 1_000,
         otherCostsCents: 500,
+        productCostCents: 4_500,
       }),
     ).toEqual({
       grossSalesCents: 50_000,
@@ -27,8 +32,26 @@ describe("shift profit", () => {
       transportCostCents: 2_000,
       approvedDeductionsCents: 1_000,
       otherCostsCents: 500,
-      totalCostsCents: 18_500,
-      profitCents: 31_500,
+      productCostCents: 4_500,
+      totalCostsCents: 23_000,
+      profitCents: 27_000,
+      result: "profit",
+    });
+  });
+
+  it("includes fractional sold-unit cost in total costs and profit", () => {
+    const productCostCents = multiplyCentsByQuantity(125, "1.500");
+    expect(productCostCents).toBe(188);
+    expect(
+      calculateShiftProfit({
+        grossSalesCents: 1_000,
+        productCostCents,
+        otherCostsCents: 112,
+      }),
+    ).toMatchObject({
+      productCostCents: 188,
+      totalCostsCents: 300,
+      profitCents: 700,
       result: "profit",
     });
   });

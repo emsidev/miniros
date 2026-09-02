@@ -1,7 +1,6 @@
 "use client";
 
 import { useState, useTransition, type FormEvent } from "react";
-import { useRouter } from "next/navigation";
 import { AlertCircle, ArrowRight } from "lucide-react";
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
 import { Button } from "@/components/ui/button";
@@ -9,8 +8,7 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { createBusinessAction } from "@/server/actions/businesses";
 
-export function CreateBusinessForm() {
-  const router = useRouter();
+export function CreateBusinessForm({ onSuccess }: { onSuccess: () => void }) {
   const [isPending, startTransition] = useTransition();
   const [error, setError] = useState<string>();
   const [nameError, setNameError] = useState<string>();
@@ -31,8 +29,7 @@ export function CreateBusinessForm() {
         return;
       }
 
-      router.replace("/businesses");
-      router.refresh();
+      onSuccess();
     });
   }
 

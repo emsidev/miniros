@@ -1,6 +1,10 @@
 "use server";
 
-import { actionSuccess, inventoryItemTypes } from "@miniros/contracts";
+import {
+  actionSuccess,
+  inventoryItemTypes,
+  inventoryUnitValues,
+} from "@miniros/contracts";
 import { revalidatePath } from "next/cache";
 import { z } from "zod";
 import {
@@ -17,7 +21,7 @@ const inventoryItemWriteSchema = z.object({
   name: z.string().trim().min(2).max(120),
   sku: z.string().trim().max(80).nullable().optional().default(null),
   itemType: z.enum(inventoryItemTypes),
-  unit: z.string().trim().min(1).max(24),
+  unit: z.enum(inventoryUnitValues),
   defaultUnitCostCents: centsSchema.default(0),
   trackStock: z.boolean().default(true),
   status: z.enum(["active", "inactive"]).default("active"),
@@ -45,6 +49,8 @@ export async function createInventoryItemAction(input: unknown) {
     revalidatePath("/admin/inventory");
     revalidatePath("/admin/inventory/items");
     revalidatePath("/admin/inventory/recipes");
+    revalidatePath("/admin/products");
+    revalidatePath("/pos");
     return actionSuccess(result);
   } catch (error) {
     return actionError(error);
@@ -59,6 +65,8 @@ export async function updateInventoryItemAction(input: unknown) {
     revalidatePath("/admin/inventory");
     revalidatePath("/admin/inventory/items");
     revalidatePath("/admin/inventory/recipes");
+    revalidatePath("/admin/products");
+    revalidatePath("/pos");
     return actionSuccess(result);
   } catch (error) {
     return actionError(error);

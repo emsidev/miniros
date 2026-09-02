@@ -1,4 +1,5 @@
 import Link from "next/link";
+import { redirect } from "next/navigation";
 import {
   ArrowLeft,
   Boxes,
@@ -15,7 +16,11 @@ import {
   SectionHeader,
 } from "@/components/shared/layout";
 import { Button } from "@/components/ui/button";
-import { formatDate, formatDateTime, formatMoney } from "@/lib/format";
+import { formatDate, formatMoney } from "@/lib/format";
+import {
+  isProductionOnlyEmployee,
+  requireActiveBusiness,
+} from "@/server/services/access";
 import { getAssignedShift } from "@/server/services/operator";
 
 export const dynamic = "force-dynamic";
@@ -25,6 +30,8 @@ export default async function ShiftDetailPage({
 }: {
   params: Promise<{ shiftId: string }>;
 }) {
+  const { employee } = await requireActiveBusiness();
+  if (isProductionOnlyEmployee(employee)) redirect("/production");
   const { shiftId } = await params;
   const shift = await getAssignedShift(shiftId);
   const canUsePos = shift.permissions.canUsePos;
@@ -45,14 +52,6 @@ export default async function ShiftDetailPage({
 
       <DataCard>
         <dl className="grid gap-4 text-sm sm:grid-cols-2">
-          <div>
-            <dt className="text-muted-foreground">Scheduled start</dt>
-            <dd className="mt-1 font-semibold">
-              {shift.scheduledStartAt
-                ? formatDateTime(shift.scheduledStartAt)
-                : "To be announced"}
-            </dd>
-          </div>
           <div>
             <dt className="text-muted-foreground">Your role</dt>
             <dd className="mt-1 font-semibold capitalize">
@@ -107,7 +106,7 @@ export default async function ShiftDetailPage({
               size="lg"
               className="h-12 rounded-xl"
             >
-              <Link href={`/production?shift=${shift.id}`}>
+              <Link href="/production">
                 <Factory aria-hidden="true" /> Log production
               </Link>
             </Button>

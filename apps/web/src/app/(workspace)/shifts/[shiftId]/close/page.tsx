@@ -1,4 +1,5 @@
 import Link from "next/link";
+import { redirect } from "next/navigation";
 import { ArrowLeft } from "lucide-react";
 
 import {
@@ -10,6 +11,10 @@ import {
 import { Button } from "@/components/ui/button";
 import { formatMoney, formatPaymentMethod } from "@/lib/format";
 import { getCloseoutWorkspace } from "@/server/services/closeout-workspace";
+import {
+  isProductionOnlyEmployee,
+  requireActiveBusiness,
+} from "@/server/services/access";
 import { CloseoutForm } from "./closeout-form";
 
 export const dynamic = "force-dynamic";
@@ -19,6 +24,8 @@ export default async function CloseShiftPage({
 }: {
   params: Promise<{ shiftId: string }>;
 }) {
+  const { employee } = await requireActiveBusiness();
+  if (isProductionOnlyEmployee(employee)) redirect("/production");
   const { shiftId } = await params;
   const workspace = await getCloseoutWorkspace(shiftId);
 

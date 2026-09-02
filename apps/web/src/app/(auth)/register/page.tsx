@@ -16,7 +16,7 @@ export const metadata: Metadata = {
 
 export default function RegisterPage() {
   return (
-    <Card className="rounded-3xl py-7 shadow-none">
+    <Card className="rounded-xl py-7 shadow-none">
       <CardHeader className="px-6 sm:px-8">
         <CardTitle className="text-2xl font-extrabold tracking-tight">
           Create your account

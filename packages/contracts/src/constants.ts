@@ -43,6 +43,38 @@ export const inventoryItemTypes = [
 ] as const;
 export type InventoryItemType = (typeof inventoryItemTypes)[number];
 
+export const inventoryUnitValues = [
+  "pcs",
+  "pack",
+  "box",
+  "bottle",
+  "cup",
+  "g",
+  "kg",
+  "ml",
+  "l",
+] as const;
+
+export type InventoryUnit = (typeof inventoryUnitValues)[number];
+
+export const inventoryUnits = [
+  { value: "pcs", label: "Pieces (pcs)" },
+  { value: "pack", label: "Packs" },
+  { value: "box", label: "Boxes" },
+  { value: "bottle", label: "Bottles" },
+  { value: "cup", label: "Cups" },
+  { value: "g", label: "Grams (g)" },
+  { value: "kg", label: "Kilograms (kg)" },
+  { value: "ml", label: "Milliliters (mL)" },
+  { value: "l", label: "Liters (L)" },
+] as const satisfies readonly { value: InventoryUnit; label: string }[];
+
+export const defaultProductCategories = [
+  { name: "Add ons", sortOrder: 0 },
+  { name: "Drinks", sortOrder: 10 },
+  { name: "Desserts", sortOrder: 20 },
+] as const;
+
 export const approvalStatuses = [
   "pending",
   "approved",

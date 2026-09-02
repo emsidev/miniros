@@ -1,26 +1,22 @@
 ---
 import { navItems } from "../../content/home";
+import BrandMark from "./BrandMark.astro";
 ---
 
 <header class="site-header">
-  <a class="wordmark" href="#top" aria-label="MINIROS home">
-    <span class="wordmark-mark" aria-hidden="true">
-      <span></span>
-      <span></span>
-      <span></span>
-    </span>
-    <span class="wordmark-copy">
-      <strong>MINIROS</strong>
-      <small>Mini Retail Operations System</small>
-    </span>
-  </a>
+  <div class="header-inner">
+    <a class="wordmark" href="#top" aria-label="MINIROS home">
+      <BrandMark variant="inverse" />
+      <span>
+        <strong>MINIROS</strong>
+        <small>Mini Retail Operations System</small>
+      </span>
+    </a>
 
-  <nav class="site-nav" aria-label="Primary navigation">
-    {navItems.map((item) => <a href={item.href}>{item.label}</a>)}
-  </nav>
+    <nav class="site-nav" aria-label="Primary navigation">
+      {navItems.map((item) => <a href={item.href}>{item.label}</a>)}
+    </nav>
 
-  <a class="nav-cta" href="#early-access">
-    <span>Join early access</span>
-    <span class="nav-cta-icon" aria-hidden="true">→</span>
-  </a>
+    <a class="header-cta" href="#early-access">Join early access</a>
+  </div>
 </header>

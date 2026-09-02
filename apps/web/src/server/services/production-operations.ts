@@ -1,9 +1,11 @@
 import { requireDatabase } from "@miniros/db";
 import {
+  inventoryItems,
+  inventoryLocations,
   productRecipeItems,
+  productProductionOutputs,
   productionLogs,
   products,
-  shifts,
 } from "@miniros/db/schema";
 import {
   aggregateInventoryDeductions,
@@ -13,31 +15,32 @@ import { and, eq, isNull, or } from "drizzle-orm";
 
 import { AccessError, requireActiveBusiness } from "./access";
 import { applyInventoryDeltas, databaseQuantity } from "./inventory-ledger";
-import {
-  getShiftInventoryLocation,
-  insertAuditLog,
-  requireCurrentAssignment,
-  requireEmployee,
-} from "./operational-helpers";
+import { insertAuditLog, requireEmployee } from "./operational-helpers";
 
 export type LogProductionInput = {
   productionLogId: string;
-  inventoryEventId: string;
-  shiftId: string;
+  productionInputEventId: string;
+  productionOutputEventId: string;
+  inventoryLocationId: string;
   productId: string;
   quantityProduced: number | string;
   notes?: string | null;
 };
 
-export async function logShiftProduction(input: LogProductionInput) {
+export async function logProduction(input: LogProductionInput) {
   const access = await requireActiveBusiness({
+    feature: "production",
     employeePermission: "production",
-    assignedShiftId: input.shiftId,
   });
   requireEmployee(access);
   const quantityProduced = normalizeQuantity(input.quantityProduced);
   if (quantityProduced <= 0) {
     throw new AccessError("Production quantity must be positive.");
+  }
+  if (input.productionInputEventId === input.productionOutputEventId) {
+    throw new AccessError(
+      "Production input and output event IDs must be different.",
+    );
   }
   const database = requireDatabase();
 
@@ -46,6 +49,7 @@ export async function logShiftProduction(input: LogProductionInput) {
       .select({
         id: productionLogs.id,
         shiftId: productionLogs.shiftId,
+        inventoryLocationId: productionLogs.inventoryLocationId,
         productId: productionLogs.productId,
         quantityProduced: productionLogs.quantityProduced,
       })
@@ -62,7 +66,8 @@ export async function logShiftProduction(input: LogProductionInput) {
       .limit(1);
     if (existing) {
       if (
-        existing.shiftId !== input.shiftId ||
+        existing.shiftId !== null ||
+        existing.inventoryLocationId !== input.inventoryLocationId ||
         existing.productId !== input.productId
       ) {
         throw new AccessError("The production request ID is already in use.");
@@ -70,65 +75,51 @@ export async function logShiftProduction(input: LogProductionInput) {
       return { ...existing, idempotent: true };
     }
 
-    const [shift] = await tx
+    const [inventoryLocation] = await tx
       .select({
-        id: shifts.id,
-        sellingLocationId: shifts.sellingLocationId,
-        status: shifts.status,
+        id: inventoryLocations.id,
       })
-      .from(shifts)
+      .from(inventoryLocations)
       .where(
         and(
-          eq(shifts.id, input.shiftId),
-          eq(shifts.businessId, access.business.id),
-          isNull(shifts.deletedAt),
+          eq(inventoryLocations.id, input.inventoryLocationId),
+          eq(inventoryLocations.businessId, access.business.id),
+          eq(inventoryLocations.locationType, "central"),
+          eq(inventoryLocations.status, "active"),
+          isNull(inventoryLocations.deletedAt),
         ),
       )
       .for("update")
       .limit(1);
-    if (!shift) throw new AccessError("Shift not found.");
-    if (shift.status !== "active") {
-      const [raced] = await tx
-        .select({
-          id: productionLogs.id,
-          shiftId: productionLogs.shiftId,
-          productId: productionLogs.productId,
-          quantityProduced: productionLogs.quantityProduced,
-        })
-        .from(productionLogs)
-        .where(
-          and(
-            eq(productionLogs.businessId, access.business.id),
-            eq(productionLogs.clientGeneratedId, input.productionLogId),
-          ),
-        )
-        .limit(1);
-      if (
-        raced?.shiftId === input.shiftId &&
-        raced.productId === input.productId
-      ) {
-        return { ...raced, idempotent: true };
-      }
-      throw new AccessError("Production logging requires an active shift.");
-    }
-    await requireCurrentAssignment(
-      tx,
-      access.business.id,
-      shift.id,
-      access.employee.id,
-    );
-    const inventoryLocation = await getShiftInventoryLocation(
-      tx,
-      access.business.id,
-      shift.id,
-    );
-    if (inventoryLocation.sellingLocationId !== shift.sellingLocationId) {
-      throw new AccessError("The shift inventory location is inconsistent.");
+    if (!inventoryLocation) {
+      throw new AccessError("Select an active central inventory location.");
     }
 
     const [product] = await tx
-      .select({ id: products.id })
+      .select({
+        id: products.id,
+        outputInventoryItemId: productProductionOutputs.inventoryItemId,
+        outputUnit: inventoryItems.unit,
+        outputItemType: inventoryItems.itemType,
+        outputTracksStock: inventoryItems.trackStock,
+      })
       .from(products)
+      .innerJoin(
+        productProductionOutputs,
+        and(
+          eq(productProductionOutputs.productId, products.id),
+          eq(productProductionOutputs.businessId, products.businessId),
+        ),
+      )
+      .innerJoin(
+        inventoryItems,
+        and(
+          eq(inventoryItems.id, productProductionOutputs.inventoryItemId),
+          eq(inventoryItems.businessId, products.businessId),
+          eq(inventoryItems.status, "active"),
+          isNull(inventoryItems.deletedAt),
+        ),
+      )
       .where(
         and(
           eq(products.id, input.productId),
@@ -138,7 +129,15 @@ export async function logShiftProduction(input: LogProductionInput) {
         ),
       )
       .limit(1);
-    if (!product) throw new AccessError("Product not found.");
+    if (
+      !product ||
+      product.outputItemType !== "finished_good" ||
+      !product.outputTracksStock
+    ) {
+      throw new AccessError(
+        "This product needs an active tracked finished-good output item.",
+      );
+    }
 
     const recipeRows = await tx
       .select({
@@ -174,11 +173,11 @@ export async function logShiftProduction(input: LogProductionInput) {
       .values({
         id: input.productionLogId,
         businessId: access.business.id,
-        shiftId: shift.id,
+        shiftId: null,
         productId: product.id,
         inventoryLocationId: inventoryLocation.id,
         quantityProduced: databaseQuantity(quantityProduced),
-        unit: "pcs",
+        unit: product.outputUnit,
         notes: input.notes?.trim() || null,
         loggedBy: access.employee.id,
         clientGeneratedId: input.productionLogId,
@@ -192,6 +191,7 @@ export async function logShiftProduction(input: LogProductionInput) {
         .select({
           id: productionLogs.id,
           shiftId: productionLogs.shiftId,
+          inventoryLocationId: productionLogs.inventoryLocationId,
           productId: productionLogs.productId,
           quantityProduced: productionLogs.quantityProduced,
         })
@@ -204,7 +204,8 @@ export async function logShiftProduction(input: LogProductionInput) {
         )
         .limit(1);
       if (
-        raced?.shiftId === input.shiftId &&
+        raced?.shiftId === null &&
+        raced.inventoryLocationId === input.inventoryLocationId &&
         raced.productId === input.productId
       ) {
         return { ...raced, idempotent: true };
@@ -214,9 +215,9 @@ export async function logShiftProduction(input: LogProductionInput) {
 
     await applyInventoryDeltas(tx, {
       businessId: access.business.id,
-      shiftId: shift.id,
+      shiftId: null,
       inventoryLocationId: inventoryLocation.id,
-      eventId: input.inventoryEventId,
+      eventId: input.productionInputEventId,
       eventType: "production_input",
       sourceType: "production_log",
       sourceId: input.productionLogId,
@@ -224,21 +225,42 @@ export async function logShiftProduction(input: LogProductionInput) {
       notes: input.notes,
       lines: deductions,
     });
+    await applyInventoryDeltas(tx, {
+      businessId: access.business.id,
+      shiftId: null,
+      inventoryLocationId: inventoryLocation.id,
+      eventId: input.productionOutputEventId,
+      eventType: "production_output",
+      sourceType: "production_log",
+      sourceId: input.productionLogId,
+      employeeId: access.employee.id,
+      notes: input.notes,
+      lines: [
+        {
+          inventoryItemId: product.outputInventoryItemId,
+          quantityDelta: quantityProduced,
+          unit: product.outputUnit,
+        },
+      ],
+    });
     await insertAuditLog(tx, access, {
       action: "production.logged",
       entityType: "production_log",
       entityId: input.productionLogId,
-      shiftId: shift.id,
+      shiftId: null,
       metadata: {
         productId: product.id,
         quantityProduced,
-        inventoryEventId: input.inventoryEventId,
+        inventoryLocationId: inventoryLocation.id,
+        productionInputEventId: input.productionInputEventId,
+        productionOutputEventId: input.productionOutputEventId,
       },
     });
 
     return {
       id: input.productionLogId,
-      shiftId: shift.id,
+      shiftId: null,
+      inventoryLocationId: inventoryLocation.id,
       productId: product.id,
       quantityProduced: databaseQuantity(quantityProduced),
       idempotent: false,

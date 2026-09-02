@@ -1,9 +1,8 @@
-import { createClient as createSupabaseClient } from "@supabase/supabase-js";
 import { requireDatabase } from "@miniros/db";
 import { files, payments, sales, shifts } from "@miniros/db/schema";
 import { and, eq, isNull } from "drizzle-orm";
 
-import { getSupabaseSecretEnv } from "@/lib/env";
+import { createStorageAdmin } from "@/lib/supabase/storage-admin";
 import { AccessError, requireActiveBusiness } from "./access";
 import {
   insertAuditLog,
@@ -60,13 +59,6 @@ async function hasExpectedSignature(file: File) {
     default:
       return false;
   }
-}
-
-function createStorageAdmin() {
-  const { url, secretKey } = getSupabaseSecretEnv();
-  return createSupabaseClient(url, secretKey, {
-    auth: { autoRefreshToken: false, persistSession: false },
-  });
 }
 
 async function removeUploadedObject(

@@ -1,5 +1,5 @@
 import Link from "next/link";
-import { CalendarDays, Clock3, MapPin } from "lucide-react";
+import { CalendarDays, MapPin } from "lucide-react";
 
 import {
   EmptyState,
@@ -8,7 +8,7 @@ import {
 } from "@/components/shared/feedback";
 import { DataCard } from "@/components/shared/layout";
 import { Button } from "@/components/ui/button";
-import { formatDate, formatDateTime, formatMoney } from "@/lib/format";
+import { formatDate, formatMoney } from "@/lib/format";
 import type { listAssignedShifts } from "@/server/services/operator";
 
 type AssignedShift = Awaited<ReturnType<typeof listAssignedShifts>>[number];
@@ -37,22 +37,13 @@ export function ShiftList({ shifts }: { shifts: AssignedShift[] }) {
             </div>
             <StatusBadge status={shift.status} />
           </div>
-          <div className="grid grid-cols-2 gap-2 text-sm">
+          <div className="text-sm">
             <p className="flex items-center gap-1.5">
               <CalendarDays
                 className="size-4 text-muted-foreground"
                 aria-hidden="true"
               />
               {formatDate(shift.shiftDate)}
-            </p>
-            <p className="flex items-center gap-1.5">
-              <Clock3
-                className="size-4 text-muted-foreground"
-                aria-hidden="true"
-              />
-              {shift.scheduledStartAt
-                ? formatDateTime(shift.scheduledStartAt).split(", ").at(-1)
-                : "Time TBA"}
             </p>
           </div>
           {shift.profitResult && shift.profitCents !== null ? (

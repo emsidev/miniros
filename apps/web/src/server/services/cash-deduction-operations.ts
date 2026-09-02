@@ -30,6 +30,7 @@ export async function submitCashDeduction(input: SubmitCashDeductionInput) {
   }
 
   return requireDatabase().transaction(async (tx) => {
+    const approvalsEnabled = access.business.features.approvalsEnabled;
     const [existing] = await tx
       .select({
         id: cashDeductions.id,
@@ -74,6 +75,9 @@ export async function submitCashDeduction(input: SubmitCashDeductionInput) {
       access.employee.id,
     );
 
+    const reviewedAt = approvalsEnabled ? null : new Date();
+    const status = approvalsEnabled ? "pending" : "approved";
+
     const [created] = await tx
       .insert(cashDeductions)
       .values({
@@ -83,8 +87,9 @@ export async function submitCashDeduction(input: SubmitCashDeductionInput) {
         label: input.label.trim(),
         amountCents: input.amountCents,
         reason: input.reason?.trim() || null,
-        status: "pending",
+        status,
         requestedBy: access.employee.id,
+        reviewedAt,
       })
       .onConflictDoNothing()
       .returning({ id: cashDeductions.id });
@@ -110,16 +115,18 @@ export async function submitCashDeduction(input: SubmitCashDeductionInput) {
       throw new AccessError("The cash deduction ID is already in use.");
     }
     await insertAuditLog(tx, access, {
-      action: "cash_deduction.submitted",
+      action: approvalsEnabled
+        ? "cash_deduction.submitted"
+        : "cash_deduction.approved_without_approval",
       entityType: "cash_deduction",
       entityId: input.deductionId,
       shiftId: shift.id,
-      metadata: { amountCents: input.amountCents },
+      metadata: { amountCents: input.amountCents, approvalsEnabled },
     });
     return {
       id: input.deductionId,
       shiftId: shift.id,
-      status: "pending" as const,
+      status,
       amountCents: input.amountCents,
       idempotent: false,
     };
@@ -130,7 +137,10 @@ export async function reviewCashDeduction(input: {
   deductionId: string;
   decision: "approved" | "rejected";
 }) {
-  const access = await requireActiveBusiness({ admin: true });
+  const access = await requireActiveBusiness({
+    admin: true,
+    feature: "approvals",
+  });
   return requireDatabase().transaction(async (tx) => {
     const [deduction] = await tx
       .select({

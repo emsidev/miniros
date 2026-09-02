@@ -1,4 +1,5 @@
 import Link from "next/link";
+import { redirect } from "next/navigation";
 import { ArrowLeft } from "lucide-react";
 
 import { EmptyState } from "@/components/shared/feedback";
@@ -6,6 +7,10 @@ import { PageHeader } from "@/components/shared/layout";
 import { Button } from "@/components/ui/button";
 import { formatDate } from "@/lib/format";
 import { getStartShiftWorkspace } from "@/server/services/operator-workspaces";
+import {
+  isProductionOnlyEmployee,
+  requireActiveBusiness,
+} from "@/server/services/access";
 import { StartShiftForm } from "./start-shift-form";
 
 export const dynamic = "force-dynamic";
@@ -15,6 +20,8 @@ export default async function StartShiftPage({
 }: {
   params: Promise<{ shiftId: string }>;
 }) {
+  const { employee } = await requireActiveBusiness();
+  if (isProductionOnlyEmployee(employee)) redirect("/production");
   const { shiftId } = await params;
   const workspace = await getStartShiftWorkspace(shiftId);
 

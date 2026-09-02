@@ -69,6 +69,57 @@ export async function replaceAdminShiftAssignments(
   return updated;
 }
 
+export async function cancelAdminShift(shiftId: string) {
+  const access = await requireActiveBusiness({ admin: true });
+  return requireDatabase().transaction(async (tx) => {
+    const [existing] = await tx
+      .select({ id: shifts.id, status: shifts.status, title: shifts.title })
+      .from(shifts)
+      .where(
+        and(
+          eq(shifts.id, shiftId),
+          eq(shifts.businessId, access.business.id),
+          isNull(shifts.deletedAt),
+        ),
+      )
+      .limit(1);
+    if (!existing) throw new AccessError("Shift not found.");
+    if (existing.status !== "scheduled") {
+      throw new AccessError("Only a scheduled shift can be cancelled.");
+    }
+
+    const now = new Date();
+    await tx
+      .update(shifts)
+      .set({ status: "cancelled", updatedAt: now })
+      .where(
+        and(eq(shifts.id, shiftId), eq(shifts.businessId, access.business.id)),
+      );
+    await tx
+      .update(shiftAssignments)
+      .set({ status: "cancelled", updatedAt: now })
+      .where(
+        and(
+          eq(shiftAssignments.shiftId, shiftId),
+          eq(shiftAssignments.businessId, access.business.id),
+        ),
+      );
+    await tx.insert(auditLogs).values({
+      id: randomUUID(),
+      businessId: access.business.id,
+      actorUserId: access.user.id,
+      actorEmployeeId: access.employee?.id ?? null,
+      action: "shift.cancelled",
+      entityType: "shift",
+      entityId: shiftId,
+      shiftId,
+      metadata: { previousStatus: existing.status, title: existing.title },
+    });
+
+    return { id: shiftId, status: "cancelled" as const };
+  });
+}
+
 export async function softDeleteAdminShift(shiftId: string) {
   const access = await requireActiveBusiness({ admin: true });
   return requireDatabase().transaction(async (tx) => {

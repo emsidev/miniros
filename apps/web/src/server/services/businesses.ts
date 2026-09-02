@@ -1,10 +1,18 @@
 import { randomUUID } from "node:crypto";
+import { defaultProductCategories } from "@miniros/contracts";
 import { requireDatabase } from "@miniros/db";
+import {
+  validateBusinessFeatureFlags,
+  type BusinessFeatureFlags,
+} from "@miniros/domain";
 import {
   auditLogs,
   businessMembers,
   businesses,
+  cashDeductions,
   employees,
+  inventoryAdjustments,
+  productCategories,
 } from "@miniros/db/schema";
 import { and, asc, eq, isNull } from "drizzle-orm";
 import { cookies } from "next/headers";
@@ -15,6 +23,10 @@ import {
   requireUser,
 } from "./access";
 import { claimMembershipInvitations } from "./invitations";
+import {
+  loadProductCostBreakdowns,
+  recalculateProductCosts,
+} from "./product-costing";
 
 function businessSlug(name: string, id: string) {
   const base = name
@@ -49,9 +61,20 @@ export async function listBusinesses() {
       id: businesses.id,
       name: businesses.name,
       role: businessMembers.role,
+      canUsePos: employees.canUsePos,
+      canLogProduction: employees.canLogProduction,
     })
     .from(businessMembers)
     .innerJoin(businesses, eq(businessMembers.businessId, businesses.id))
+    .leftJoin(
+      employees,
+      and(
+        eq(employees.businessId, businesses.id),
+        eq(employees.memberId, businessMembers.id),
+        eq(employees.status, "active"),
+        isNull(employees.deletedAt),
+      ),
+    )
     .where(
       and(
         eq(businessMembers.authUserId, user.id),
@@ -111,6 +134,15 @@ export async function createBusiness(input: { name: string }) {
       canLogProduction: true,
     });
 
+    await tx.insert(productCategories).values(
+      defaultProductCategories.map((category) => ({
+        id: randomUUID(),
+        businessId,
+        name: category.name,
+        sortOrder: category.sortOrder,
+      })),
+    );
+
     await tx.insert(auditLogs).values({
       id: randomUUID(),
       businessId,
@@ -165,6 +197,10 @@ export async function getBusinessSettings() {
       name: businesses.name,
       slug: businesses.slug,
       status: businesses.status,
+      recipesEnabled: businesses.recipesEnabled,
+      productionEnabled: businesses.productionEnabled,
+      approvalsEnabled: businesses.approvalsEnabled,
+      promosEnabled: businesses.promosEnabled,
       createdAt: businesses.createdAt,
       updatedAt: businesses.updatedAt,
     })
@@ -180,6 +216,137 @@ export async function getBusinessSettings() {
 
   if (!record) throw new AccessError("Business not found.");
   return record;
+}
+
+function toFeatureFlags(record: {
+  recipesEnabled: boolean;
+  productionEnabled: boolean;
+  approvalsEnabled: boolean;
+  promosEnabled: boolean;
+}): BusinessFeatureFlags {
+  return {
+    recipesEnabled: record.recipesEnabled,
+    productionEnabled: record.productionEnabled,
+    approvalsEnabled: record.approvalsEnabled,
+    promosEnabled: record.promosEnabled,
+  };
+}
+
+export async function updateBusinessFeatures(input: BusinessFeatureFlags) {
+  const access = await requireActiveBusiness({ admin: true });
+  let features: BusinessFeatureFlags;
+  try {
+    features = validateBusinessFeatureFlags(input);
+  } catch (error) {
+    throw new AccessError(
+      error instanceof Error ? error.message : "Invalid feature settings.",
+    );
+  }
+
+  const database = requireDatabase();
+  return database.transaction(async (tx) => {
+    if (!features.approvalsEnabled) {
+      const [pendingCash, pendingInventory] = await Promise.all([
+        tx
+          .select({ id: cashDeductions.id })
+          .from(cashDeductions)
+          .where(
+            and(
+              eq(cashDeductions.businessId, access.business.id),
+              eq(cashDeductions.status, "pending"),
+            ),
+          )
+          .limit(1),
+        tx
+          .select({ id: inventoryAdjustments.id })
+          .from(inventoryAdjustments)
+          .where(
+            and(
+              eq(inventoryAdjustments.businessId, access.business.id),
+              eq(inventoryAdjustments.status, "pending"),
+            ),
+          )
+          .limit(1),
+      ]);
+
+      if (pendingCash[0] || pendingInventory[0]) {
+        throw new AccessError(
+          "Review or reject all pending approvals before turning Approvals off.",
+        );
+      }
+    }
+
+    const [current] = await tx
+      .select({
+        recipesEnabled: businesses.recipesEnabled,
+        productionEnabled: businesses.productionEnabled,
+        approvalsEnabled: businesses.approvalsEnabled,
+        promosEnabled: businesses.promosEnabled,
+      })
+      .from(businesses)
+      .where(
+        and(
+          eq(businesses.id, access.business.id),
+          eq(businesses.status, "active"),
+          isNull(businesses.deletedAt),
+        ),
+      )
+      .for("update")
+      .limit(1);
+
+    if (!current) throw new AccessError("Business not found.");
+    const previousBreakdowns =
+      current.recipesEnabled !== features.recipesEnabled
+        ? await loadProductCostBreakdowns(tx, {
+            businessId: access.business.id,
+            recipesEnabled: current.recipesEnabled,
+          })
+        : undefined;
+    const updatedAt = new Date();
+    const [updated] = await tx
+      .update(businesses)
+      .set({ ...features, updatedAt })
+      .where(eq(businesses.id, access.business.id))
+      .returning({
+        recipesEnabled: businesses.recipesEnabled,
+        productionEnabled: businesses.productionEnabled,
+        approvalsEnabled: businesses.approvalsEnabled,
+        promosEnabled: businesses.promosEnabled,
+        updatedAt: businesses.updatedAt,
+      });
+
+    if (!updated) throw new AccessError("Business not found.");
+    const costRecalculations =
+      current.recipesEnabled !== updated.recipesEnabled
+        ? await recalculateProductCosts(tx, {
+            businessId: access.business.id,
+            recipesEnabled: updated.recipesEnabled,
+            previousRecipesEnabled: current.recipesEnabled,
+            trigger: updated.recipesEnabled
+              ? "recipes_feature_enabled"
+              : "recipes_feature_disabled",
+            actorUserId: access.user.id,
+            actorEmployeeId: access.employee?.id ?? null,
+            previousBreakdowns,
+          })
+        : [];
+    await tx.insert(auditLogs).values({
+      id: randomUUID(),
+      businessId: access.business.id,
+      actorUserId: access.user.id,
+      actorEmployeeId: access.employee?.id ?? null,
+      action: "business.features_updated",
+      entityType: "business",
+      entityId: access.business.id,
+      metadata: {
+        before: toFeatureFlags(current),
+        after: toFeatureFlags(updated),
+        recalculatedProductCount: costRecalculations.length,
+      },
+    });
+
+    return { ...toFeatureFlags(updated), updatedAt: updated.updatedAt };
+  });
 }
 
 export async function updateBusinessSettings(input: { name: string }) {

@@ -1,7 +1,7 @@
 import Link from "next/link";
 import { redirect } from "next/navigation";
-import { Store } from "lucide-react";
 import { AccessError, requireUser } from "@/server/services/access";
+import { BrandMark } from "@/components/shared/brand-mark";
 import { LogoutButton } from "./_components/logout-button";
 
 export const dynamic = "force-dynamic";
@@ -28,9 +28,7 @@ export default async function BusinessesLayout({
             href="/businesses"
             className="flex items-center gap-2 font-extrabold tracking-tight"
           >
-            <span className="grid size-9 place-items-center rounded-xl bg-foreground text-accent">
-              <Store className="size-5" aria-hidden="true" />
-            </span>
+            <BrandMark className="size-9" />
             MINIROS
           </Link>
           <div className="flex min-w-0 items-center gap-2">

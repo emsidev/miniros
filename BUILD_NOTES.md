@@ -34,8 +34,8 @@
 - No RPC, stored procedure, or business-logic trigger was added. The empty project
   already contained `public.rls_auto_enable()`; the final migration revokes its
   execution from `PUBLIC`, `anon`, and `authenticated`.
-- The visual system uses warm oat surfaces, near-black controls, chartreuse accents,
-  Outfit typography, rounded cards, and a mobile bottom navigation.
+- The visual system uses daylight-neutral surfaces, near-black controls, restrained
+  chartreuse accents, Outfit product typography, and the canonical geometric M mark.
 - The existing `promo_rules.discount_value` column is retained for schema
   compatibility: fixed promos are stored as two-decimal peso values and converted
   to integer cents at POS calculation time; percentage promos are capped at 100% by

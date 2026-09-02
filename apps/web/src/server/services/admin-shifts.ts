@@ -1,30 +1,31 @@
 import { randomUUID } from "node:crypto";
 import { requireDatabase } from "@miniros/db";
 import { auditLogs, sellingLocations, shifts } from "@miniros/db/schema";
-import { sumCents } from "@miniros/domain";
-import { and, desc, eq, isNull } from "drizzle-orm";
+import { and, asc, eq, isNull } from "drizzle-orm";
 
 import { AccessError, requireActiveBusiness } from "./access";
 import {
+  createDefaultLocationCosts,
+  replaceAssignments,
+  replaceDefaultLocationCosts,
   requireScopedAssignments,
   requireScopedLocation,
-  replaceAssignments,
-  replaceCosts,
 } from "./admin-shift-persistence";
 import { readShiftDetails } from "./admin-shift-read";
 import {
-  assertShiftInput,
-  nullableText,
+  assertShiftCreateInput,
+  assertShiftUpdateInput,
+  type ShiftCreateInput,
   type ShiftUpdateInput,
-  type ShiftWriteInput,
 } from "./admin-shift-types";
 
 export type {
   ShiftAssignmentInput,
+  ShiftCreateInput,
   ShiftUpdateInput,
-  ShiftWriteInput,
 } from "./admin-shift-types";
 export {
+  cancelAdminShift,
   replaceAdminShiftAssignments,
   softDeleteAdminShift,
 } from "./admin-shift-maintenance";
@@ -43,17 +44,20 @@ export async function listAdminShifts() {
       ),
     )
     .where(and(eq(shifts.businessId, business.id), isNull(shifts.deletedAt)))
-    .orderBy(desc(shifts.shiftDate), desc(shifts.scheduledStartAt));
+    .orderBy(asc(shifts.shiftDate), asc(shifts.createdAt));
 
   return readShiftDetails(database, business.id, shiftRows);
 }
 
-export async function createAdminShift(input: ShiftWriteInput) {
+export async function createAdminShifts(input: ShiftCreateInput) {
   const access = await requireActiveBusiness({ admin: true });
   const database = requireDatabase();
-  assertShiftInput(input);
+  assertShiftCreateInput(input);
+  const shiftsToCreate = input.shiftDates.map((shiftDate) => ({
+    id: randomUUID(),
+    shiftDate,
+  }));
 
-  const shiftId = randomUUID();
   await database.transaction(async (tx) => {
     const location = await requireScopedLocation(
       tx,
@@ -62,65 +66,59 @@ export async function createAdminShift(input: ShiftWriteInput) {
     );
     await requireScopedAssignments(tx, access.business.id, input.assignments);
 
-    await tx.insert(shifts).values({
-      id: shiftId,
-      businessId: access.business.id,
-      sellingLocationId: location.id,
-      title: nullableText(input.title),
-      shiftDate: input.shiftDate,
-      scheduledStartAt: input.scheduledStartAt
-        ? new Date(input.scheduledStartAt)
-        : null,
-      scheduledEndAt: input.scheduledEndAt
-        ? new Date(input.scheduledEndAt)
-        : null,
-      status: "scheduled",
-      notes: nullableText(input.notes),
-    });
-    await replaceAssignments(
-      tx,
-      access.business.id,
-      shiftId,
-      input.assignments,
-      false,
+    await tx.insert(shifts).values(
+      shiftsToCreate.map(({ id, shiftDate }) => ({
+        id,
+        businessId: access.business.id,
+        sellingLocationId: location.id,
+        title: input.title.trim(),
+        shiftDate,
+        status: "scheduled" as const,
+        notes: null,
+      })),
     );
-    const expectedCosts = await replaceCosts(
-      tx,
-      access.business.id,
-      shiftId,
-      input,
-      location,
-      access.employee?.id ?? null,
-    );
-    sumCents(
-      expectedCosts.rentalCostCents,
-      expectedCosts.transportCostCents,
-      input.otherCostCents,
-    );
-    await tx.insert(auditLogs).values({
-      id: randomUUID(),
-      businessId: access.business.id,
-      actorUserId: access.user.id,
-      actorEmployeeId: access.employee?.id ?? null,
-      action: "shift.created",
-      entityType: "shift",
-      entityId: shiftId,
-      shiftId,
-      metadata: {
-        locationId: location.id,
-        shiftDate: input.shiftDate,
-        assignmentCount: input.assignments.length,
-        ...expectedCosts,
-        otherCostCents: input.otherCostCents,
-      },
-    });
+
+    const auditEntries: (typeof auditLogs.$inferInsert)[] = [];
+    for (const shift of shiftsToCreate) {
+      await replaceAssignments(
+        tx,
+        access.business.id,
+        shift.id,
+        input.assignments,
+        false,
+      );
+      const expectedCosts = await createDefaultLocationCosts(
+        tx,
+        access.business.id,
+        shift.id,
+        location,
+        access.employee?.id ?? null,
+      );
+      auditEntries.push({
+        id: randomUUID(),
+        businessId: access.business.id,
+        actorUserId: access.user.id,
+        actorEmployeeId: access.employee?.id ?? null,
+        action: "shift.created",
+        entityType: "shift",
+        entityId: shift.id,
+        shiftId: shift.id,
+        metadata: {
+          locationId: location.id,
+          shiftDate: shift.shiftDate,
+          assignmentCount: input.assignments.length,
+          ...expectedCosts,
+          otherCostCents: 0,
+        },
+      });
+    }
+    await tx.insert(auditLogs).values(auditEntries);
   });
 
-  const created = (await listAdminShifts()).find(
-    (shift) => shift.id === shiftId,
-  );
-  if (!created) throw new Error("Created shift could not be read.");
-  return created;
+  return {
+    createdCount: shiftsToCreate.length,
+    shiftIds: shiftsToCreate.map((shift) => shift.id),
+  };
 }
 
 export async function updateAdminShift(
@@ -129,11 +127,15 @@ export async function updateAdminShift(
 ) {
   const access = await requireActiveBusiness({ admin: true });
   const database = requireDatabase();
-  assertShiftInput(input);
+  assertShiftUpdateInput(input);
 
   await database.transaction(async (tx) => {
     const [existing] = await tx
-      .select({ id: shifts.id, status: shifts.status })
+      .select({
+        id: shifts.id,
+        status: shifts.status,
+        sellingLocationId: shifts.sellingLocationId,
+      })
       .from(shifts)
       .where(
         and(
@@ -144,10 +146,8 @@ export async function updateAdminShift(
       )
       .limit(1);
     if (!existing) throw new AccessError("Shift not found.");
-    if (existing.status !== "scheduled" && existing.status !== "cancelled") {
-      throw new AccessError(
-        "Only scheduled or cancelled shifts can be edited.",
-      );
+    if (existing.status !== "scheduled") {
+      throw new AccessError("Only scheduled shifts can be edited.");
     }
 
     const location = await requireScopedLocation(
@@ -161,16 +161,8 @@ export async function updateAdminShift(
       .update(shifts)
       .set({
         sellingLocationId: location.id,
-        title: nullableText(input.title),
+        title: input.title.trim(),
         shiftDate: input.shiftDate,
-        scheduledStartAt: input.scheduledStartAt
-          ? new Date(input.scheduledStartAt)
-          : null,
-        scheduledEndAt: input.scheduledEndAt
-          ? new Date(input.scheduledEndAt)
-          : null,
-        status: input.status,
-        notes: nullableText(input.notes),
         updatedAt: now,
       })
       .where(
@@ -181,21 +173,17 @@ export async function updateAdminShift(
       access.business.id,
       shiftId,
       input.assignments,
-      input.status === "cancelled",
+      false,
     );
-    const expectedCosts = await replaceCosts(
-      tx,
-      access.business.id,
-      shiftId,
-      input,
-      location,
-      access.employee?.id ?? null,
-    );
-    sumCents(
-      expectedCosts.rentalCostCents,
-      expectedCosts.transportCostCents,
-      input.otherCostCents,
-    );
+    if (existing.sellingLocationId !== location.id) {
+      await replaceDefaultLocationCosts(
+        tx,
+        access.business.id,
+        shiftId,
+        location,
+        access.employee?.id ?? null,
+      );
+    }
     await tx.insert(auditLogs).values({
       id: randomUUID(),
       businessId: access.business.id,
@@ -207,11 +195,10 @@ export async function updateAdminShift(
       shiftId,
       metadata: {
         previousStatus: existing.status,
-        status: input.status,
+        status: existing.status,
         locationId: location.id,
+        previousLocationId: existing.sellingLocationId,
         assignmentCount: input.assignments.length,
-        ...expectedCosts,
-        otherCostCents: input.otherCostCents,
       },
     });
   });

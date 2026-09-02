@@ -7,13 +7,17 @@ import { toast } from "sonner";
 
 import { Alert, AlertDescription } from "@/components/ui/alert";
 import { Button } from "@/components/ui/button";
-import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
+import { NumericExpressionInput } from "@/components/ui/numeric-expression-input";
 import { Textarea } from "@/components/ui/textarea";
+import {
+  normalizeNumericExpression,
+  numericExpressionToNumber,
+} from "@/lib/numeric-expression";
 import { submitShiftCloseoutAction } from "@/server/actions/operations";
 
 function pesosToCents(value: FormDataEntryValue | null) {
-  const amount = Number(String(value ?? ""));
+  const amount = numericExpressionToNumber(value);
   return Number.isFinite(amount) ? Math.round(amount * 100) : Number.NaN;
 }
 
@@ -52,7 +56,10 @@ export function CloseoutForm({
         notes: String(form.get("notes") ?? "") || null,
         counts: balances.map((balance) => ({
           inventoryItemId: balance.inventoryItemId,
-          quantity: String(form.get(`count-${balance.inventoryItemId}`) ?? ""),
+          quantity: normalizeNumericExpression(
+            form.get(`count-${balance.inventoryItemId}`),
+            3,
+          ),
         })),
       });
       if (!result.ok) {
@@ -73,13 +80,12 @@ export function CloseoutForm({
           <AlertDescription>{error}</AlertDescription>
         </Alert>
       ) : null}
-      <div className="space-y-2 rounded-2xl border bg-card p-4">
+      <div className="space-y-2 rounded-xl border bg-card p-4">
         <Label htmlFor="actualCash">Actual cash counted (₱)</Label>
-        <Input
+        <NumericExpressionInput
           id="actualCash"
           name="actualCash"
-          type="number"
-          inputMode="decimal"
+          precision={2}
           min="0"
           step="0.01"
           required
@@ -105,11 +111,10 @@ export function CloseoutForm({
                 Estimated {balance.quantityOnHand} {balance.unit}
               </p>
             </div>
-            <Input
+            <NumericExpressionInput
               id={`count-${balance.inventoryItemId}`}
               name={`count-${balance.inventoryItemId}`}
-              type="number"
-              inputMode="decimal"
+              precision={3}
               min="0"
               step="0.001"
               defaultValue={balance.quantityOnHand}

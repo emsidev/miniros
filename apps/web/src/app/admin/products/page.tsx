@@ -5,14 +5,36 @@ import { PageHeader } from "@/components/shared/layout";
 import { Badge } from "@/components/ui/badge";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { formatMoney } from "@/lib/format";
+import { requireActiveBusiness } from "@/server/services/access";
+import { listProductCategories } from "@/server/services/product-categories";
+import { listInventoryItems } from "@/server/services/inventory-items";
 import { listProducts } from "@/server/services/products";
 import { CreateProductDialog } from "../_components/create-product-dialog";
 
 export const dynamic = "force-dynamic";
 
 export default async function ProductsPage() {
-  const products = await listProducts();
-  const createAction = <CreateProductDialog />;
+  const [{ business }, products, categories, inventoryItems] =
+    await Promise.all([
+      requireActiveBusiness({ admin: true }),
+      listProducts(),
+      listProductCategories(),
+      listInventoryItems(),
+    ]);
+  const finishedGoods = inventoryItems.filter(
+    (item) =>
+      item.itemType === "finished_good" &&
+      item.trackStock &&
+      item.status === "active",
+  );
+  const createAction = (
+    <CreateProductDialog
+      categories={categories}
+      recipesEnabled={business.features.recipesEnabled}
+      productionEnabled={business.features.productionEnabled}
+      finishedGoods={finishedGoods}
+    />
+  );
 
   return (
     <>
@@ -31,9 +53,9 @@ export default async function ProductsPage() {
       ) : (
         <div className="grid gap-4 lg:grid-cols-2">
           {products.map((product) => (
-            <Card key={product.id} className="rounded-2xl py-5 shadow-none">
+            <Card key={product.id} className="rounded-xl py-5 shadow-none">
               <CardHeader className="flex-row items-start gap-3 px-5">
-                <span className="grid size-11 shrink-0 place-items-center rounded-2xl bg-muted">
+                <span className="grid size-11 shrink-0 place-items-center rounded-xl bg-muted">
                   <Package className="size-5" aria-hidden="true" />
                 </span>
                 <div className="min-w-0 flex-1">
@@ -41,12 +63,18 @@ export default async function ProductsPage() {
                     {product.name}
                   </CardTitle>
                   <p className="mt-1 truncate text-sm text-muted-foreground">
-                    {product.sku ?? product.categoryName ?? "Uncategorized"}
+                    {product.categoryName ?? "Uncategorized"}
                   </p>
                 </div>
                 <div className="flex shrink-0 flex-col items-end gap-2">
                   <StatusBadge status={product.status} />
-                  <CreateProductDialog product={product} />
+                  <CreateProductDialog
+                    product={product}
+                    categories={categories}
+                    recipesEnabled={business.features.recipesEnabled}
+                    productionEnabled={business.features.productionEnabled}
+                    finishedGoods={finishedGoods}
+                  />
                 </div>
               </CardHeader>
               <CardContent className="space-y-4 px-5">
@@ -73,12 +101,33 @@ export default async function ProductsPage() {
                   </div>
                 </div>
                 <div className="flex flex-wrap gap-2">
+                  <Badge variant="secondary">{product.sku}</Badge>
+                  <Badge variant="outline">
+                    {product.categoryName ?? "Uncategorized"}
+                  </Badge>
+                  <Badge
+                    variant={
+                      product.costSource === "recipe" ? "default" : "outline"
+                    }
+                  >
+                    {product.costSource === "recipe"
+                      ? "Automatic cost"
+                      : product.costSource === "override"
+                        ? "Cost overridden"
+                        : "Manual cost"}
+                  </Badge>
                   <Badge variant={product.isSellable ? "default" : "outline"}>
                     {product.isSellable
                       ? "Available in POS"
                       : "Hidden from POS"}
                   </Badge>
-                  {product.requiresRecipeDeduction ? (
+                  {product.inventoryMode === "produced" ? (
+                    <Badge variant="outline">
+                      <CookingPot aria-hidden="true" />
+                      Produced stock: {product.outputInventoryItemName}
+                    </Badge>
+                  ) : business.features.recipesEnabled &&
+                    product.requiresRecipeDeduction ? (
                     <Badge variant="outline">
                       <CookingPot aria-hidden="true" />
                       Recipe deduction

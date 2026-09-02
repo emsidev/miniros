@@ -1,4 +1,5 @@
 import { EmptyState, StatusBadge } from "@/components/shared/feedback";
+import { FeatureUnavailable } from "@/components/shared/feature-unavailable";
 import {
   DataCard,
   PageHeader,
@@ -8,10 +9,22 @@ import { formatDate } from "@/lib/format";
 import { listPromos } from "@/server/services/promos";
 import { PromoForm } from "../_components/promo-form";
 import { PromoStatusButton } from "../_components/promo-status-button";
+import { requireActiveBusiness } from "@/server/services/access";
 
 export const dynamic = "force-dynamic";
 
 export default async function AdminPromosPage() {
+  const { business } = await requireActiveBusiness({ admin: true });
+  if (!business.features.promosEnabled) {
+    return (
+      <FeatureUnavailable
+        feature="Promos"
+        destination="/admin/settings"
+        destinationLabel="Open settings"
+      />
+    );
+  }
+
   const promos = await listPromos();
 
   return (

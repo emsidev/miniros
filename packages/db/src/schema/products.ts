@@ -36,7 +36,7 @@ export const productCategories = pgTable(
     ),
     businessNameUnique: uniqueIndex(
       "product_categories_business_name_unique",
-    ).on(table.businessId, table.name),
+    ).on(table.businessId, sql`lower(${table.name})`),
   }),
 );
 
@@ -47,14 +47,24 @@ export const products = pgTable(
     businessId: uuid("business_id")
       .notNull()
       .references(() => businesses.id, { onDelete: "cascade" }),
-    categoryId: uuid("category_id").references(() => productCategories.id, {
-      onDelete: "set null",
-    }),
+    categoryId: uuid("category_id")
+      .notNull()
+      .references(() => productCategories.id, { onDelete: "restrict" }),
     name: text("name").notNull(),
-    sku: text("sku"),
+    sku: text("sku").notNull(),
     description: text("description"),
     priceCents: bigint("price_cents", { mode: "number" }).default(0).notNull(),
     costCents: bigint("cost_cents", { mode: "number" }).default(0).notNull(),
+    manualCostCents: bigint("manual_cost_cents", { mode: "number" })
+      .default(0)
+      .notNull(),
+    laborCostCents: bigint("labor_cost_cents", { mode: "number" })
+      .default(0)
+      .notNull(),
+    overheadCostCents: bigint("overhead_cost_cents", { mode: "number" })
+      .default(0)
+      .notNull(),
+    costOverrideCents: bigint("cost_override_cents", { mode: "number" }),
     status: productStatusEnum("status").default("active").notNull(),
     isSellable: boolean("is_sellable").default(true).notNull(),
     requiresRecipeDeduction: boolean("requires_recipe_deduction")
@@ -83,6 +93,26 @@ export const products = pgTable(
     nonnegativeCost: check(
       "products_cost_nonnegative",
       sql`${table.costCents} >= 0`,
+    ),
+    nonnegativeManualCost: check(
+      "products_manual_cost_nonnegative",
+      sql`${table.manualCostCents} >= 0`,
+    ),
+    nonnegativeLaborCost: check(
+      "products_labor_cost_nonnegative",
+      sql`${table.laborCostCents} >= 0`,
+    ),
+    nonnegativeOverheadCost: check(
+      "products_overhead_cost_nonnegative",
+      sql`${table.overheadCostCents} >= 0`,
+    ),
+    nonnegativeCostOverride: check(
+      "products_cost_override_nonnegative",
+      sql`${table.costOverrideCents} is null or ${table.costOverrideCents} >= 0`,
+    ),
+    nonblankSku: check(
+      "products_sku_nonblank",
+      sql`length(trim(${table.sku})) > 0`,
     ),
   }),
 );

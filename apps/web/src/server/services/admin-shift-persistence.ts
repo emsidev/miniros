@@ -8,11 +8,7 @@ import {
 } from "@miniros/db/schema";
 import { and, eq, inArray, isNull } from "drizzle-orm";
 import { AccessError } from "./access";
-import {
-  nullableText,
-  type ShiftAssignmentInput,
-  type ShiftWriteInput,
-} from "./admin-shift-types";
+import type { ShiftAssignmentInput } from "./admin-shift-types";
 
 type DatabaseTransaction = Parameters<
   Parameters<Database["transaction"]>[0]
@@ -163,28 +159,13 @@ export async function replaceAssignments(
   }
 }
 
-export async function replaceCosts(
+async function insertDefaultLocationCosts(
   tx: DatabaseTransaction,
   businessId: string,
   shiftId: string,
-  input: ShiftWriteInput,
   location: Awaited<ReturnType<typeof requireScopedLocation>>,
   actorEmployeeId: string | null,
 ) {
-  const rentalCostCents =
-    input.rentalCostCents ?? location.defaultRentalCostCents;
-  const transportCostCents =
-    input.transportCostCents ?? location.defaultTransportCostCents;
-
-  await tx
-    .delete(shiftCosts)
-    .where(
-      and(
-        eq(shiftCosts.businessId, businessId),
-        eq(shiftCosts.shiftId, shiftId),
-      ),
-    );
-
   const costs: (typeof shiftCosts.$inferInsert)[] = [
     {
       id: randomUUID(),
@@ -192,7 +173,7 @@ export async function replaceCosts(
       shiftId,
       costType: "rent",
       label: "Rental cost",
-      amountCents: rentalCostCents,
+      amountCents: location.defaultRentalCostCents,
       createdBy: actorEmployeeId,
     },
     {
@@ -201,23 +182,55 @@ export async function replaceCosts(
       shiftId,
       costType: "transport",
       label: "Transport cost",
-      amountCents: transportCostCents,
+      amountCents: location.defaultTransportCostCents,
       createdBy: actorEmployeeId,
     },
   ];
-
-  if (input.otherCostCents > 0) {
-    costs.push({
-      id: randomUUID(),
-      businessId,
-      shiftId,
-      costType: "other",
-      label: nullableText(input.otherCostLabel) ?? "Other cost",
-      amountCents: input.otherCostCents,
-      createdBy: actorEmployeeId,
-    });
-  }
   await tx.insert(shiftCosts).values(costs);
 
-  return { rentalCostCents, transportCostCents };
+  return {
+    rentalCostCents: location.defaultRentalCostCents,
+    transportCostCents: location.defaultTransportCostCents,
+  };
+}
+
+export async function createDefaultLocationCosts(
+  tx: DatabaseTransaction,
+  businessId: string,
+  shiftId: string,
+  location: Awaited<ReturnType<typeof requireScopedLocation>>,
+  actorEmployeeId: string | null,
+) {
+  return insertDefaultLocationCosts(
+    tx,
+    businessId,
+    shiftId,
+    location,
+    actorEmployeeId,
+  );
+}
+
+export async function replaceDefaultLocationCosts(
+  tx: DatabaseTransaction,
+  businessId: string,
+  shiftId: string,
+  location: Awaited<ReturnType<typeof requireScopedLocation>>,
+  actorEmployeeId: string | null,
+) {
+  await tx
+    .delete(shiftCosts)
+    .where(
+      and(
+        eq(shiftCosts.businessId, businessId),
+        eq(shiftCosts.shiftId, shiftId),
+        inArray(shiftCosts.costType, ["rent", "transport"]),
+      ),
+    );
+  return insertDefaultLocationCosts(
+    tx,
+    businessId,
+    shiftId,
+    location,
+    actorEmployeeId,
+  );
 }

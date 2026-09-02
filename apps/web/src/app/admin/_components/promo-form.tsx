@@ -7,6 +7,7 @@ import { toast } from "sonner";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
+import { numericExpressionToNumber } from "@/lib/numeric-expression";
 import { createPromoAction } from "@/server/actions/promos";
 import { ActionErrorAlert, SetupInput } from "./form-controls";
 import { optionalText, type ActionFeedback } from "./form-utils";
@@ -27,7 +28,7 @@ export function PromoForm() {
       const result = await createPromoAction({
         name: String(formData.get("name") ?? ""),
         discountType,
-        discountValue: Number(formData.get("discountValue")),
+        discountValue: numericExpressionToNumber(formData.get("discountValue")),
         startsAt: optionalText(formData.get("startsAt")),
         endsAt: optionalText(formData.get("endsAt")),
       });

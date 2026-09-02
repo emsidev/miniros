@@ -236,8 +236,6 @@ export async function getAdminShiftDetail(shiftId: string) {
       id: shifts.id,
       title: shifts.title,
       shiftDate: shifts.shiftDate,
-      scheduledStartAt: shifts.scheduledStartAt,
-      scheduledEndAt: shifts.scheduledEndAt,
       actualStartAt: shifts.actualStartAt,
       actualEndAt: shifts.actualEndAt,
       status: shifts.status,
@@ -247,6 +245,7 @@ export async function getAdminShiftDetail(shiftId: string) {
       profitCents: shiftProfitSummaries.profitCents,
       result: shiftProfitSummaries.result,
       grossSalesCents: shiftProfitSummaries.grossSalesCents,
+      productCostCents: shiftProfitSummaries.productCostCents,
       totalCostsCents: shiftProfitSummaries.totalCostsCents,
     })
     .from(shifts)

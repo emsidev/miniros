@@ -2,42 +2,39 @@
 import { workflowSteps } from "../../content/home";
 ---
 
-<section class="workflow section" id="how-it-works">
-  <div class="workflow-intro reveal-target">
-    <div class="workflow-intro-copy">
-      <p class="section-label">
-        <span aria-hidden="true">↬</span> How MINIROS works
-      </p>
-      <h2>
-        Run the booth with less friction.
-        <span>Leave with a profit answer.</span>
-      </h2>
+<section class="section workflow" id="how-it-works">
+  <div class="workflow-heading">
+    <div>
+      <p class="section-context">The operating loop</p>
+      <h2>Open cleanly. Sell quickly. Close with the full picture.</h2>
     </div>
-    <p class="workflow-intro-body">
-      A selling day should move from opening stock to closeout without losing
-      the numbers that decide whether the location was worth renting again.
+    <p>
+      Each step preserves the numbers needed for the final profitability answer.
+      The order matters because the closeout is only as reliable as the shift
+      record before it.
     </p>
   </div>
 
   <div class="workflow-list">
     {
-      workflowSteps.map((step, index) => (
-        <article
-          class:list={[
-            "workflow-stage reveal-target",
-            index % 2 === 1 && "workflow-stage-reverse",
-          ]}
-        >
-          <div class="workflow-stage-copy">
-            <p class="workflow-stage-label">
+      workflowSteps.map((step) => (
+        <article class="workflow-item">
+          <div class="workflow-copy">
+            <p class="step-label">
               <span>{step.number}</span>
               {step.title}
             </p>
             <h3>{step.headline}</h3>
             <p>{step.body}</p>
           </div>
-          <figure class="workflow-stage-media">
-            <img src={step.image} alt={step.alt} loading="lazy" />
+          <figure>
+            {step.title === "Sell" ? (
+              <div class="live-device workflow-device">
+                <img src={step.image} alt={step.alt} loading="lazy" />
+              </div>
+            ) : (
+              <img src={step.image} alt={step.alt} loading="lazy" />
+            )}
           </figure>
         </article>
       ))

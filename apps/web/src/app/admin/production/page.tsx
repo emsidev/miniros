@@ -1,4 +1,5 @@
 import { EmptyState, StatusBadge } from "@/components/shared/feedback";
+import { FeatureUnavailable } from "@/components/shared/feature-unavailable";
 import {
   DataCard,
   MetricCard,
@@ -10,6 +11,7 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { formatDateTime, formatQuantity } from "@/lib/format";
 import { listProductionOverview } from "@/server/services/production-overview";
+import { requireActiveBusiness } from "@/server/services/access";
 
 export const dynamic = "force-dynamic";
 
@@ -24,6 +26,17 @@ export default async function AdminProductionPage({
 }: {
   searchParams: Promise<Record<string, string | string[] | undefined>>;
 }) {
+  const { business } = await requireActiveBusiness({ admin: true });
+  if (!business.features.productionEnabled) {
+    return (
+      <FeatureUnavailable
+        feature="Production"
+        destination="/admin/settings"
+        destinationLabel="Open settings"
+      />
+    );
+  }
+
   const params = await searchParams;
   const filters = {
     from: dateQueryValue(params.from),
@@ -35,9 +48,9 @@ export default async function AdminProductionPage({
     <div className="space-y-8">
       <PageHeader
         title="Production overview"
-        description="See what your team produced across shifts and where it was logged."
+        description="See finished goods produced from central inventory and legacy shift production."
       />
-      <form className="grid gap-3 rounded-2xl border bg-card p-4 sm:grid-cols-[1fr_1fr_auto] sm:items-end">
+      <form className="grid gap-3 rounded-xl border bg-card p-4 sm:grid-cols-[1fr_1fr_auto] sm:items-end">
         <div className="space-y-1.5">
           <Label htmlFor="production-from">From</Label>
           <Input
@@ -78,7 +91,7 @@ export default async function AdminProductionPage({
         {overview.totals.length === 0 ? (
           <EmptyState
             title="No production logged"
-            description="Production entries from an active shift will appear here."
+            description="Production entries logged from central inventory will appear here."
           />
         ) : (
           <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-3">
@@ -108,7 +121,8 @@ export default async function AdminProductionPage({
                 <div>
                   <p className="font-bold">{row.productName}</p>
                   <p className="text-sm text-muted-foreground">
-                    {row.locationName} · {row.shiftDate}
+                    {row.locationName}
+                    {row.shiftDate ? ` · Legacy shift ${row.shiftDate}` : ""}
                   </p>
                 </div>
                 <div className="flex items-center gap-3 text-sm">

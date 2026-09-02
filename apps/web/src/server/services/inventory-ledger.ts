@@ -67,6 +67,7 @@ export async function applyInventoryDeltas(
     eventType:
       | "sale_deduction"
       | "production_input"
+      | "production_output"
       | "adjustment"
       | "receiving"
       | "transfer_in"

@@ -4,7 +4,8 @@ import { actionSuccess } from "@miniros/contracts";
 import { revalidatePath } from "next/cache";
 import { z } from "zod";
 import {
-  createAdminShift,
+  cancelAdminShift,
+  createAdminShifts,
   listAdminShifts,
   replaceAdminShiftAssignments,
   softDeleteAdminShift,
@@ -13,9 +14,7 @@ import {
 import { actionError } from "./helpers";
 
 const centsSchema = z.number().int().nonnegative().max(Number.MAX_SAFE_INTEGER);
-
-const nullableText = (maximum: number) =>
-  z.string().trim().max(maximum).nullable().optional().default(null);
+const titleSchema = z.string().trim().min(1, "Enter a shift title.").max(120);
 
 const shiftAssignmentSchema = z.object({
   employeeId: z.string().uuid(),
@@ -26,7 +25,6 @@ const shiftAssignmentSchema = z.object({
 const assignmentsSchema = z
   .array(shiftAssignmentSchema)
   .min(1)
-  .max(100)
   .superRefine((assignments, context) => {
     const seen = new Set<string>();
     assignments.forEach((assignment, index) => {
@@ -59,79 +57,41 @@ const shiftDateSchema = z
       date.getUTCDate() === day
     );
   }, "Enter a valid calendar date.");
-const dateTimeSchema = z
-  .string()
-  .datetime({ offset: true })
-  .nullable()
-  .optional()
-  .default(null);
 
-const shiftWriteShape = {
+const shiftDatesSchema = z
+  .array(shiftDateSchema)
+  .min(1, "Select at least one shift date.")
+  .superRefine((dates, context) => {
+    if (new Set(dates).size !== dates.length) {
+      context.addIssue({
+        code: z.ZodIssueCode.custom,
+        message: "Each shift date can be selected only once.",
+      });
+    }
+    const sortedDates = [...dates].sort();
+    if (sortedDates.some((date, index) => date !== dates[index])) {
+      context.addIssue({
+        code: z.ZodIssueCode.custom,
+        message: "Shift dates must be in ascending order.",
+      });
+    }
+  });
+
+const shiftDetailsShape = {
   sellingLocationId: z.string().uuid(),
-  title: nullableText(120),
-  shiftDate: shiftDateSchema,
-  scheduledStartAt: dateTimeSchema,
-  scheduledEndAt: dateTimeSchema,
-  notes: nullableText(2_000),
+  title: titleSchema,
   assignments: assignmentsSchema,
-  rentalCostCents: centsSchema.optional(),
-  transportCostCents: centsSchema.optional(),
-  otherCostCents: centsSchema.default(0),
-  otherCostLabel: nullableText(120),
 };
 
-function validateSchedule(
-  value: {
-    scheduledStartAt?: string | null;
-    scheduledEndAt?: string | null;
-    otherCostCents: number;
-    rentalCostCents?: number;
-    transportCostCents?: number;
-    otherCostLabel?: string | null;
-  },
-  context: z.RefinementCtx,
-) {
-  if (
-    value.scheduledStartAt &&
-    value.scheduledEndAt &&
-    new Date(value.scheduledEndAt) <= new Date(value.scheduledStartAt)
-  ) {
-    context.addIssue({
-      code: z.ZodIssueCode.custom,
-      path: ["scheduledEndAt"],
-      message: "Scheduled end must be after the start.",
-    });
-  }
-  if (value.otherCostCents > 0 && !value.otherCostLabel?.trim()) {
-    context.addIssue({
-      code: z.ZodIssueCode.custom,
-      path: ["otherCostLabel"],
-      message: "Add a label for the other cost.",
-    });
-  }
-  const combinedCosts =
-    BigInt(value.rentalCostCents ?? 0) +
-    BigInt(value.transportCostCents ?? 0) +
-    BigInt(value.otherCostCents);
-  if (combinedCosts > BigInt(Number.MAX_SAFE_INTEGER)) {
-    context.addIssue({
-      code: z.ZodIssueCode.custom,
-      path: ["otherCostCents"],
-      message: "The combined shift costs are too large.",
-    });
-  }
-}
-
-const createShiftSchema = z
-  .object(shiftWriteShape)
-  .superRefine(validateSchedule);
-const updateShiftSchema = z
-  .object({
-    shiftId: z.string().uuid(),
-    ...shiftWriteShape,
-    status: z.enum(["scheduled", "cancelled"]).default("scheduled"),
-  })
-  .superRefine(validateSchedule);
+const createShiftSchema = z.object({
+  ...shiftDetailsShape,
+  shiftDates: shiftDatesSchema,
+});
+const updateShiftSchema = z.object({
+  shiftId: z.string().uuid(),
+  ...shiftDetailsShape,
+  shiftDate: shiftDateSchema,
+});
 const replaceAssignmentsSchema = z.object({
   shiftId: z.string().uuid(),
   assignments: assignmentsSchema,
@@ -157,7 +117,7 @@ export async function listAdminShiftsAction(input: unknown = {}) {
 export async function createAdminShiftAction(input: unknown) {
   try {
     const values = createShiftSchema.parse(input);
-    const result = await createAdminShift(values);
+    const result = await createAdminShifts(values);
     revalidateShiftSurfaces();
     return actionSuccess(result);
   } catch (error) {
@@ -169,6 +129,17 @@ export async function updateAdminShiftAction(input: unknown) {
   try {
     const { shiftId, ...values } = updateShiftSchema.parse(input);
     const result = await updateAdminShift(shiftId, values);
+    revalidateShiftSurfaces();
+    return actionSuccess(result);
+  } catch (error) {
+    return actionError(error);
+  }
+}
+
+export async function cancelAdminShiftAction(input: unknown) {
+  try {
+    const { shiftId } = shiftIdSchema.parse(input);
+    const result = await cancelAdminShift(shiftId);
     revalidateShiftSurfaces();
     return actionSuccess(result);
   } catch (error) {

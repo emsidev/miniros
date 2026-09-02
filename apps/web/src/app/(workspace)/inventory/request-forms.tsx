@@ -9,29 +9,39 @@ import { Alert, AlertDescription } from "@/components/ui/alert";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
+import { NumericExpressionInput } from "@/components/ui/numeric-expression-input";
 import { Textarea } from "@/components/ui/textarea";
+import {
+  normalizeNumericExpression,
+  numericExpressionToNumber,
+} from "@/lib/numeric-expression";
 import {
   submitCashDeductionAction,
   submitInventoryAdjustmentAction,
 } from "@/server/actions/operations";
 
 function pesosToCents(value: FormDataEntryValue | null) {
-  const amount = Number(String(value ?? ""));
+  const amount = numericExpressionToNumber(value);
   return Number.isFinite(amount) ? Math.round(amount * 100) : Number.NaN;
 }
 
 export function RequestForms({
   shiftId,
   items,
+  approvalsEnabled,
 }: {
   shiftId: string;
   items: readonly { inventoryItemId: string; name: string; unit: string }[];
+  approvalsEnabled: boolean;
 }) {
   const router = useRouter();
   const [isPending, startTransition] = useTransition();
   const [error, setError] = useState<string>();
   const [cashRequestId, setCashRequestId] = useState(() => crypto.randomUUID());
   const [adjustmentRequestId, setAdjustmentRequestId] = useState(() =>
+    crypto.randomUUID(),
+  );
+  const [adjustmentEventId, setAdjustmentEventId] = useState(() =>
     crypto.randomUUID(),
   );
 
@@ -51,7 +61,11 @@ export function RequestForms({
       if (!result.ok) return setError(result.error);
       formElement.reset();
       setCashRequestId(crypto.randomUUID());
-      toast.success("Cash deduction sent for admin approval.");
+      toast.success(
+        result.data.status === "approved"
+          ? "Cash deduction approved immediately."
+          : "Cash deduction sent for admin approval.",
+      );
       router.refresh();
     });
   }
@@ -64,15 +78,21 @@ export function RequestForms({
     startTransition(async () => {
       const result = await submitInventoryAdjustmentAction({
         adjustmentId: adjustmentRequestId,
+        inventoryEventId: adjustmentEventId,
         shiftId,
         inventoryItemId: String(form.get("inventoryItemId") ?? ""),
-        quantityDelta: String(form.get("quantityDelta") ?? ""),
+        quantityDelta: normalizeNumericExpression(form.get("quantityDelta"), 3),
         reason: String(form.get("adjustmentReason") ?? ""),
       });
       if (!result.ok) return setError(result.error);
       formElement.reset();
       setAdjustmentRequestId(crypto.randomUUID());
-      toast.success("Inventory adjustment sent for admin approval.");
+      setAdjustmentEventId(crypto.randomUUID());
+      toast.success(
+        result.data.status === "applied"
+          ? "Inventory adjustment applied immediately."
+          : "Inventory adjustment sent for admin approval.",
+      );
       router.refresh();
     });
   }
@@ -88,10 +108,13 @@ export function RequestForms({
       <div className="grid gap-4 lg:grid-cols-2">
         <form
           onSubmit={submitCash}
-          className="space-y-4 rounded-2xl border bg-card p-4"
+          className="space-y-4 rounded-xl border bg-card p-4"
         >
           <h2 className="flex items-center gap-2 font-extrabold">
-            <WalletCards aria-hidden="true" /> Request cash deduction
+            <WalletCards aria-hidden="true" />
+            {approvalsEnabled
+              ? "Request cash deduction"
+              : "Record cash deduction"}
           </h2>
           <div>
             <Label htmlFor="label">Label</Label>
@@ -106,10 +129,10 @@ export function RequestForms({
           </div>
           <div>
             <Label htmlFor="amount">Amount (₱)</Label>
-            <Input
+            <NumericExpressionInput
               id="amount"
               name="amount"
-              type="number"
+              precision={2}
               min="0.01"
               step="0.01"
               required
@@ -130,15 +153,18 @@ export function RequestForms({
             className="w-full rounded-xl"
             disabled={isPending}
           >
-            Submit cash request
+            {approvalsEnabled ? "Submit cash request" : "Record cash deduction"}
           </Button>
         </form>
         <form
           onSubmit={submitAdjustment}
-          className="space-y-4 rounded-2xl border bg-card p-4"
+          className="space-y-4 rounded-xl border bg-card p-4"
         >
           <h2 className="flex items-center gap-2 font-extrabold">
-            <Boxes aria-hidden="true" /> Request inventory adjustment
+            <Boxes aria-hidden="true" />
+            {approvalsEnabled
+              ? "Request inventory adjustment"
+              : "Record inventory adjustment"}
           </h2>
           <div>
             <Label htmlFor="inventoryItemId">Inventory item</Label>
@@ -159,10 +185,10 @@ export function RequestForms({
           </div>
           <div>
             <Label htmlFor="quantityDelta">Quantity change</Label>
-            <Input
+            <NumericExpressionInput
               id="quantityDelta"
               name="quantityDelta"
-              type="number"
+              precision={3}
               step="0.001"
               required
               disabled={isPending}
@@ -184,7 +210,7 @@ export function RequestForms({
             className="w-full rounded-xl"
             disabled={isPending || items.length === 0}
           >
-            Submit adjustment
+            {approvalsEnabled ? "Submit adjustment" : "Record adjustment"}
           </Button>
         </form>
       </div>

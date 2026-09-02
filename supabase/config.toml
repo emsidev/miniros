@@ -27,6 +27,10 @@ file_size_limit = "10MiB"
 [auth]
 enabled = true
 site_url = "http://localhost:3000"
-additional_redirect_urls = ["http://localhost:3000"]
+additional_redirect_urls = ["http://localhost:3000", "http://localhost:3000/auth/callback"]
 jwt_expiry = 3600
 enable_signup = true
+
+[auth.email]
+# Keep email links, including password-reset links, valid for one hour.
+otp_expiry = 3600

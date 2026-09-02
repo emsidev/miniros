@@ -1,0 +1,165 @@
+{
+  "schemaVersion": 2,
+  "generatedAt": "2026-09-02T00:00:00.000Z",
+  "title": "Design System: MINIROS",
+  "extensions": {
+    "colorMeta": {
+      "ink": {
+        "role": "primary",
+        "displayName": "Ledger Ink",
+        "canonical": "#111318",
+        "tonalRamp": [
+          "#111318",
+          "#272A32",
+          "#424650",
+          "#626772",
+          "#858A93",
+          "#AAADB3",
+          "#D0D1D4",
+          "#F5F5F5"
+        ]
+      },
+      "accent": {
+        "role": "primary",
+        "displayName": "Decision Chartreuse",
+        "canonical": "#D9FF35",
+        "tonalRamp": [
+          "#263000",
+          "#465800",
+          "#688000",
+          "#8EAA00",
+          "#B4D82A",
+          "#D9FF35",
+          "#E8FF8E",
+          "#F7FFD9"
+        ]
+      },
+      "canvas": {
+        "role": "neutral",
+        "displayName": "Daylight Canvas",
+        "canonical": "#F5F5F5",
+        "tonalRamp": [
+          "#181818",
+          "#303030",
+          "#4D4D4D",
+          "#6F6F6F",
+          "#969696",
+          "#BDBDBD",
+          "#DEDEDE",
+          "#F5F5F5"
+        ]
+      }
+    },
+    "typographyMeta": {
+      "display": {
+        "displayName": "Market Display",
+        "purpose": "Marketing headlines and decisive profitability statements."
+      },
+      "body": {
+        "displayName": "Product Body",
+        "purpose": "Product UI, copy, labels, and data."
+      }
+    },
+    "shadows": [
+      {
+        "name": "overlay",
+        "value": "0 4px 8px rgba(17, 19, 24, 0.12)",
+        "purpose": "Menus, popovers, dialogs, and toasts."
+      },
+      {
+        "name": "screenshot",
+        "value": "0 18px 40px rgba(17, 19, 24, 0.18)",
+        "purpose": "Real product screenshots on the public site."
+      }
+    ],
+    "motion": [
+      {
+        "name": "fast",
+        "value": "160ms",
+        "purpose": "Hover, focus, and pressed feedback."
+      },
+      {
+        "name": "standard",
+        "value": "220ms",
+        "purpose": "Overlays and state changes."
+      },
+      {
+        "name": "ease-out",
+        "value": "cubic-bezier(0.22, 1, 0.36, 1)",
+        "purpose": "Default state-transition easing."
+      }
+    ],
+    "breakpoints": [
+      { "name": "sm", "value": "640px" },
+      { "name": "md", "value": "768px" },
+      { "name": "lg", "value": "1024px" },
+      { "name": "xl", "value": "1280px" }
+    ]
+  },
+  "components": [
+    {
+      "name": "Primary Button on Light",
+      "kind": "button",
+      "refersTo": "button-primary-light",
+      "description": "The primary action on light product surfaces.",
+      "html": "<button class=\"ds-btn-primary\">Create shift</button>",
+      "css": ".ds-btn-primary{height:44px;padding:0 16px;border:0;border-radius:10px;background:#111318;color:#fff;font:600 14px Outfit,system-ui,sans-serif;transition:background 160ms cubic-bezier(.22,1,.36,1)}.ds-btn-primary:hover{background:#272A32}.ds-btn-primary:focus-visible{outline:2px solid #111318;outline-offset:3px}.ds-btn-primary:active{background:#000}"
+    },
+    {
+      "name": "Primary Button on Dark",
+      "kind": "button",
+      "refersTo": "button-primary-dark",
+      "description": "The primary action on a dark brand surface.",
+      "html": "<button class=\"ds-btn-accent\">See location profit</button>",
+      "css": ".ds-btn-accent{height:44px;padding:0 16px;border:0;border-radius:10px;background:#D9FF35;color:#111318;font:700 14px Outfit,system-ui,sans-serif;transition:background 160ms cubic-bezier(.22,1,.36,1)}.ds-btn-accent:hover{background:#C6EB2E}.ds-btn-accent:focus-visible{outline:2px solid #D9FF35;outline-offset:3px}.ds-btn-accent:active{background:#B4D82A}"
+    },
+    {
+      "name": "Text Input",
+      "kind": "input",
+      "refersTo": "input",
+      "description": "A labeled product field with visible focus.",
+      "html": "<label class=\"ds-field\">Location name<input class=\"ds-input\" placeholder=\"Weekend Bazaar\"></label>",
+      "css": ".ds-field{display:grid;gap:8px;color:#111318;font:600 14px Outfit,system-ui,sans-serif}.ds-input{height:44px;padding:0 12px;border:1px solid #D7D7D3;border-radius:10px;background:#fff;color:#111318;font:400 16px Outfit,system-ui,sans-serif}.ds-input::placeholder{color:#5D626C}.ds-input:focus-visible{outline:2px solid #111318;outline-offset:2px;border-color:#111318}"
+    },
+    {
+      "name": "Profit Verdict",
+      "kind": "custom",
+      "description": "The signature decision surface for location profitability.",
+      "html": "<section class=\"ds-verdict\"><div><span>Weekend Bazaar</span><strong>₱11,240 profit</strong></div><b>Worth renting again</b></section>",
+      "css": ".ds-verdict{display:flex;align-items:center;justify-content:space-between;gap:20px;padding:24px;border-radius:14px;background:#111318;color:#fff;font-family:Outfit,system-ui,sans-serif}.ds-verdict div{display:grid;gap:6px}.ds-verdict span{color:#C9CBD0;font-size:14px}.ds-verdict strong{font-size:24px}.ds-verdict b{padding:8px 12px;border-radius:999px;background:#D9FF35;color:#111318;font-size:13px}"
+    }
+  ],
+  "narrative": {
+    "northStar": "The Profit Ledger",
+    "overview": "A grounded, decisive, number-literate operating system for sellers working in bright, fast-moving retail environments.",
+    "keyCharacteristics": [
+      "decisive contrast",
+      "structured information",
+      "touch-first controls",
+      "flat surfaces",
+      "real screenshots",
+      "rare chartreuse emphasis"
+    ],
+    "rules": [
+      {
+        "name": "The Ten Percent Rule",
+        "body": "Chartreuse occupies no more than roughly ten percent of a product screen.",
+        "section": "colors"
+      },
+      {
+        "name": "The Flat-at-Rest Rule",
+        "body": "Content surfaces are flat at rest; hover changes border or tone, not elevation.",
+        "section": "elevation"
+      }
+    ],
+    "dos": [
+      "Use lists, tables, and definition groups for operational records.",
+      "Show real product screenshots on marketing surfaces."
+    ],
+    "donts": [
+      "Do not use warm paper-like canvases.",
+      "Do not repeat tiny uppercase tracked section eyebrows.",
+      "Do not use nested cards or border-plus-wide-shadow ghost cards."
+    ]
+  }
+}

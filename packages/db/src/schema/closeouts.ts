@@ -112,6 +112,9 @@ export const shiftProfitSummaries = pgTable(
     nonCashSalesCents: bigint("non_cash_sales_cents", { mode: "number" })
       .default(0)
       .notNull(),
+    productCostCents: bigint("product_cost_cents", { mode: "number" })
+      .default(0)
+      .notNull(),
     salaryCostCents: bigint("salary_cost_cents", { mode: "number" })
       .default(0)
       .notNull(),

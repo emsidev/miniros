@@ -1,5 +1,10 @@
 import { requireDatabase } from "@miniros/db";
 import {
+  isBusinessFeatureEnabled,
+  type BusinessFeatureKey,
+  type BusinessFeatureFlags,
+} from "@miniros/domain";
+import {
   businessMembers,
   businesses,
   employees,
@@ -11,14 +16,15 @@ import { and, eq, inArray, isNull } from "drizzle-orm";
 import { cookies } from "next/headers";
 import { cache } from "react";
 import { createClient } from "@/lib/supabase/server";
+import { AccessError } from "./access-error";
 
 export const ACTIVE_BUSINESS_COOKIE = "miniros-active-business";
+export { AccessError } from "./access-error";
 
-export class AccessError extends Error {
-  constructor(message: string) {
-    super(message);
-    this.name = "AccessError";
-  }
+export function isProductionOnlyEmployee(
+  employee: { canUsePos: boolean; canLogProduction: boolean } | null,
+) {
+  return Boolean(employee?.canLogProduction && !employee.canUsePos);
 }
 
 export const requireUser = cache(async (): Promise<User> => {
@@ -34,8 +40,16 @@ export const requireUser = cache(async (): Promise<User> => {
 
 type AccessOptions = {
   admin?: boolean;
+  feature?: BusinessFeatureKey;
   employeePermission?: "pos" | "production";
   assignedShiftId?: string;
+};
+
+const featureLabels: Record<BusinessFeatureKey, string> = {
+  recipes: "Recipe",
+  production: "Production",
+  approvals: "Approvals",
+  promos: "Promos",
 };
 
 const getActiveBusinessAccess = cache(async () => {
@@ -54,6 +68,10 @@ const getActiveBusinessAccess = cache(async () => {
       role: businessMembers.role,
       businessId: businesses.id,
       businessName: businesses.name,
+      recipesEnabled: businesses.recipesEnabled,
+      productionEnabled: businesses.productionEnabled,
+      approvalsEnabled: businesses.approvalsEnabled,
+      promosEnabled: businesses.promosEnabled,
     })
     .from(businessMembers)
     .innerJoin(businesses, eq(businessMembers.businessId, businesses.id))
@@ -95,6 +113,12 @@ const getActiveBusinessAccess = cache(async () => {
     business: {
       id: membership.businessId,
       name: membership.businessName,
+      features: {
+        recipesEnabled: membership.recipesEnabled,
+        productionEnabled: membership.productionEnabled,
+        approvalsEnabled: membership.approvalsEnabled,
+        promosEnabled: membership.promosEnabled,
+      } satisfies BusinessFeatureFlags,
     },
     membership: {
       id: membership.memberId,
@@ -113,6 +137,15 @@ export async function requireActiveBusiness(options: AccessOptions = {}) {
     context.membership.role !== "admin"
   ) {
     throw new AccessError("Owner or admin access is required.");
+  }
+
+  if (
+    options.feature &&
+    !isBusinessFeatureEnabled(context.business.features, options.feature)
+  ) {
+    throw new AccessError(
+      `${featureLabels[options.feature]} is disabled for this business.`,
+    );
   }
 
   if (options.employeePermission === "pos" && !context.employee?.canUsePos) {

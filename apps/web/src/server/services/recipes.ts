@@ -1,5 +1,6 @@
 import { randomUUID } from "node:crypto";
 import { requireDatabase } from "@miniros/db";
+import { assertNonNegativeCents } from "@miniros/domain";
 import {
   auditLogs,
   inventoryItems,
@@ -8,6 +9,12 @@ import {
 } from "@miniros/db/schema";
 import { and, asc, eq, inArray, isNull, ne } from "drizzle-orm";
 import { AccessError, requireActiveBusiness } from "./access";
+import {
+  buildProductCostBreakdown,
+  loadIngredientCostSummaries,
+  loadProductCostBreakdowns,
+  recalculateProductCosts,
+} from "./product-costing";
 
 export type RecipeLineInput = {
   inventoryItemId: string;
@@ -16,6 +23,10 @@ export type RecipeLineInput = {
 };
 
 const QUANTITY_PATTERN = /^(?:0|[1-9]\d{0,10})(?:\.\d{1,3})?$/;
+
+type DatabaseTransaction = Parameters<
+  Parameters<ReturnType<typeof requireDatabase>["transaction"]>[0]
+>[0];
 
 function assertRecipeLines(lines: RecipeLineInput[]) {
   const itemIds = new Set<string>();
@@ -34,7 +45,7 @@ function assertRecipeLines(lines: RecipeLineInput[]) {
 }
 
 async function findScopedProduct(
-  database: ReturnType<typeof requireDatabase>,
+  database: DatabaseTransaction,
   businessId: string,
   productId: string,
 ) {
@@ -43,6 +54,11 @@ async function findScopedProduct(
       id: products.id,
       name: products.name,
       requiresRecipeDeduction: products.requiresRecipeDeduction,
+      costCents: products.costCents,
+      manualCostCents: products.manualCostCents,
+      laborCostCents: products.laborCostCents,
+      overheadCostCents: products.overheadCostCents,
+      costOverrideCents: products.costOverrideCents,
     })
     .from(products)
     .where(
@@ -62,59 +78,89 @@ async function findScopedProduct(
 }
 
 export async function listRecipe(productId: string) {
-  const { business } = await requireActiveBusiness({ admin: true });
+  const { business } = await requireActiveBusiness({
+    admin: true,
+    feature: "recipes",
+  });
   const database = requireDatabase();
-  const product = await findScopedProduct(database, business.id, productId);
-  const rows = await database
-    .select({
-      id: productRecipeItems.id,
-      inventoryItemId: productRecipeItems.inventoryItemId,
-      inventoryItemName: inventoryItems.name,
-      quantity: productRecipeItems.quantity,
-      unit: productRecipeItems.unit,
-      createdAt: productRecipeItems.createdAt,
-      updatedAt: productRecipeItems.updatedAt,
-    })
-    .from(productRecipeItems)
-    .innerJoin(
-      inventoryItems,
-      and(
-        eq(productRecipeItems.inventoryItemId, inventoryItems.id),
-        eq(inventoryItems.businessId, business.id),
-        isNull(inventoryItems.deletedAt),
-        ne(inventoryItems.status, "deleted"),
-      ),
-    )
-    .where(
-      and(
-        eq(productRecipeItems.businessId, business.id),
-        eq(productRecipeItems.productId, productId),
-        isNull(productRecipeItems.deletedAt),
-      ),
-    )
-    .orderBy(asc(inventoryItems.name));
+  return database.transaction(async (tx) => {
+    const product = await findScopedProduct(tx, business.id, productId);
+    const rows = await tx
+      .select({
+        id: productRecipeItems.id,
+        inventoryItemId: productRecipeItems.inventoryItemId,
+        inventoryItemName: inventoryItems.name,
+        quantity: productRecipeItems.quantity,
+        unit: productRecipeItems.unit,
+        unitCostCents: inventoryItems.defaultUnitCostCents,
+        createdAt: productRecipeItems.createdAt,
+        updatedAt: productRecipeItems.updatedAt,
+      })
+      .from(productRecipeItems)
+      .innerJoin(
+        inventoryItems,
+        and(
+          eq(productRecipeItems.inventoryItemId, inventoryItems.id),
+          eq(inventoryItems.businessId, business.id),
+          isNull(inventoryItems.deletedAt),
+          ne(inventoryItems.status, "deleted"),
+        ),
+      )
+      .where(
+        and(
+          eq(productRecipeItems.businessId, business.id),
+          eq(productRecipeItems.productId, productId),
+          isNull(productRecipeItems.deletedAt),
+        ),
+      )
+      .orderBy(asc(inventoryItems.name));
+    const summaries = await loadIngredientCostSummaries(tx, business.id, [
+      productId,
+    ]);
 
-  return {
-    product,
-    lines: rows.map((row) => ({
-      ...row,
-      createdAt: row.createdAt.toISOString(),
-      updatedAt: row.updatedAt.toISOString(),
-    })),
-  };
+    return {
+      product: {
+        ...product,
+        ...buildProductCostBreakdown(
+          product,
+          summaries.get(productId),
+          business.features.recipesEnabled,
+        ),
+      },
+      lines: rows.map((row) => ({
+        ...row,
+        createdAt: row.createdAt.toISOString(),
+        updatedAt: row.updatedAt.toISOString(),
+      })),
+    };
+  });
 }
 
 export async function replaceRecipe(
   productId: string,
   lines: RecipeLineInput[],
+  costs: { laborCostCents: number; overheadCostCents: number },
 ) {
-  const access = await requireActiveBusiness({ admin: true });
+  const access = await requireActiveBusiness({
+    admin: true,
+    feature: "recipes",
+  });
   const database = requireDatabase();
   assertRecipeLines(lines);
+  assertNonNegativeCents(costs.laborCostCents, "laborCostCents");
+  assertNonNegativeCents(costs.overheadCostCents, "overheadCostCents");
 
   return database.transaction(async (tx) => {
     const [product] = await tx
-      .select({ id: products.id, name: products.name })
+      .select({
+        id: products.id,
+        name: products.name,
+        costCents: products.costCents,
+        manualCostCents: products.manualCostCents,
+        laborCostCents: products.laborCostCents,
+        overheadCostCents: products.overheadCostCents,
+        costOverrideCents: products.costOverrideCents,
+      })
       .from(products)
       .where(
         and(
@@ -129,6 +175,11 @@ export async function replaceRecipe(
     if (!product) {
       throw new AccessError("Product not found.");
     }
+    const previousBreakdowns = await loadProductCostBreakdowns(tx, {
+      businessId: access.business.id,
+      recipesEnabled: access.business.features.recipesEnabled,
+      productIds: [productId],
+    });
 
     const requestedIds = lines.map((line) => line.inventoryItemId);
     const scopedItems = requestedIds.length
@@ -233,6 +284,8 @@ export async function replaceRecipe(
       .update(products)
       .set({
         requiresRecipeDeduction: lines.length > 0,
+        laborCostCents: costs.laborCostCents,
+        overheadCostCents: costs.overheadCostCents,
         updatedAt: now,
       })
       .where(
@@ -241,6 +294,16 @@ export async function replaceRecipe(
           eq(products.businessId, access.business.id),
         ),
       );
+
+    const [costRecalculation] = await recalculateProductCosts(tx, {
+      businessId: access.business.id,
+      recipesEnabled: access.business.features.recipesEnabled,
+      productIds: [productId],
+      trigger: "recipe_saved",
+      actorUserId: access.user.id,
+      actorEmployeeId: access.employee?.id ?? null,
+      previousBreakdowns,
+    });
 
     await tx.insert(auditLogs).values({
       id: randomUUID(),
@@ -254,6 +317,10 @@ export async function replaceRecipe(
         productName: product.name,
         lineCount: lines.length,
         inventoryItemIds: requestedIds,
+        laborCostCents: costs.laborCostCents,
+        overheadCostCents: costs.overheadCostCents,
+        costBefore: costRecalculation?.before ?? null,
+        costAfter: costRecalculation?.after ?? null,
       },
     });
 
@@ -264,6 +331,7 @@ export async function replaceRecipe(
         inventoryItemName: inventoryItems.name,
         quantity: productRecipeItems.quantity,
         unit: productRecipeItems.unit,
+        unitCostCents: inventoryItems.defaultUnitCostCents,
         createdAt: productRecipeItems.createdAt,
         updatedAt: productRecipeItems.updatedAt,
       })
@@ -284,11 +352,29 @@ export async function replaceRecipe(
       )
       .orderBy(asc(inventoryItems.name));
 
+    const summaries = await loadIngredientCostSummaries(
+      tx,
+      access.business.id,
+      [productId],
+    );
+    const refreshedProduct = {
+      ...product,
+      costCents:
+        costRecalculation?.after.effectiveCostCents ?? product.costCents,
+      laborCostCents: costs.laborCostCents,
+      overheadCostCents: costs.overheadCostCents,
+      costOverrideCents: null,
+    };
+
     return {
       product: {
-        id: product.id,
-        name: product.name,
+        ...refreshedProduct,
         requiresRecipeDeduction: lines.length > 0,
+        ...buildProductCostBreakdown(
+          refreshedProduct,
+          summaries.get(productId),
+          access.business.features.recipesEnabled,
+        ),
       },
       lines: savedLines.map((line) => ({
         ...line,

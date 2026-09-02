@@ -4,7 +4,7 @@
   "description": "Track profit, not just sales. Know if your booth is worth renting again.",
   "start_url": "/",
   "display": "standalone",
-  "background_color": "#f6f5f0",
+  "background_color": "#F5F5F5",
   "theme_color": "#111318",
   "icons": [
     {

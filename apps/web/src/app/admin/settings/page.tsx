@@ -6,6 +6,7 @@ import {
 import { formatDateTime } from "@/lib/format";
 import { getBusinessSettings } from "@/server/services/businesses";
 import { BusinessSettingsForm } from "../_components/business-settings-form";
+import { BusinessFeaturesForm } from "../_components/business-features-form";
 
 export const dynamic = "force-dynamic";
 
@@ -45,6 +46,20 @@ export default async function AdminSettingsPage() {
           </p>
         </DataCard>
       </div>
+      <DataCard>
+        <SectionHeader
+          title="Feature enablement"
+          description="Choose which operational tools are available in this business."
+        />
+        <BusinessFeaturesForm
+          features={{
+            recipesEnabled: settings.recipesEnabled,
+            productionEnabled: settings.productionEnabled,
+            approvalsEnabled: settings.approvalsEnabled,
+            promosEnabled: settings.promosEnabled,
+          }}
+        />
+      </DataCard>
     </div>
   );
 }

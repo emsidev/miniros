@@ -1,12 +1,14 @@
 "use server";
 
 import { actionSuccess } from "@miniros/contracts";
+import { validateBusinessFeatureFlags } from "@miniros/domain";
 import { revalidatePath } from "next/cache";
 import { z } from "zod";
 import { actionError } from "./helpers";
 import {
   createBusiness,
   switchActiveBusiness,
+  updateBusinessFeatures,
   updateBusinessSettings,
 } from "../services/businesses";
 
@@ -18,6 +20,26 @@ const businessIdSchema = z.string().uuid();
 const businessSettingsSchema = z.object({
   name: z.string().trim().min(2).max(100),
 });
+const businessFeaturesSchema = z
+  .object({
+    recipesEnabled: z.boolean(),
+    productionEnabled: z.boolean(),
+    approvalsEnabled: z.boolean(),
+    promosEnabled: z.boolean(),
+  })
+  .strict()
+  .superRefine((values, context) => {
+    try {
+      validateBusinessFeatureFlags(values);
+    } catch (error) {
+      context.addIssue({
+        code: z.ZodIssueCode.custom,
+        path: ["productionEnabled"],
+        message:
+          error instanceof Error ? error.message : "Invalid feature settings.",
+      });
+    }
+  });
 
 export async function createBusinessAction(input: unknown) {
   try {
@@ -47,6 +69,30 @@ export async function updateBusinessSettingsAction(input: unknown) {
     const result = await updateBusinessSettings(values);
     revalidatePath("/admin", "layout");
     revalidatePath("/businesses");
+    return actionSuccess(result);
+  } catch (error) {
+    return actionError(error);
+  }
+}
+
+export async function updateBusinessFeaturesAction(input: unknown) {
+  try {
+    const values = businessFeaturesSchema.parse(input);
+    const result = await updateBusinessFeatures(values);
+    revalidatePath("/", "layout");
+    revalidatePath("/admin", "layout");
+    [
+      "/admin/settings",
+      "/admin/approvals",
+      "/admin/promos",
+      "/admin/production",
+      "/admin/inventory",
+      "/admin/inventory/recipes",
+      "/admin/products",
+      "/production",
+      "/pos",
+      "/inventory",
+    ].forEach((path) => revalidatePath(path));
     return actionSuccess(result);
   } catch (error) {
     return actionError(error);

@@ -1,6 +1,7 @@
 import type { Metadata, Viewport } from "next";
 import { Outfit } from "next/font/google";
 import { Toaster } from "@/components/ui/sonner";
+import "@miniros/ui/tokens.css";
 import "./globals.css";
 
 const outfit = Outfit({ subsets: ["latin"], display: "swap" });
