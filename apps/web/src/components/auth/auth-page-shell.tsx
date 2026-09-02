@@ -1,5 +1,6 @@
 import Link from "next/link";
 import { BrandMark } from "@/components/shared/brand-mark";
+import { LegalLinks } from "@/components/shared/legal-links";
 
 export function AuthPageShell({
   children,
@@ -40,6 +41,7 @@ export function AuthPageShell({
             MINIROS
           </Link>
           {children}
+          <LegalLinks className="mt-8 flex justify-center gap-4 text-xs text-muted-foreground" />
         </div>
       </section>
     </main>

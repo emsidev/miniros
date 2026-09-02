@@ -123,6 +123,18 @@ export function AuthForm({ mode }: { mode: AuthMode }) {
         Continue with Google
       </Button>
 
+      <p className="-mt-2 text-center text-xs leading-relaxed text-muted-foreground">
+        Google sign-in shares your name, email address, and profile image with
+        MINIROS to create or access your account. See our{" "}
+        <Link
+          href="/privacy"
+          className="font-semibold text-foreground underline-offset-4 hover:underline"
+        >
+          Privacy Policy
+        </Link>
+        .
+      </p>
+
       <div className="relative flex items-center" aria-hidden="true">
         <div className="h-px flex-1 bg-border" />
         <span className="px-3 text-xs font-medium text-muted-foreground">

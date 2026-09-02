@@ -3,6 +3,7 @@ import { redirect } from "next/navigation";
 import { ArrowRight, Boxes, CircleDollarSign, WalletCards } from "lucide-react";
 
 import { BrandMark } from "@/components/shared/brand-mark";
+import { LegalLinks } from "@/components/shared/legal-links";
 import { Button } from "@/components/ui/button";
 import { createClient } from "@/lib/supabase/server";
 
@@ -112,6 +113,13 @@ export default async function HomePage() {
           </div>
         </aside>
       </section>
+
+      <footer className="border-t">
+        <div className="mx-auto flex max-w-6xl flex-col gap-3 px-4 py-6 text-sm text-muted-foreground sm:flex-row sm:items-center sm:justify-between sm:px-6">
+          <p>© 2026 MINIROS. Retail operations for mobile selling teams.</p>
+          <LegalLinks className="flex items-center gap-4" />
+        </div>
+      </footer>
     </main>
   );
 }
