@@ -7,6 +7,12 @@
     },
     "build": {
       "dependsOn": ["^build"],
+      "env": [
+        "DATABASE_URL",
+        "SUPABASE_PROJECT_ID",
+        "SUPABASE_SECRET_KEY",
+        "SUPABASE_SERVICE_ROLE_KEY"
+      ],
       "outputs": ["dist/**", ".next/**", ".astro/**", "coverage/**"]
     },
     "lint": {
