@@ -1,3 +1,4 @@
+import type { PreparedOperationContext } from "./offline-context";
 import { randomUUID } from "node:crypto";
 
 import {
@@ -26,6 +27,7 @@ export async function setInventoryCounts(
     countType: "opening" | "closing";
     employeeId: string;
     notes?: string | null;
+    prepared?: PreparedOperationContext;
     counts: readonly {
       inventoryItemId: string;
       quantity: number | string;
@@ -36,6 +38,7 @@ export async function setInventoryCounts(
     tx,
     input.businessId,
     input.counts.map((count) => count.inventoryItemId),
+    input.prepared,
   );
   const itemIds = [...itemById.keys()].sort();
   const previousBalances = await tx
@@ -61,7 +64,7 @@ export async function setInventoryCounts(
       databaseQuantity(count.quantity),
     ]),
   );
-  const now = new Date();
+  const now = input.prepared?.occurredAt ?? new Date();
   for (const quantity of countsByItem.values()) {
     if (normalizeQuantity(quantity) < 0) {
       throw new AccessError("Inventory counts must not be negative.");
@@ -80,6 +83,7 @@ export async function setInventoryCounts(
     notes: input.notes,
     createdBy: input.employeeId,
     clientGeneratedId: input.eventId,
+    createdAt: now,
   });
 
   const countRows = [];

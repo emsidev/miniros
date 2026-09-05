@@ -37,10 +37,13 @@ export function CreateBusinessDialog() {
             Create a business
           </DialogTitle>
           <DialogDescription>
-            You will become the owner and this workspace will become active.
+            You’ll become the owner and this workspace will become active.
           </DialogDescription>
         </DialogHeader>
-        <CreateBusinessForm onSuccess={handleSuccess} />
+        <CreateBusinessForm
+          onCancel={() => setOpen(false)}
+          onSuccess={handleSuccess}
+        />
       </DialogContent>
     </Dialog>
   );

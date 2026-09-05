@@ -1,3 +1,4 @@
+import type { PreparedOperationContext } from "./offline-context";
 import { randomUUID } from "node:crypto";
 
 import {
@@ -26,6 +27,7 @@ export async function loadOperationalInventoryItems(
   tx: OperationalTransaction,
   businessId: string,
   requestedIds: readonly string[],
+  prepared?: PreparedOperationContext,
 ) {
   const uniqueIds = [...new Set(requestedIds)].sort();
   if (uniqueIds.length !== requestedIds.length) {
@@ -35,21 +37,23 @@ export async function loadOperationalInventoryItems(
     throw new AccessError("At least one inventory item is required.");
   }
 
-  const rows = await tx
-    .select({
-      id: inventoryItems.id,
-      unit: inventoryItems.unit,
-      defaultUnitCostCents: inventoryItems.defaultUnitCostCents,
-    })
-    .from(inventoryItems)
-    .where(
-      and(
-        eq(inventoryItems.businessId, businessId),
-        inArray(inventoryItems.id, uniqueIds),
-        eq(inventoryItems.status, "active"),
-        isNull(inventoryItems.deletedAt),
-      ),
-    );
+  const rows = prepared
+    ? prepared.snapshot.inventory.filter((item) => uniqueIds.includes(item.id))
+    : await tx
+        .select({
+          id: inventoryItems.id,
+          unit: inventoryItems.unit,
+          defaultUnitCostCents: inventoryItems.defaultUnitCostCents,
+        })
+        .from(inventoryItems)
+        .where(
+          and(
+            eq(inventoryItems.businessId, businessId),
+            inArray(inventoryItems.id, uniqueIds),
+            eq(inventoryItems.status, "active"),
+            isNull(inventoryItems.deletedAt),
+          ),
+        );
 
   if (rows.length !== uniqueIds.length) {
     throw new AccessError("One or more inventory items are unavailable.");
@@ -77,14 +81,16 @@ export async function applyInventoryDeltas(
     employeeId: string | null;
     notes?: string | null;
     lines: readonly InventoryDelta[];
+    prepared?: PreparedOperationContext;
   },
 ) {
   const itemById = await loadOperationalInventoryItems(
     tx,
     input.businessId,
     input.lines.map((line) => line.inventoryItemId),
+    input.prepared,
   );
-  const now = new Date();
+  const now = input.prepared?.occurredAt ?? new Date();
 
   await tx.insert(inventoryEvents).values({
     id: input.eventId,
@@ -97,6 +103,7 @@ export async function applyInventoryDeltas(
     notes: input.notes,
     createdBy: input.employeeId,
     clientGeneratedId: input.eventId,
+    createdAt: now,
   });
 
   const eventLines = [];

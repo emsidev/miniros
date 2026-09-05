@@ -19,14 +19,17 @@ const adminLabels: Record<string, string> = {
   production: "Production",
   locations: "Locations",
   shifts: "Shifts",
+  new: "Plan shifts",
+  edit: "Edit shift",
   approvals: "Approvals",
   reports: "Reports",
   settings: "Settings",
+  devices: "Devices",
 };
 
 const workspaceLabels: Record<string, string> = {
   shifts: "My shifts",
-  schedule: "My schedule",
+  schedule: "Schedule",
   pos: "Point of sale",
   production: "Production",
   inventory: "Inventory",

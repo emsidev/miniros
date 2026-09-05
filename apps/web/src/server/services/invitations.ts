@@ -6,7 +6,10 @@ import { and, eq, isNull, sql } from "drizzle-orm";
 
 export async function claimMembershipInvitations(user: User) {
   const email = user.email?.trim().toLowerCase();
-  if (!email) return [];
+  // A sign-up response can contain a user before they prove email ownership.
+  // Keep this guard here so registration, login, callbacks and workspace reads
+  // all enforce the same invitation boundary.
+  if (!email || !user.email_confirmed_at) return [];
 
   const database = requireDatabase();
   return database.transaction(async (tx) => {

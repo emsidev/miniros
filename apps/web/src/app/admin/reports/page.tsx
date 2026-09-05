@@ -1,17 +1,20 @@
+import { AdminTable } from "@/components/shared/admin-table";
+import {
+  TableBody,
+  TableCell,
+  TableHead,
+  TableHeader,
+  TableRow,
+} from "@/components/ui/table";
 import Link from "next/link";
-import { ArrowRight, MapPin } from "lucide-react";
+import { ArrowRight } from "lucide-react";
 
 import {
   EmptyState,
   LocationProfitBadge,
   ProfitBadge,
 } from "@/components/shared/feedback";
-import {
-  DataCard,
-  MetricCard,
-  PageHeader,
-  SectionHeader,
-} from "@/components/shared/layout";
+import { PageHeader, SectionHeader } from "@/components/shared/layout";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -106,75 +109,125 @@ export default async function ReportsPage({
           title="Sales snapshot"
           description="Completed sales for the selected date range."
         />
-        <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-4">
-          <MetricCard label="Completed sales" value={salesReport.saleCount} />
-          <MetricCard
-            label="Gross sales"
-            value={formatMoney(salesReport.grossSalesCents)}
-          />
-          <MetricCard
-            label="Discounts"
-            value={formatMoney(salesReport.totalDiscountsCents)}
-          />
-          <MetricCard
-            label="Net sales"
-            value={formatMoney(salesReport.netSalesCents)}
-            emphasis
-          />
-        </div>
+        <AdminTable label="Sales snapshot">
+          <TableHeader>
+            <TableRow>
+              <TableHead scope="col" className="text-right">
+                Completed sales
+              </TableHead>
+              <TableHead scope="col" className="text-right">
+                Gross sales
+              </TableHead>
+              <TableHead scope="col" className="text-right">
+                Discounts
+              </TableHead>
+              <TableHead scope="col" className="text-right">
+                Net sales
+              </TableHead>
+            </TableRow>
+          </TableHeader>
+          <TableBody>
+            <TableRow>
+              <TableCell className="text-right">
+                {salesReport.saleCount}
+              </TableCell>
+              <TableCell className="text-right">
+                {formatMoney(salesReport.grossSalesCents)}
+              </TableCell>
+              <TableCell className="text-right">
+                {formatMoney(salesReport.totalDiscountsCents)}
+              </TableCell>
+              <TableCell className="text-right font-semibold">
+                {formatMoney(salesReport.netSalesCents)}
+              </TableCell>
+            </TableRow>
+          </TableBody>
+        </AdminTable>
         <div className="grid gap-5 lg:grid-cols-2">
-          <DataCard>
+          <section className="min-w-0">
             <SectionHeader title="Payment mix" />
-            {salesReport.payments.length === 0 ? (
-              <p className="text-sm text-muted-foreground">
-                No payments in this range.
-              </p>
-            ) : (
-              <div className="space-y-3">
-                {salesReport.payments.map((payment) => (
-                  <div
-                    key={payment.paymentMethod}
-                    className="flex items-center justify-between gap-3 text-sm"
-                  >
-                    <div>
-                      <p className="font-semibold">
+            <AdminTable label="Payment mix">
+              <TableHeader>
+                <TableRow>
+                  <TableHead scope="col">Method</TableHead>
+                  <TableHead scope="col" className="text-right">
+                    Payments
+                  </TableHead>
+                  <TableHead scope="col" className="text-right">
+                    Amount
+                  </TableHead>
+                </TableRow>
+              </TableHeader>
+              <TableBody>
+                {salesReport.payments.length === 0 ? (
+                  <TableRow>
+                    <TableCell
+                      colSpan={3}
+                      className="whitespace-normal text-muted-foreground"
+                    >
+                      No payments in this range.
+                    </TableCell>
+                  </TableRow>
+                ) : (
+                  salesReport.payments.map((payment) => (
+                    <TableRow key={payment.paymentMethod}>
+                      <TableCell className="font-semibold">
                         {formatPaymentMethod(payment.paymentMethod)}
-                      </p>
-                      <p className="text-xs text-muted-foreground">
-                        {payment.count} payment{payment.count === 1 ? "" : "s"}
-                      </p>
-                    </div>
-                    <strong>{formatMoney(payment.amountCents)}</strong>
-                  </div>
-                ))}
-              </div>
-            )}
-          </DataCard>
-          <DataCard>
+                      </TableCell>
+                      <TableCell className="text-right">
+                        {payment.count}
+                      </TableCell>
+                      <TableCell className="text-right font-semibold">
+                        {formatMoney(payment.amountCents)}
+                      </TableCell>
+                    </TableRow>
+                  ))
+                )}
+              </TableBody>
+            </AdminTable>
+          </section>
+          <section className="min-w-0">
             <SectionHeader title="Product sales" />
-            {salesReport.products.length === 0 ? (
-              <p className="text-sm text-muted-foreground">
-                No products sold in this range.
-              </p>
-            ) : (
-              <div className="space-y-3">
-                {salesReport.products.slice(0, 8).map((product) => (
-                  <div
-                    key={product.productName}
-                    className="flex items-center justify-between gap-3 text-sm"
-                  >
-                    <div>
-                      <p className="font-semibold">{product.productName}</p>
-                      <p className="text-xs text-muted-foreground">
-                        {formatQuantity(product.quantity)} sold
-                      </p>
-                    </div>
-                    <strong>{formatMoney(product.revenueCents)}</strong>
-                  </div>
-                ))}
-              </div>
-            )}
-          </DataCard>
+            <AdminTable label="Product sales">
+              <TableHeader>
+                <TableRow>
+                  <TableHead scope="col">Product</TableHead>
+                  <TableHead scope="col" className="text-right">
+                    Quantity sold
+                  </TableHead>
+                  <TableHead scope="col" className="text-right">
+                    Revenue
+                  </TableHead>
+                </TableRow>
+              </TableHeader>
+              <TableBody>
+                {salesReport.products.length === 0 ? (
+                  <TableRow>
+                    <TableCell
+                      colSpan={3}
+                      className="whitespace-normal text-muted-foreground"
+                    >
+                      No products sold in this range.
+                    </TableCell>
+                  </TableRow>
+                ) : (
+                  salesReport.products.slice(0, 8).map((product) => (
+                    <TableRow key={product.productName}>
+                      <TableCell className="min-w-36 max-w-64 whitespace-normal break-words font-semibold">
+                        {product.productName}
+                      </TableCell>
+                      <TableCell className="text-right">
+                        {formatQuantity(product.quantity)}
+                      </TableCell>
+                      <TableCell className="text-right font-semibold">
+                        {formatMoney(product.revenueCents)}
+                      </TableCell>
+                    </TableRow>
+                  ))
+                )}
+              </TableBody>
+            </AdminTable>
+          </section>
         </div>
       </section>
 
@@ -189,87 +242,111 @@ export default async function ReportsPage({
           }
         />
       ) : (
-        <div className="space-y-5">
-          {locations.map((location) => (
-            <DataCard key={location.locationId} className="space-y-5">
-              <div className="flex flex-col justify-between gap-3 sm:flex-row sm:items-start">
-                <div>
-                  <p className="flex items-center gap-1.5 text-sm text-muted-foreground">
-                    <MapPin className="size-4" aria-hidden="true" /> Location
-                  </p>
-                  <h2 className="mt-1 text-xl font-extrabold">
+        <section>
+          <SectionHeader title="Location profitability" />
+          <AdminTable label="Location profitability">
+            <TableHeader>
+              <TableRow>
+                <TableHead scope="col">Location</TableHead>
+                <TableHead scope="col" className="text-right">
+                  Closed shifts
+                </TableHead>
+                <TableHead scope="col" className="text-right">
+                  Gross sales
+                </TableHead>
+                <TableHead scope="col" className="text-right">
+                  Total costs
+                </TableHead>
+                <TableHead scope="col" className="text-right">
+                  Net profit / loss
+                </TableHead>
+                <TableHead scope="col" className="text-right">
+                  Average per shift
+                </TableHead>
+                <TableHead scope="col">Rent again?</TableHead>
+                <TableHead scope="col">Profit/loss trend</TableHead>
+                <TableHead scope="col" className="text-right">
+                  Best shift
+                </TableHead>
+                <TableHead scope="col" className="text-right">
+                  Worst shift
+                </TableHead>
+              </TableRow>
+            </TableHeader>
+            <TableBody>
+              {locations.map((location) => (
+                <TableRow key={location.locationId}>
+                  <TableCell className="min-w-44 max-w-64 whitespace-normal break-words font-semibold">
                     {location.locationName}
-                  </h2>
-                </div>
-                <LocationProfitBadge recommendation={location.recommendation} />
-              </div>
-
-              <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-4">
-                <MetricCard
-                  label="Closed shifts"
-                  value={location.totalShifts}
-                />
-                <MetricCard
-                  label="Gross sales"
-                  value={formatMoney(location.grossSalesCents)}
-                />
-                <MetricCard
-                  label="Total costs"
-                  value={formatMoney(location.totalCostsCents)}
-                />
-                <MetricCard
-                  label="Net profit / loss"
-                  value={formatMoney(location.netProfitCents)}
-                  emphasis
-                />
-              </div>
-
-              <div className="grid gap-5 lg:grid-cols-[1fr_240px]">
-                <div>
-                  <p className="mb-2 text-sm font-semibold">
-                    Profit/loss trend
-                  </p>
-                  <Trend
-                    profits={location.trend.map((point) => point.profitCents)}
-                  />
-                  <p className="mt-2 text-xs capitalize text-muted-foreground">
-                    {location.trendDirection.replaceAll("_", " ")} · Average{" "}
-                    {formatMoney(location.averageProfitPerShiftCents)} per shift
-                  </p>
-                </div>
-                <div className="space-y-3 text-sm">
-                  <div>
-                    <p className="text-muted-foreground">Best shift</p>
+                  </TableCell>
+                  <TableCell className="text-right">
+                    {location.totalShifts}
+                  </TableCell>
+                  <TableCell className="text-right">
+                    {formatMoney(location.grossSalesCents)}
+                  </TableCell>
+                  <TableCell className="text-right">
+                    {formatMoney(location.totalCostsCents)}
+                  </TableCell>
+                  <TableCell className="text-right font-semibold">
+                    {formatMoney(location.netProfitCents)}
+                  </TableCell>
+                  <TableCell className="text-right">
+                    {formatMoney(location.averageProfitPerShiftCents)}
+                  </TableCell>
+                  <TableCell>
+                    <LocationProfitBadge
+                      recommendation={location.recommendation}
+                    />
+                  </TableCell>
+                  <TableCell className="min-w-48 whitespace-normal">
+                    <details>
+                      <summary className="min-h-11 cursor-pointer content-center capitalize underline-offset-4 hover:underline">
+                        {location.trendDirection.replaceAll("_", " ")}
+                        <span className="sr-only">
+                          {" "}
+                          profit/loss trend for {location.locationName}
+                        </span>
+                      </summary>
+                      <Trend
+                        profits={location.trend.map(
+                          (point) => point.profitCents,
+                        )}
+                      />
+                    </details>
+                  </TableCell>
+                  <TableCell className="text-right">
                     {location.bestShift ? (
                       <Link
-                        className="mt-1 flex items-center justify-between font-semibold hover:underline"
+                        className="inline-flex min-h-11 items-center gap-2 font-semibold underline-offset-4 hover:underline"
                         href={`/admin/shifts/${location.bestShift.shiftId}`}
                       >
-                        {formatMoney(location.bestShift.profitCents)}{" "}
+                        {formatMoney(location.bestShift.profitCents)}
+                        <span className="sr-only">
+                          {" "}
+                          best shift for {location.locationName}
+                        </span>
                         <ArrowRight className="size-4" aria-hidden="true" />
                       </Link>
                     ) : (
-                      <p className="mt-1">—</p>
+                      "—"
                     )}
-                  </div>
-                  <div>
-                    <p className="text-muted-foreground">Worst shift</p>
+                  </TableCell>
+                  <TableCell className="text-right">
                     {location.worstShift ? (
-                      <div className="mt-1">
-                        <ProfitBadge
-                          result={location.worstShift.result}
-                          amount={formatMoney(location.worstShift.profitCents)}
-                        />
-                      </div>
+                      <ProfitBadge
+                        result={location.worstShift.result}
+                        amount={formatMoney(location.worstShift.profitCents)}
+                      />
                     ) : (
-                      <p className="mt-1">—</p>
+                      "—"
                     )}
-                  </div>
-                </div>
-              </div>
-            </DataCard>
-          ))}
-        </div>
+                  </TableCell>
+                </TableRow>
+              ))}
+            </TableBody>
+          </AdminTable>
+        </section>
       )}
     </div>
   );

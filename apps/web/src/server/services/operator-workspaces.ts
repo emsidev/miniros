@@ -72,6 +72,7 @@ export async function getPosWorkspace(shiftId?: string) {
         .select({
           id: promoRules.id,
           name: promoRules.name,
+          requiresPhoto: promoRules.requiresPhoto,
           discountType: promoRules.discountType,
           discountValue: promoRules.discountValue,
         })

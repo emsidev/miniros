@@ -6,6 +6,7 @@ import { AccessError, requireActiveBusiness } from "./access";
 
 export type PromoWriteInput = {
   name: string;
+  requiresPhoto?: boolean;
   discountType: "fixed_amount" | "percentage";
   discountValue: number;
   startsAt: string | null;
@@ -15,6 +16,7 @@ export type PromoWriteInput = {
 export type PromoRecord = {
   id: string;
   name: string;
+  requiresPhoto?: boolean;
   discountType: "fixed_amount" | "percentage";
   discountValue: number;
   startsAt: string | null;
@@ -38,6 +40,7 @@ function toPromoRecord(row: typeof promoRules.$inferSelect): PromoRecord {
   return {
     id: row.id,
     name: row.name,
+    requiresPhoto: row.requiresPhoto,
     discountType: row.discountType,
     discountValue: Number(row.discountValue),
     startsAt: row.startsAt?.toISOString() ?? null,
@@ -74,29 +77,45 @@ export async function listPromos() {
   return rows.map(toPromoRecord);
 }
 
-export async function createPromo(input: PromoWriteInput) {
+export async function createPromo(input: PromoWriteInput, promoId?: string) {
   const access = await requireActiveBusiness({
     admin: true,
     feature: "promos",
   });
   const { startsAt, endsAt } = validateWindow(input);
   const database = requireDatabase();
-  const id = randomUUID();
+  const id = promoId ?? randomUUID();
 
   const created = await database.transaction(async (tx) => {
-    const [record] = await tx
-      .insert(promoRules)
-      .values({
-        id,
-        businessId: access.business.id,
-        name: input.name.trim(),
-        discountType: input.discountType,
-        discountValue: input.discountValue.toFixed(2),
-        startsAt,
-        endsAt,
-        status: "active",
-      })
-      .returning();
+    const values = {
+      name: input.name.trim(),
+      requiresPhoto: input.requiresPhoto ?? false,
+      discountType: input.discountType,
+      discountValue: input.discountValue.toFixed(2),
+      startsAt,
+      endsAt,
+      updatedAt: new Date(),
+    };
+    const [record] = promoId
+      ? await tx
+          .update(promoRules)
+          .set(values)
+          .where(
+            and(
+              eq(promoRules.id, id),
+              eq(promoRules.businessId, access.business.id),
+            ),
+          )
+          .returning()
+      : await tx
+          .insert(promoRules)
+          .values({
+            ...values,
+            id,
+            businessId: access.business.id,
+            status: "active",
+          })
+          .returning();
     if (!record) throw new Error("Promo was not created.");
 
     await tx.insert(auditLogs).values({
@@ -104,11 +123,12 @@ export async function createPromo(input: PromoWriteInput) {
       businessId: access.business.id,
       actorUserId: access.user.id,
       actorEmployeeId: access.employee?.id ?? null,
-      action: "promo.created",
+      action: promoId ? "promo.updated" : "promo.created",
       entityType: "promo_rule",
       entityId: id,
       metadata: {
         name: record.name,
+        requiresPhoto: record.requiresPhoto,
         discountType: record.discountType,
         discountValue: record.discountValue,
       },

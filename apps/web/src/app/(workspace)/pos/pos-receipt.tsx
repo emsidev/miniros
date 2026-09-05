@@ -23,6 +23,8 @@ export function PosReceipt({
   onRetryProofs: () => void;
   onNewSale: () => void;
 }) {
+  const pending =
+    receipt.pendingProofs.length > 0 || receipt.pendingDiscountProof;
   return (
     <div className="space-y-5">
       <div className="flex items-start gap-3">
@@ -30,13 +32,21 @@ export function PosReceipt({
           <CheckCircle2 className="size-6" aria-hidden="true" />
         </span>
         <div>
-          <h2 className="text-xl font-extrabold">Sale completed</h2>
+          <h2 className="text-xl font-extrabold">
+            {receipt.savedLocally ? "Saved on this device" : "Sale completed"}
+          </h2>
           <p className="text-sm text-muted-foreground">
             Sale {receipt.saleId.slice(0, 8)}
           </p>
         </div>
       </div>
 
+      {receipt.savedLocally ? (
+        <p role="status" className="text-sm text-muted-foreground">
+          Receipt and attached proofs are saved locally. See Sync status for
+          server confirmation.
+        </p>
+      ) : null}
       <dl className="grid grid-cols-3 gap-2 rounded-[var(--mi-radius-lg)] bg-muted p-4">
         {[
           ["Total", receipt.totalCents],
@@ -52,6 +62,11 @@ export function PosReceipt({
         ))}
       </dl>
 
+      {receipt.discountName ? (
+        <p className="text-sm">
+          Promo: <strong>{receipt.discountName}</strong>
+        </p>
+      ) : null}
       <div className="space-y-2">
         <h3 className="text-sm font-bold">Payment breakdown</h3>
         {receipt.payments.map((payment) => (
@@ -70,13 +85,13 @@ export function PosReceipt({
         ))}
       </div>
 
-      {receipt.pendingProofs.length > 0 ? (
+      {pending ? (
         <Alert variant="destructive">
           <AlertCircle aria-hidden="true" />
           <AlertDescription className="space-y-3">
             <p>
               {proofError ??
-                "The sale is complete, but a payment proof still needs to be uploaded."}
+                "The sale is complete, but a proof still needs to be uploaded."}
             </p>
             <Button
               type="button"
@@ -86,20 +101,22 @@ export function PosReceipt({
               disabled={isPending}
             >
               <RotateCcw aria-hidden="true" />
-              {isPending ? "Retrying proof…" : "Retry payment proof"}
+              {isPending ? "Retrying proof…" : "Retry proofs"}
             </Button>
           </AlertDescription>
         </Alert>
       ) : null}
 
-      {receipt.pendingProofs.length === 0 &&
-      receipt.payments.some((payment) => payment.file) ? (
+      {!receipt.savedLocally &&
+      !pending &&
+      (receipt.discountPhoto?.file ||
+        receipt.payments.some((payment) => payment.file)) ? (
         <p
           className="flex items-center gap-2 text-sm text-success"
           role="status"
         >
           <CheckCircle2 className="size-4" aria-hidden="true" />
-          Payment proof uploaded.
+          Proofs uploaded.
         </p>
       ) : null}
 

@@ -1,3 +1,4 @@
+import { validateProofFile } from "@miniros/contracts";
 import {
   addCents,
   allocateDiscountCents,
@@ -124,6 +125,8 @@ export function validateCheckout(input: {
   itemCount: number;
   totalCents: number;
   payments: readonly SubmittedPayment[];
+  requiresPhoto?: boolean;
+  discountPhoto?: File | null;
 }) {
   if (input.itemCount === 0) return "Add at least one product to the order.";
   if (input.totalCents <= 0) return "The order total must be more than ₱0.";
@@ -134,6 +137,16 @@ export function validateCheckout(input: {
     )
   ) {
     return "Add a reference number for every non-cash payment.";
+  }
+  if (input.requiresPhoto) {
+    const error = validateProofFile(input.discountPhoto, true);
+    if (error) return error;
+  }
+  for (const payment of input.payments) {
+    if (payment.method !== "cash" && payment.file) {
+      const error = validateProofFile(payment.file);
+      if (error) return error;
+    }
   }
   const paidCents = addCents(
     ...input.payments.map((payment) => payment.amountCents),

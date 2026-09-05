@@ -1,19 +1,30 @@
 import { requireDatabase } from "@miniros/db";
 import {
   cashDeductions,
+  cashReconciliations,
+  sales,
   inventoryAdjustments,
   sellingLocations,
-  shiftAssignments,
   shiftCloseouts,
   shiftProfitSummaries,
   shifts,
-  employees,
 } from "@miniros/db/schema";
 import { calculateLocationProfitability } from "@miniros/domain";
-import { and, asc, desc, eq, gte, inArray, isNull, lte } from "drizzle-orm";
+import {
+  and,
+  asc,
+  desc,
+  eq,
+  gte,
+  inArray,
+  isNull,
+  lte,
+  sql,
+} from "drizzle-orm";
 import { z } from "zod";
 
-import { AccessError, requireActiveBusiness } from "./access";
+import { getAdminShift } from "./admin-shifts";
+import { requireActiveBusiness } from "./access";
 
 function manilaDate(date = new Date()): string {
   return new Intl.DateTimeFormat("en-CA", {
@@ -231,73 +242,55 @@ export async function getAdminDashboard() {
 export async function getAdminShiftDetail(shiftId: string) {
   const { business } = await requireActiveBusiness({ admin: true });
   const database = requireDatabase();
-  const [shift] = await database
-    .select({
-      id: shifts.id,
-      title: shifts.title,
-      shiftDate: shifts.shiftDate,
-      actualStartAt: shifts.actualStartAt,
-      actualEndAt: shifts.actualEndAt,
-      status: shifts.status,
-      notes: shifts.notes,
-      locationId: sellingLocations.id,
-      locationName: sellingLocations.name,
-      profitCents: shiftProfitSummaries.profitCents,
-      result: shiftProfitSummaries.result,
-      grossSalesCents: shiftProfitSummaries.grossSalesCents,
-      productCostCents: shiftProfitSummaries.productCostCents,
-      totalCostsCents: shiftProfitSummaries.totalCostsCents,
-    })
-    .from(shifts)
-    .innerJoin(
-      sellingLocations,
-      and(
-        eq(sellingLocations.id, shifts.sellingLocationId),
-        eq(sellingLocations.businessId, shifts.businessId),
+  const [shift, summaryRows, closeoutRows, liveRows] = await Promise.all([
+    getAdminShift(shiftId),
+    database
+      .select()
+      .from(shiftProfitSummaries)
+      .where(
+        and(
+          eq(shiftProfitSummaries.businessId, business.id),
+          eq(shiftProfitSummaries.shiftId, shiftId),
+        ),
+      )
+      .limit(1),
+    database
+      .select({ closeout: shiftCloseouts, cash: cashReconciliations })
+      .from(shiftCloseouts)
+      .leftJoin(
+        cashReconciliations,
+        and(
+          eq(cashReconciliations.closeoutId, shiftCloseouts.id),
+          eq(cashReconciliations.businessId, business.id),
+        ),
+      )
+      .where(
+        and(
+          eq(shiftCloseouts.businessId, business.id),
+          eq(shiftCloseouts.shiftId, shiftId),
+        ),
+      )
+      .limit(1),
+    database
+      .select({
+        total: sql<string>`coalesce(sum(${sales.totalCents}),0)`,
+        count: sql<number>`count(*)::int`,
+      })
+      .from(sales)
+      .where(
+        and(
+          eq(sales.businessId, business.id),
+          eq(sales.shiftId, shiftId),
+          eq(sales.status, "completed"),
+        ),
       ),
-    )
-    .leftJoin(
-      shiftProfitSummaries,
-      and(
-        eq(shiftProfitSummaries.shiftId, shifts.id),
-        eq(shiftProfitSummaries.businessId, shifts.businessId),
-      ),
-    )
-    .where(
-      and(
-        eq(shifts.id, shiftId),
-        eq(shifts.businessId, business.id),
-        isNull(shifts.deletedAt),
-      ),
-    )
-    .limit(1);
-
-  if (!shift) throw new AccessError("Shift not found in the active business.");
-
-  const assignments = await database
-    .select({
-      id: shiftAssignments.id,
-      employeeId: employees.id,
-      employeeName: employees.displayName,
-      roleOnShift: shiftAssignments.roleOnShift,
-      salaryRateCents: shiftAssignments.salaryRateCents,
-      status: shiftAssignments.status,
-    })
-    .from(shiftAssignments)
-    .innerJoin(
-      employees,
-      and(
-        eq(employees.id, shiftAssignments.employeeId),
-        eq(employees.businessId, shiftAssignments.businessId),
-      ),
-    )
-    .where(
-      and(
-        eq(shiftAssignments.businessId, business.id),
-        eq(shiftAssignments.shiftId, shiftId),
-      ),
-    )
-    .orderBy(asc(employees.displayName));
-
-  return { ...shift, assignments };
+  ]);
+  return {
+    ...shift,
+    profitSummary: summaryRows[0] ?? null,
+    closeout: closeoutRows[0]?.closeout ?? null,
+    cashReconciliation: closeoutRows[0]?.cash ?? null,
+    liveSalesCents: Number(liveRows[0]?.total ?? 0),
+    completedSaleCount: liveRows[0]?.count ?? 0,
+  };
 }

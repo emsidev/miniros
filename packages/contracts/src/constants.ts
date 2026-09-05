@@ -9,6 +9,7 @@ export const paymentMethods = [
 export type PaymentMethod = (typeof paymentMethods)[number];
 
 export const shiftStatuses = [
+  "draft",
   "scheduled",
   "active",
   "closing",

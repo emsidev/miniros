@@ -5,6 +5,7 @@ import { useRouter } from "next/navigation";
 import { LogOut } from "lucide-react";
 
 import { Button } from "@/components/ui/button";
+import { guardLocalExit, clearLocalAccount } from "@/lib/offline/store";
 import { logoutAction } from "@/server/actions/auth";
 
 export function LogoutButton() {
@@ -22,11 +23,22 @@ export function LogoutButton() {
         onClick={() => {
           setError(undefined);
           startTransition(async () => {
+            try {
+              await guardLocalExit();
+            } catch (error) {
+              setError(
+                error instanceof Error
+                  ? error.message
+                  : "Finish pending work first.",
+              );
+              return;
+            }
             const result = await logoutAction();
             if (!result.ok) {
               setError(result.error);
               return;
             }
+            await clearLocalAccount();
             router.replace("/login");
             router.refresh();
           });

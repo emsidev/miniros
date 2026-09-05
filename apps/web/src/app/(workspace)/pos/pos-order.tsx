@@ -1,3 +1,4 @@
+import { ProofUpload } from "@/components/shared/proof-upload";
 import type { FormEvent } from "react";
 import { Plus, Tag, Trash2 } from "lucide-react";
 
@@ -21,6 +22,8 @@ export function PosOrder({
   promos,
   promoId,
   discount,
+  discountPhoto,
+  onDiscountPhotoChange,
   error,
   stockError,
   receipt,
@@ -43,6 +46,8 @@ export function PosOrder({
   promos: readonly PosPromo[];
   promoId: string;
   discount: string;
+  discountPhoto: File | null;
+  onDiscountPhotoChange: (file: File | null) => void;
   error?: string;
   stockError?: string;
   receipt?: SaleReceipt;
@@ -184,6 +189,18 @@ export function PosOrder({
               disabled={Boolean(checkout.selectedPromo)}
             />
           </div>
+          {checkout.selectedPromo?.requiresPhoto ? (
+            <div className="sm:col-span-2">
+              <ProofUpload
+                key={promoId}
+                label={`${checkout.selectedPromo.name} photo`}
+                file={discountPhoto}
+                onChange={onDiscountPhotoChange}
+                photoOnly
+                required
+              />
+            </div>
+          ) : null}
         </div>
       </details>
 

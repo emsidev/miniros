@@ -1,13 +1,19 @@
 "use client";
 
+import { AdminTable } from "@/components/shared/admin-table";
+import {
+  TableBody,
+  TableCell,
+  TableHead,
+  TableHeader,
+  TableRow,
+} from "@/components/ui/table";
 import { useMemo, useState } from "react";
 import type { InventoryItemType } from "@miniros/contracts";
-import { Box, ScanBarcode } from "lucide-react";
 import { EmptyState, StatusBadge } from "@/components/shared/feedback";
 import { SearchInput } from "@/components/shared/inputs";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
-import { Card, CardContent, CardTitle } from "@/components/ui/card";
 import { formatMoney } from "@/lib/format";
 import { CreateInventoryItemDialog } from "./create-inventory-item-dialog";
 import {
@@ -98,58 +104,54 @@ export function InventoryItemCatalog({
           }
         />
       ) : (
-        <div className="grid gap-4 lg:grid-cols-2">
-          {filteredItems.map((item) => {
-            const preset = getInventoryItemPreset(item.itemType);
-
-            return (
-              <Card key={item.id} className="rounded-xl py-5 shadow-none">
-                <div className="flex items-start gap-3 px-5">
-                  <span className="grid size-11 shrink-0 place-items-center rounded-xl bg-muted">
-                    <Box className="size-5" aria-hidden="true" />
-                  </span>
-                  <div className="min-w-0 flex-1">
-                    <CardTitle className="truncate font-bold">
-                      {item.name}
-                    </CardTitle>
-                    <p className="mt-1 text-sm text-muted-foreground">
-                      {preset.label}
-                    </p>
-                  </div>
+        <AdminTable label="Inventory items">
+          <TableHeader>
+            <TableRow>
+              <TableHead scope="col">Item</TableHead>
+              <TableHead scope="col">SKU</TableHead>
+              <TableHead scope="col">Type</TableHead>
+              <TableHead scope="col">Unit</TableHead>
+              <TableHead scope="col" className="text-right">
+                Unit cost
+              </TableHead>
+              <TableHead scope="col">Stock counts</TableHead>
+              <TableHead scope="col">Status</TableHead>
+              <TableHead scope="col" className="text-right">
+                Actions
+              </TableHead>
+            </TableRow>
+          </TableHeader>
+          <TableBody>
+            {filteredItems.map((item) => (
+              <TableRow key={item.id}>
+                <TableCell className="min-w-48 max-w-72 whitespace-normal break-words font-semibold">
+                  {item.name}
+                </TableCell>
+                <TableCell className="max-w-48 whitespace-normal break-words text-muted-foreground">
+                  {item.sku || "—"}
+                </TableCell>
+                <TableCell>
+                  {getInventoryItemPreset(item.itemType).label}
+                </TableCell>
+                <TableCell>{item.unit}</TableCell>
+                <TableCell className="text-right font-semibold">
+                  {formatMoney(item.defaultUnitCostCents)}
+                </TableCell>
+                <TableCell>
+                  <Badge variant="outline">
+                    {item.trackStock ? "Included" : "Not counted"}
+                  </Badge>
+                </TableCell>
+                <TableCell>
+                  <StatusBadge status={item.status} />
+                </TableCell>
+                <TableCell className="text-right">
                   <CreateInventoryItemDialog item={item} />
-                </div>
-                <CardContent className="space-y-3 px-5">
-                  <div className="flex flex-wrap items-center gap-2">
-                    <Badge variant="secondary">
-                      {formatMoney(item.defaultUnitCostCents)} per {item.unit}
-                    </Badge>
-                    <Badge variant="outline">
-                      {item.trackStock
-                        ? "Included in stock counts"
-                        : "Not counted in stock"}
-                    </Badge>
-                  </div>
-                  {item.sku || item.status !== "active" ? (
-                    <div className="flex flex-wrap items-center gap-3 text-xs text-muted-foreground">
-                      {item.sku ? (
-                        <span className="flex items-center gap-1.5">
-                          <ScanBarcode
-                            className="size-3.5"
-                            aria-hidden="true"
-                          />
-                          {item.sku}
-                        </span>
-                      ) : null}
-                      {item.status !== "active" ? (
-                        <StatusBadge status={item.status} />
-                      ) : null}
-                    </div>
-                  ) : null}
-                </CardContent>
-              </Card>
-            );
-          })}
-        </div>
+                </TableCell>
+              </TableRow>
+            ))}
+          </TableBody>
+        </AdminTable>
       )}
     </div>
   );

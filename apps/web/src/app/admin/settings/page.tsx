@@ -1,3 +1,5 @@
+import { ThisDevice } from "@/features/offline/device-controls";
+import { redirect } from "next/navigation";
 import {
   DataCard,
   PageHeader,
@@ -10,8 +12,15 @@ import { BusinessFeaturesForm } from "../_components/business-features-form";
 
 export const dynamic = "force-dynamic";
 
-export default async function AdminSettingsPage() {
+export default async function AdminSettingsPage({
+  searchParams,
+}: {
+  searchParams: Promise<{ session?: string }>;
+}) {
   const settings = await getBusinessSettings();
+  const { session } = await searchParams;
+  if (session)
+    redirect(`/admin/devices?session=${encodeURIComponent(session)}`);
 
   return (
     <div className="space-y-6">
@@ -46,6 +55,7 @@ export default async function AdminSettingsPage() {
           </p>
         </DataCard>
       </div>
+      <ThisDevice />
       <DataCard>
         <SectionHeader
           title="Feature enablement"

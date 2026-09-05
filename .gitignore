@@ -16,3 +16,7 @@ coverage
 .vercel
 supabase/.branches
 supabase/.temp
+
+# Generated after the production build
+apps/web/public/sw.js
+apps/web/public/pwa-assets.json

@@ -1,3 +1,4 @@
+import type { PreparedOperationContext } from "./offline-context";
 import { productRecipeItems } from "@miniros/db/schema";
 import {
   aggregateInventoryDeductions,
@@ -11,6 +12,7 @@ import type { OperationalTransaction } from "./operational-helpers";
 export async function deductSaleInventory(
   tx: OperationalTransaction,
   input: {
+    prepared?: PreparedOperationContext;
     businessId: string;
     shiftId: string;
     inventoryLocationId: string;
@@ -35,8 +37,11 @@ export async function deductSaleInventory(
         .map((item) => item.productId),
     ),
   ];
-  const recipeRows =
-    recipeProductIds.length === 0
+  const recipeRows = input.prepared
+    ? input.prepared.snapshot.recipes.filter((row) =>
+        recipeProductIds.includes(row.productId),
+      )
+    : recipeProductIds.length === 0
       ? []
       : await tx
           .select({
@@ -110,5 +115,6 @@ export async function deductSaleInventory(
     sourceId: input.saleId,
     employeeId: input.employeeId,
     lines: [...deductions.values()],
+    prepared: input.prepared,
   });
 }

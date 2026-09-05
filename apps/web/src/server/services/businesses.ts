@@ -1,3 +1,4 @@
+import { assertDeviceCanLeave } from "./offline-context";
 import { randomUUID } from "node:crypto";
 import { defaultProductCategories } from "@miniros/contracts";
 import { requireDatabase } from "@miniros/db";
@@ -39,6 +40,8 @@ function businessSlug(name: string, id: string) {
 }
 
 async function setActiveBusinessCookie(businessId: string) {
+  const user = await requireUser();
+  await assertDeviceCanLeave(user.id);
   const cookieStore = await cookies();
   cookieStore.set(ACTIVE_BUSINESS_COOKIE, businessId, {
     httpOnly: true,

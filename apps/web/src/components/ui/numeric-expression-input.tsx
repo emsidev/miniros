@@ -5,7 +5,6 @@ import {
   containsArithmeticExpression,
   evaluateNumericExpression,
   formatNumericExpression,
-  isZeroNumericExpression,
 } from "@/lib/numeric-expression";
 import { cn } from "@/lib/utils";
 import { Input } from "./input";
@@ -34,6 +33,7 @@ type NumericExpressionInputProps = Omit<
   onFocus?: React.FocusEventHandler<HTMLInputElement>;
   onKeyDown?: React.KeyboardEventHandler<HTMLInputElement>;
   containerClassName?: string;
+  clearOnFirstFocus?: boolean;
 };
 
 function finiteBound(value: number | string | undefined) {
@@ -54,6 +54,7 @@ export function NumericExpressionInput({
   onFocus,
   onKeyDown,
   containerClassName,
+  clearOnFirstFocus = true,
   id,
   name,
   disabled,
@@ -62,6 +63,7 @@ export function NumericExpressionInput({
   ...props
 }: NumericExpressionInputProps) {
   const inputRef = React.useRef<HTMLInputElement>(null);
+  const hasClearedInitialValue = React.useRef(false);
   const [expressionError, setExpressionError] = React.useState<string>();
   const isControlled = value !== undefined;
   const inputValue =
@@ -156,10 +158,19 @@ export function NumericExpressionInput({
         onFocus={(event) => {
           const input = event.currentTarget;
           onFocus?.(event);
-          if (!isZeroNumericExpression(input.value)) return;
-          requestAnimationFrame(() => {
-            if (input.isConnected) input.select();
-          });
+
+          if (
+            !clearOnFirstFocus ||
+            hasClearedInitialValue.current ||
+            !input.value
+          )
+            return;
+
+          hasClearedInitialValue.current = true;
+          input.setCustomValidity("");
+          setExpressionError(undefined);
+          input.value = "";
+          onValueChange?.("");
         }}
         onBlur={(event) => {
           commitExpression(event.currentTarget);

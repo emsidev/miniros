@@ -14,3 +14,5 @@ export * from "./audit";
 export * from "./stock";
 export * from "./promos";
 export * from "./enums";
+
+export * from "./offline-sessions";

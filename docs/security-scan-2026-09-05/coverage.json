@@ -1,0 +1,482 @@
+{
+  "completeness": "partial",
+  "deferred": [
+    {
+      "candidate": {
+        "evidence": "20260828212207_payment_proof_storage.sql grants authenticated INSERT/UPDATE at line15 and policies26,77,129; 20260905062610_pos_discount_photos.sql:19 adds SELECT only, leaving legacy writes.",
+        "path": "supabase/migrations/20260828212207_payment_proof_storage.sql",
+        "source": "architecture_review",
+        "title": "Legacy Storage policies retain direct proof writes"
+      },
+      "candidateId": "legacy-storage-writes",
+      "id": "legacy-storage-writes",
+      "reason": "Documented authority discrepancy awaiting security impact validation"
+    },
+    {
+      "id": "supplemental-shift-plan-amplification",
+      "reason": "{\"id\":\"supplemental-shift-plan-amplification\",\"rule\":\"bounded-request-work\",\"title\":\"Unbounded shift costs amplify across up to 366 dates\",\"cwe\":\"CWE-400\",\"severity\":\"medium\",\"confidence\":\"high\",\"status\":\"remediated-in-current-source-by-parent; static control review only\",\"attacker\":\"A signed-in user who owns a business. Any registered user can create a business and selling location, so no existing victim-business privilege is required.\",\"invariant\":\"An accepted request must have bounded expanded work and must not multiply a small input into millions of row objects and database inserts on a shared server.\",\"source_to_sink\":[\"createShiftsAction accepts a plan and createAdminShifts authenticates an owner/admin of the selected business.\",\"At initial review, shiftDetailsShape used unbounded z.array(assignmentSchema) and z.array(plannedCostSchema), while createShiftSchema allowed 366 distinct ordered dates.\",\"A draft requires no operator; repeated id-less zero-cost entries satisfy amount, total and duplicate-ID validation.\",\"createShiftsInTransaction constructs costRows = shiftIds.flatMap(shiftId => input.costs.map(...)) and the analogous assignmentRows before chunking inserts.\",\"A sub-4MB request containing tens of thousands of small zero-cost rows and 366 dates creates millions of objects then thousands of insert batches in a transaction.\"],\"impact\":\"Authenticated cross-tenant service availability degradation through shared Node memory/CPU exhaustion and excessive database write work; the attacker controls a disposable own tenant rather than needing access to a victim tenant.\",\"locations\":[{\"file\":\"apps/web/src/lib/shift-planning.ts\",\"start_line\":43,\"end_line\":48,\"note\":\"Current replacement controls; initial unbounded arrays were read before parent remediation.\"},{\"file\":\"apps/web/src/lib/shift-planning.ts\",\"start_line\":99,\"end_line\":119,\"note\":\"366-date cap plus new expanded-row budget.\"},{\"file\":\"apps/web/src/server/services/admin-shift-workflows.ts\",\"start_line\":74,\"end_line\":80},{\"file\":\"apps/web/src/server/services/admin-shift-workflows.ts\",\"start_line\":143,\"end_line\":167},{\"file\":\"apps/web/src/server/services/admin-shifts.ts\",\"start_line\":57,\"end_line\":69}],\"source_evidence\":[\"Initial source: assignments: z.array(assignmentSchema), costs: z.array(plannedCostSchema); neither array had a .max bound.\",\"Draft publication validator required an operator only when values.intent === 'publish'. Duplicate cost IDs collected only costs with an explicit cost.id, so repeated new costs remained valid.\",\"const costRows = shiftIds.flatMap((shiftId) => input.costs.map((cost) => ({ ...cost, id: randomUUID(), businessId: actor.businessId, shiftId, createdBy: actor.employeeId }))).\",\"Chunking happens only after full expansion: for (let index = 0; index < costRows.length; index += 500) await tx.insert(shiftCosts).values(costRows.slice(index, index + 500)).\"],\"counterevidence\":[\"Admin authorization and same-business references are correct but do not bound work for an attacker who owns a self-created tenant.\",\"Server Actions impose a 4mb body limit and date count is capped at 366, but the multiplicative expansion substantially exceeds either bound.\",\"Current parent remediation, fully re-read: MAX_SHIFT_ASSIGNMENTS=100, MAX_SHIFT_COSTS=50, MAX_PLANNED_ROWS=5000, cost notes max2000, create and bulk-team expanded-row guards. createShiftsInTransaction re-parses the schema before expansion, so direct service use also receives limits.\",\"No exploit or tests were executed in this audit.\"],\"remediation\":\"Keep practical per-shift array limits and an expanded-row budget before allocation, covering create and bulk team operations. Current source implements these controls; parent should retain regression tests for oversized zero-cost arrays and 366-date amplification.\"}"
+    },
+    {
+      "candidate": {
+        "evidence": "registerAction invokes claimMembershipInvitations(data.user) after signUp; helper checks email presence but not email_confirmed_at.",
+        "locations": [
+          {
+            "path": "apps/web/src/server/actions/auth.ts",
+            "startLine": 36
+          },
+          {
+            "path": "apps/web/src/server/services/invitations.ts",
+            "startLine": 7
+          }
+        ],
+        "source": "baseline_security",
+        "title": "Invitation claimed before verified email"
+      },
+      "candidateId": "baseline-invitation-email",
+      "id": "baseline-invitation-email",
+      "reason": "Awaiting completed source analysis and parent validation"
+    },
+    {
+      "candidate": {
+        "evidence": "request.formData() is called after Origin comparison but before proof service authentication or file-size validation.",
+        "locations": [
+          {
+            "path": "apps/web/src/app/api/offline/proof/route.ts",
+            "startLine": 12
+          }
+        ],
+        "source": "baseline_security",
+        "title": "Unbounded proof request parsing precedes authentication"
+      },
+      "candidateId": "baseline-proof-body",
+      "id": "baseline-proof-body",
+      "reason": "Awaiting source validation and deployment prerequisites"
+    },
+    {
+      "candidate": {
+        "evidence": "finalizeSaleAction -> finalizeSale accepts discountCents without promosEnabled; offline sync checks this.",
+        "path": "apps/web/src/server/services/sales-operations.ts",
+        "source": "security_preflight",
+        "title": "Online sales allow discounts when promos disabled"
+      },
+      "candidateId": "offline-disabled-discounts",
+      "id": "offline-disabled-discounts",
+      "reason": "Awaiting source validation"
+    },
+    {
+      "candidate": {
+        "attacker": "A signed-in user who owns any business and knows a scheduled shift UUID in a different business. A non-admin employee in the victim business can discover published shift IDs and create their own business through createBusiness.",
+        "confidence": "high",
+        "counterevidence": "Server services correctly scope their own writes and queries; they do not protect direct Data API writes. Existing location unique keys prevent poisoning an already-created shift location, so target a scheduled shift without a location. The attack needs a real shift UUID; published schedule discovery gives it to ordinary eligible employees.",
+        "cwe": "CWE-863",
+        "id": "baseline-tenant-foreign-keys",
+        "impact": "Cross-tenant integrity corruption and persistent denial of starting a victim shift, including offline preparation/start workflows. The victim cannot remove the poisoning row through its tenant-scoped UI. Similar global pair uniqueness with unscoped FKs exists for shift_assignments and product_recipe_items.",
+        "invariant": "Every relational reference in a tenant row must point to an object in the same business; ownership of one tenant must not affect another tenant's workflow.",
+        "locations": [
+          {
+            "end_line": 860,
+            "file": "supabase/migrations/20260828212202_row_level_security.sql",
+            "start_line": 824
+          },
+          {
+            "end_line": 109,
+            "file": "supabase/migrations/20260828212205_data_api_grants.sql",
+            "start_line": 97
+          },
+          {
+            "end_line": 141,
+            "file": "packages/db/src/schema/inventory.ts",
+            "start_line": 120
+          },
+          {
+            "end_line": 188,
+            "file": "apps/web/src/server/services/shift-start.ts",
+            "start_line": 162
+          },
+          {
+            "end_line": 150,
+            "file": "apps/web/src/server/services/businesses.ts",
+            "start_line": 103
+          }
+        ],
+        "remediation": "Remove authenticated setup DML grants if setup must run only through server services, or enforce same-business composite FKs and equivalent RLS checks on every writable relationship. Cover INSERT and UPDATE and clean existing invalid cross-tenant rows before applying constraints. Regression test owner-of-A direct writes targeting shift B plus successful start of B.",
+        "rule": "tenant-isolation",
+        "severity": "medium",
+        "source_evidence": [
+          "RLS WITH CHECK contains only exists business_members where bm.business_id = inventory_locations.business_id and bm.auth_user_id = auth.uid() and bm.role in ('owner','admin').",
+          "shiftId: uuid('shift_id').references(() => shifts.id); uniqueIndex('inventory_locations_shift_id_unique').on(table.shiftId).",
+          "Server start lookup requires inventoryLocations.businessId = access.business.id, but the subsequent insert must satisfy the global shiftId unique."
+        ],
+        "source_to_sink": [
+          "Supabase REST authenticated INSERT/UPDATE public.inventory_locations accepts attacker-controlled business_id and shift_id.",
+          "Data API grant permits the write; RLS checks owner/admin membership for row.business_id only.",
+          "shift_id references public.shifts(id) without business_id, so the database accepts a foreign-tenant shift.",
+          "The global unique inventory_locations_shift_id_unique reserves the victim shift ID.",
+          "Victim startAssignedShift searches for a same-business location, sees none, and its legitimate INSERT fails against the attacker-created unique key."
+        ],
+        "title": "Data API setup writes can attach another tenant's shift and block its start"
+      },
+      "candidateId": "baseline-full-0",
+      "id": "baseline-full-0",
+      "reason": "Worker original result retained before parent reconciliation"
+    },
+    {
+      "candidate": {
+        "attacker": "An active non-admin employee assigned to the target shift with canUsePos=false.",
+        "confidence": "high",
+        "counterevidence": "Business and assignment boundaries are enforced, so this is not access to arbitrary tenants or unassigned shifts. Direct Supabase reads do enforce e.can_use_pos; only the privileged server history route bypasses it.",
+        "cwe": "CWE-862",
+        "id": "baseline-sale-history-permission",
+        "impact": "Confidential POS data and payment references become readable to an employee whose POS permission was never granted or was revoked.",
+        "invariant": "Detailed POS sale, line-item, and tender records require POS permission, as enforced by the sales, sale_items and payments RLS policies.",
+        "locations": [
+          {
+            "end_line": 8,
+            "file": "apps/web/src/server/services/shift-sale-history.ts",
+            "start_line": 5
+          },
+          {
+            "end_line": 68,
+            "file": "apps/web/src/server/services/shift-sale-history.ts",
+            "start_line": 42
+          },
+          {
+            "end_line": 20,
+            "file": "apps/web/src/app/(workspace)/shifts/[shiftId]/sales/page.tsx",
+            "start_line": 17
+          },
+          {
+            "end_line": 1054,
+            "file": "supabase/migrations/20260828212202_row_level_security.sql",
+            "start_line": 1037
+          }
+        ],
+        "remediation": "Require employeePermission:'pos' in the history service. Add a regression test where an assigned employee without POS permission cannot retrieve history, including after permission revocation.",
+        "rule": "authorization",
+        "severity": "medium",
+        "source_evidence": [
+          "const { business } = await requireActiveBusiness({ assignedShiftId: shiftId });",
+          "Tender query uses .select().from(payments), followed by returning payments for each sale.",
+          "The enclosing workspace layout only requires an active employee; no POS guard exists in the page."
+        ],
+        "source_to_sink": [
+          "GET /shifts/[shiftId]/sales accepts the shift UUID and calls getShiftSaleHistory.",
+          "getShiftSaleHistory calls requireActiveBusiness({assignedShiftId: shiftId}) without employeePermission:'pos'.",
+          "Privileged Drizzle queries read sales, sale_items, and payments for the shift.",
+          "Page renders sale values, item names/quantities, tender methods/amounts and reference numbers."
+        ],
+        "title": "Assigned employees without POS permission can read sales and payment references"
+      },
+      "candidateId": "baseline-full-1",
+      "id": "baseline-full-1",
+      "reason": "Worker original result retained before parent reconciliation"
+    },
+    {
+      "candidate": {
+        "attacker": "Any network client able to POST to the web app; it can set Origin to the request origin without an authenticated session.",
+        "confidence": "high",
+        "counterevidence": "Browser-origin CSRF protection exists, and services reject unauthorized uploads and oversized selected files. Those checks occur after materialization. A deployment proxy might cap request sizes but no such production limit is established in repository configuration. The JSON offline endpoints already enforce a streaming 1 MB limit.",
+        "cwe": "CWE-400",
+        "id": "baseline-proof-body-limit",
+        "impact": "Oversized multipart requests, including extra parts, can consume the Node process's memory and CPU before rejection, denying service to normal requests.",
+        "invariant": "Untrusted request bodies must be bounded before parsing and large uploads should not be consumed before authorization.",
+        "locations": [
+          {
+            "end_line": 21,
+            "file": "apps/web/src/app/api/offline/proof/route.ts",
+            "start_line": 8
+          },
+          {
+            "end_line": 44,
+            "file": "apps/web/src/server/services/payment-proofs.ts",
+            "start_line": 34
+          },
+          {
+            "end_line": 18,
+            "file": "apps/web/next.config.ts",
+            "start_line": 15
+          }
+        ],
+        "remediation": "Authenticate before consuming the body and enforce a total streaming request-byte limit before formData parsing, independent of Content-Length; bound all parts, not just the selected file. Return 413 on excess and cancel the stream. Add a bounded route test for chunked oversized and extra-part requests.",
+        "rule": "resource-consumption",
+        "severity": "medium",
+        "source_evidence": [
+          "assertSameOrigin(request); const form = await request.formData();",
+          "The 3.5 MB file guard lives inside the downstream service, after formData has already consumed the body.",
+          "next.config.ts sets experimental.serverActions.bodySizeLimit only; the vulnerable endpoint is an App Router route handler."
+        ],
+        "source_to_sink": [
+          "POST /api/offline/proof checks Origin but does not authenticate.",
+          "It calls await request.formData() with no byte limit, reading/materializing the entire body and every submitted part.",
+          "Only after parsing does attachPaymentProof or attachDiscountProof call requireActiveBusiness and enforce the individual file-size limit."
+        ],
+        "title": "Unauthenticated proof requests parse an unbounded multipart body"
+      },
+      "candidateId": "baseline-full-2",
+      "id": "baseline-full-2",
+      "reason": "Worker original result retained before parent reconciliation"
+    },
+    {
+      "candidate": {
+        "attacker": "An unauthenticated registrant who knows an invited email address and can submit registration for it.",
+        "confidence": "high",
+        "counterevidence": "requireUser later validates the Auth session, so an unconfirmed account with no session cannot immediately use normal protected routes. The local config does not explicitly establish hosted email-confirmation policy. Auth provider behavior on duplicate registrations also limits some attack variants; no duplicate-account takeover is asserted.",
+        "cwe": "CWE-287",
+        "id": "baseline-unverified-invitation",
+        "impact": "An unverified registration consumes pending business invitations, including admin invitations, and creates active tenant authorization records before identity verification. Whether the registrant can immediately use that membership depends on Auth email-confirmation/session policy; the source alone does not prove an immediately authenticated account takeover.",
+        "invariant": "Email-address invitations may become active memberships only after the account has proved ownership of that email address.",
+        "locations": [
+          {
+            "end_line": 42,
+            "file": "apps/web/src/server/actions/auth.ts",
+            "start_line": 22
+          },
+          {
+            "end_line": 24,
+            "file": "apps/web/src/server/services/invitations.ts",
+            "start_line": 7
+          },
+          {
+            "end_line": 82,
+            "file": "apps/web/src/server/services/invitations.ts",
+            "start_line": 67
+          }
+        ],
+        "remediation": "Make verified email ownership a guard inside claimMembershipInvitations and avoid activating invitations from an unconfirmed signUp response. Claim only after a verified callback/login/current-user result. Test that an unconfirmed signup leaves invitations pending and a confirmed user claims exactly once.",
+        "rule": "identity-verification",
+        "severity": "medium",
+        "source_evidence": [
+          "Registration invokes claimMembershipInvitations(data.user) before returning requiresEmailConfirmation: !data.session.",
+          "claimMembershipInvitations reads user.email and has no email_confirmed_at check.",
+          "Membership update sets authUserId: user.id, status: 'active', approvedAt: new Date()."
+        ],
+        "source_to_sink": [
+          "registerAction accepts the registrant's email and calls Supabase signUp.",
+          "It calls claimMembershipInvitations(data.user) even when data.session is absent and requiresEmailConfirmation will be returned.",
+          "claimMembershipInvitations checks only user.email, selects matching pending invitations, and binds authUserId/user.id while changing status to active."
+        ],
+        "title": "Registration activates email-address invitations before email ownership is verified"
+      },
+      "candidateId": "baseline-full-3",
+      "id": "baseline-full-3",
+      "reason": "Worker original result retained before parent reconciliation"
+    },
+    {
+      "candidate": {
+        "attacker": "Remote unauthenticated HTTP client able to set Origin equal to the application origin and send arbitrary multipart bodies.",
+        "confidence": "medium",
+        "counterevidence": [
+          "Individual proof services enforce authentication, assignment, 3.5 MB size and signature checks, but all occur after multipart parsing.",
+          "The repository configures a 4mb Server Actions limit; this route is a Route Handler.",
+          "No repository deployment ingress policy was found. A platform-enforced request body cap could limit practical memory amplification.",
+          "No application or network exploit was executed; this is source-based validation."
+        ],
+        "cwe": "CWE-400",
+        "flow": "POST /api/offline/proof \u2192 assertSameOrigin (header equality only) \u2192 request.formData() reads/parses the entire supplied multipart body \u2192 attachPaymentProof/attachDiscountProof \u2192 requireActiveBusiness and per-file size validation.",
+        "id": "OFFLINE-SEC-001",
+        "impact": "A self-hosted or otherwise uncapped deployment can expend large memory/CPU parsing oversized multipart data before rejecting authentication or file size, degrading request availability. Effective external ingress limits may reduce impact.",
+        "invariant": "An unauthenticated request must not cause application memory and parsing work proportional to an unbounded body; accepted proof payloads are limited to 3.5 MB.",
+        "priority": "P2",
+        "remediation": "Authenticate POS access before consuming the body and bound total bytes read from request.body, including chunked requests and multipart overhead, before constructing/parsing FormData. Do not rely only on Content-Length. Preserve existing per-file signature/size checks.",
+        "severity": "medium",
+        "sources": [
+          {
+            "end_line": 21,
+            "excerpt": "assertSameOrigin(request);\nconst form = await request.formData();",
+            "path": "apps/web/src/app/api/offline/proof/route.ts",
+            "start_line": 8
+          },
+          {
+            "end_line": 47,
+            "excerpt": "const access = await requireActiveBusiness({ employeePermission: \"pos\" });\n...\nif (input.file.size <= 0 || input.file.size > MAX_PAYMENT_PROOF_BYTES)",
+            "path": "apps/web/src/server/services/payment-proofs.ts",
+            "start_line": 34
+          },
+          {
+            "end_line": 9,
+            "excerpt": "const origin = request.headers.get(\"origin\");\nif (!origin || origin !== new URL(request.url).origin)",
+            "path": "apps/web/src/server/services/offline-http.ts",
+            "start_line": 5
+          },
+          {
+            "end_line": 16,
+            "excerpt": "serverActions: {\n  bodySizeLimit: \"4mb\",\n}",
+            "path": "apps/web/next.config.ts",
+            "start_line": 14
+          },
+          {
+            "end_line": 29,
+            "excerpt": "await supabase.auth.getClaims();\n\nreturn response;",
+            "path": "apps/web/src/lib/supabase/middleware.ts",
+            "start_line": 27
+          }
+        ],
+        "title": "Bound multipart proof bodies before parsing unauthenticated requests",
+        "validation_needed": "A route test should reject unauthenticated requests without reading the body and reject streamed over-limit multipart bodies, even without Content-Length, before proof services run."
+      },
+      "candidateId": "offline-full-0",
+      "id": "offline-full-0",
+      "reason": "Worker original result retained before parent reconciliation"
+    }
+  ],
+  "documentType": "codex-security.coverage",
+  "excludePaths": [],
+  "explicitExclusions": [
+    {
+      "pattern": "**/node_modules/**",
+      "reason": "Generated/dependency files excluded from manual source inspection; dependency audit and isolated build/cache verification performed separately."
+    },
+    {
+      "pattern": "**/.next/**",
+      "reason": "Generated/dependency files excluded from manual source inspection; dependency audit and isolated build/cache verification performed separately."
+    },
+    {
+      "pattern": "**/dist/**",
+      "reason": "Generated/dependency files excluded from manual source inspection; dependency audit and isolated build/cache verification performed separately."
+    },
+    {
+      "pattern": "**/.expo/**",
+      "reason": "Generated/dependency files excluded from manual source inspection; dependency audit and isolated build/cache verification performed separately."
+    },
+    {
+      "pattern": "**/.astro/**",
+      "reason": "Generated/dependency files excluded from manual source inspection; dependency audit and isolated build/cache verification performed separately."
+    },
+    {
+      "pattern": "**/.turbo/**",
+      "reason": "Generated/dependency files excluded from manual source inspection; dependency audit and isolated build/cache verification performed separately."
+    },
+    {
+      "pattern": "supabase/migrations/meta/*_snapshot.json",
+      "reason": "Generated schema metadata and artwork/static styling excluded; executable SQL and behavior-bearing UI source reviewed."
+    },
+    {
+      "pattern": "supabase/migrations/drizzle/meta/*_snapshot.json",
+      "reason": "Generated schema metadata and artwork/static styling excluded; executable SQL and behavior-bearing UI source reviewed."
+    },
+    {
+      "pattern": "design/**",
+      "reason": "Generated schema metadata and artwork/static styling excluded; executable SQL and behavior-bearing UI source reviewed."
+    },
+    {
+      "pattern": "**/*.svg",
+      "reason": "Generated schema metadata and artwork/static styling excluded; executable SQL and behavior-bearing UI source reviewed."
+    },
+    {
+      "pattern": "**/*.png",
+      "reason": "Generated schema metadata and artwork/static styling excluded; executable SQL and behavior-bearing UI source reviewed."
+    },
+    {
+      "pattern": "**/*.jpg",
+      "reason": "Generated schema metadata and artwork/static styling excluded; executable SQL and behavior-bearing UI source reviewed."
+    },
+    {
+      "pattern": "**/*.webp",
+      "reason": "Generated schema metadata and artwork/static styling excluded; executable SQL and behavior-bearing UI source reviewed."
+    },
+    {
+      "pattern": ".agents/**",
+      "reason": "Bundled agent/skill instructions are not application runtime code."
+    },
+    {
+      "pattern": "Hosted deployment and infrastructure",
+      "reason": "No hosted credentials, live traffic, target Supabase configuration, production data, infrastructure/load pentest or physical/native device build was available or performed."
+    },
+    {
+      "pattern": "Test source",
+      "reason": "Some test bodies were executed without exhaustive manual source inspection."
+    }
+  ],
+  "includePaths": ["."],
+  "inventoryStrategy": "repository",
+  "mode": "repository",
+  "openQuestions": [
+    {
+      "notes": "Verify Supabase email confirmation, redirect allowlists, private storage policies, server credential isolation and proxy headers after reviewed migration deployment.",
+      "question": "Does hosted configuration match source assumptions?",
+      "status": "deployment_check_required"
+    },
+    {
+      "notes": "New permission restrictions prevent future direct setup DML but do not repair existing rows. Perform a read-only integrity check and reviewed data repair if needed before production.",
+      "question": "Do pre-existing cross-tenant foreign-key links exist?",
+      "status": "deployment_check_required"
+    },
+    {
+      "notes": "Source, Metro/Hermes exports and local web tests pass; actual native builds and real-device authenticated staging flows remain.",
+      "question": "Native and authenticated offline device acceptance",
+      "status": "deployment_check_required"
+    },
+    {
+      "notes": "Latest stable Drizzle Kit/esbuild and Expo/xcode/uuid paths remain reported. Observed callers do not use vulnerable APIs; no incompatible forced overrides or audit ignores applied. See docs/dependency-security.md.",
+      "question": "Two moderate tooling dependency alerts",
+      "status": "documented_residual"
+    }
+  ],
+  "scanId": "66eed4b2-9aee-446d-82b9-3f1bbc2823d3",
+  "schemaVersion": "1.0",
+  "surfaces": [
+    {
+      "disposition": "reported",
+      "id": "surface_baseline-independent-source-review-2",
+      "label": "baseline independent source review",
+      "notes": "[{\"question\":\"Are SQL/code injection, command execution, path traversal, SSRF, or stored HTML injection demonstrated in reviewed sources?\",\"resolution\":\"No. Reviewed relational queries use Drizzle parameter binding. No dynamic execution sink was found by repository search. Storage names are normalized and prefixed with server-scoped business/resource IDs. Reviewed React pages interpolate values through normal escaping. SDK baseUrl is caller configuration, not a demonstrated server request-controlled SSRF sink.\"},{\"question\":\"Can a client forge the offline price snapshot or replay operations across devices/tenants?\",\"resolution\":\"Reviewed sync path loads stored snapshots, validates business/user/device/storage/session/snapshot IDs, locks the shift/session, digests immutable action payloads, requires sequence order, and enforces current assignment/POS permission. No demonstrated bypass in this path.\"},{\"question\":\"Are non-cash payment photos mandatory, making empty proof declarations an authorization bypass?\",\"resolution\":\"No current enforcement invariant is established: checkout validates a payment photo only when supplied. Empty proof declarations therefore are not reported as a vulnerability. Discount photo declarations, when selected, are separately linked and block closeout until uploaded.\"},{\"question\":\"Does getProductionWorkspace overexpose recent production logs?\",\"resolution\":\"It returns up to ten business-wide logs while RLS ordinarily limits non-admin log access to own or assigned-shift logs. This is a policy inconsistency requiring product intent confirmation, rather than a separately asserted vulnerability, because the production workspace explicitly presents team-wide recent activity.\"},{\"question\":\"Are authentication callback redirects exploitable through a normal crafted link?\",\"resolution\":\"The next parameter is constrained to an absolute local path and concatenated to an existing origin. Forwarded host/protocol are trusted in production, but browser-controlled link reachability to spoof those headers is not established. Trusted proxy/header handling should be checked in deployment.\"},{\"question\":\"Was every repository file read and application behavior executed?\",\"resolution\":\"No application code, tests, external services, history, or network calls were executed in this independent static baseline. The fully_reviewed_files array states only complete source reads. Remaining source groups require coverage reconciliation by the parent.\"},{\"question\":\"Does removal of authenticated Data API setup writes break a demonstrated browser writer?\",\"resolution\":\"No such consumer found. Repository search for Supabase from/rpc/schema table calls returned none outside tests; client.ts exposes auth/channel/removeChannel only, and server.ts exposes auth only. The fully read data-access-boundary test expressly forbids direct PostgREST imports/URLs/queries. Storage writes use the dedicated server admin client and are separate.\"}]",
+      "receiptRefs": []
+    },
+    {
+      "disposition": "reported",
+      "id": "surface_offline-independent-source-review-2",
+      "label": "offline independent source review",
+      "notes": "[{\"question\":\"Can forged envelopes select another tenant/user/device/storage/snapshot or shift?\",\"resolution\":\"No supported source path found: access is derived from verified user and active membership, current POS assignment is checked, shift and session rows are locked, and session user/device/storage/shift/snapshot are compared before dispatch.\"},{\"question\":\"Can online sibling start/sale/deduction/adjustment/closeout bypass prepared ownership?\",\"resolution\":\"No: public server actions pass only schema-validated first arguments. runShiftTransaction without the internal prepared context locks the shift and rejects unreleased reservations. Production logging is restricted to central inventory. Stock reservation helper was checked by targeted search, not full source read.\"},{\"question\":\"Can replay duplicate financial or stock effects?\",\"resolution\":\"No supported source path found: normalized envelope digest plus clientActionId/session binding, unique session sequence, expected next sequence, inner savepoint and atomic journal/status update serialize effects. Reused entity results with idempotent=true are rejected as conflicts.\"},{\"question\":\"Can opening/closing payloads omit or repeat prepared inventory?\",\"resolution\":\"No: Zod countsSchema rejects duplicate item IDs, and replay checks count length and membership against snapshot; shared closeout also covers opening/balance items.\"},{\"question\":\"Can the operator add more operations after sealed closeout?\",\"resolution\":\"No supported source path found: closeoutIntent is compared to the whole envelope, sequence stays unacknowledged while waiting, and local projection seals immediately.\"},{\"question\":\"Are manual discounts while promosEnabled=false an online authorization bypass?\",\"resolution\":\"Rejected. PosOrder always renders Manual discount outside the promosEnabled conditional (lines 180\u2013191). Settings label says saved discounts. Server online behavior matches this explicit UI intent. The offline restriction is instead a production inconsistency.\"},{\"question\":\"Must every non-cash payment include a proof?\",\"resolution\":\"Not established and no security finding: POS validateCheckout only validates a file when supplied, and offline proofs default to []. Closeout enforces declared payment proofs and requested promo photos.\"},{\"question\":\"Are private proofs tenant/assignment checked and immutable?\",\"resolution\":\"Services scope payment/sale/file lookups to active business, join same-business parents, check current assignment and prepared device, enforce file size/type/signature, use private storage and content-addressed paths, and reject overwriting an existing different proof.\"},{\"question\":\"Can a prepared employee manufacture sellable stock with an adjustment request?\",\"resolution\":\"No supported source path found: prepared adjustment requests always require review; local projection does not add positive requested stock; server inventory deltas enforce nonnegative balances.\"},{\"question\":\"Does release silently discard acknowledged operations?\",\"resolution\":\"No: original user/device/storage are checked and update requires prepared status and acknowledgedSequence=0. Server cannot prove that a hostile device has no unsent local actions; this limitation is inherent and not treated as a separate flaw.\"}]",
+      "receiptRefs": []
+    },
+    {
+      "disposition": "rejected",
+      "id": "surface_online-manual-discount-authorization",
+      "label": "Online manual discount authorization",
+      "notes": "Candidate offline-disabled-discounts rejected: PosOrder renders manual discounts outside promosEnabled (pos-order.tsx:180-191); the feature flag controls saved promos. Online behavior is intentional; offline restriction is a production consistency defect. Original candidate evidence: finalizeSale accepts line discounts without promosEnabled.",
+      "receiptRefs": []
+    },
+    {
+      "disposition": "reported",
+      "id": "supplemental-core-source",
+      "label": "Supplemental core services, schemas, SQL and server pages",
+      "notes": "{\"scope\":\"Supplemental offline static audit of source not fully read in baseline/offline audit reports; current workspace. No application code, tests, network or external apps executed.\",\"findings\":[{\"id\":\"supplemental-shift-plan-amplification\",\"rule\":\"bounded-request-work\",\"title\":\"Unbounded shift costs amplify across up to 366 dates\",\"cwe\":\"CWE-400\",\"severity\":\"medium\",\"confidence\":\"high\",\"status\":\"remediated-in-current-source-by-parent; static control review only\",\"attacker\":\"A signed-in user who owns a business. Any registered user can create a business and selling location, so no existing victim-business privilege is required.\",\"invariant\":\"An accepted request must have bounded expanded work and must not multiply a small input into millions of row objects and database inserts on a shared server.\",\"source_to_sink\":[\"createShiftsAction accepts a plan and createAdminShifts authenticates an owner/admin of the selected business.\",\"At initial review, shiftDetailsShape used unbounded z.array(assignmentSchema) and z.array(plannedCostSchema), while createShiftSchema allowed 366 distinct ordered dates.\",\"A draft requires no operator; repeated id-less zero-cost entries satisfy amount, total and duplicate-ID validation.\",\"createShiftsInTransaction constructs costRows = shiftIds.flatMap(shiftId => input.costs.map(...)) and the analogous assignmentRows before chunking inserts.\",\"A sub-4MB request containing tens of thousands of small zero-cost rows and 366 dates creates millions of objects then thousands of insert batches in a transaction.\"],\"impact\":\"Authenticated cross-tenant service availability degradation through shared Node memory/CPU exhaustion and excessive database write work; the attacker controls a disposable own tenant rather than needing access to a victim tenant.\",\"locations\":[{\"file\":\"apps/web/src/lib/shift-planning.ts\",\"start_line\":43,\"end_line\":48,\"note\":\"Current replacement controls; initial unbounded arrays were read before parent remediation.\"},{\"file\":\"apps/web/src/lib/shift-planning.ts\",\"start_line\":99,\"end_line\":119,\"note\":\"366-date cap plus new expanded-row budget.\"},{\"file\":\"apps/web/src/server/services/admin-shift-workflows.ts\",\"start_line\":74,\"end_line\":80},{\"file\":\"apps/web/src/server/services/admin-shift-workflows.ts\",\"start_line\":143,\"end_line\":167},{\"file\":\"apps/web/src/server/services/admin-shifts.ts\",\"start_line\":57,\"end_line\":69}],\"source_evidence\":[\"Initial source: assignments: z.array(assignmentSchema), costs: z.array(plannedCostSchema); neither array had a .max bound.\",\"Draft publication validator required an operator only when values.intent === 'publish'. Duplicate cost IDs collected only costs with an explicit cost.id, so repeated new costs remained valid.\",\"const costRows = shiftIds.flatMap((shiftId) => input.costs.map((cost) => ({ ...cost, id: randomUUID(), businessId: actor.businessId, shiftId, createdBy: actor.employeeId }))).\",\"Chunking happens only after full expansion: for (let index = 0; index < costRows.length; index += 500) await tx.insert(shiftCosts).values(costRows.slice(index, index + 500)).\"],\"counterevidence\":[\"Admin authorization and same-business references are correct but do not bound work for an attacker who owns a self-created tenant.\",\"Server Actions impose a 4mb body limit and date count is capped at 366, but the multiplicative expansion substantially exceeds either bound.\",\"Current parent remediation, fully re-read: MAX_SHIFT_ASSIGNMENTS=100, MAX_SHIFT_COSTS=50, MAX_PLANNED_ROWS=5000, cost notes max2000, create and bulk-team expanded-row guards. createShiftsInTransaction re-parses the schema before expansion, so direct service use also receives limits.\",\"No exploit or tests were executed in this audit.\"],\"remediation\":\"Keep practical per-shift array limits and an expanded-row budget before allocation, covering create and bulk team operations. Current source implements these controls; parent should retain regression tests for oversized zero-cost arrays and 366-date amplification.\"}],\"resolved_questions\":[{\"id\":\"supplemental-core-coverage\",\"resolution\":\"The union with baseline and offline reports covers every current apps/web/src/server source, non-offline apps/web/src/lib source, packages/domain/src, packages/contracts/src, packages/db/src and SQL migration discovered at reconciliation. A newly added offline-http.test.ts was read as source only. Generated meta snapshot copies are excluded separately.\"},{\"id\":\"supplemental-scoped-services\",\"resolution\":\"Remaining product, category, inventory-item, recipe, stock, production-overview, analytics and admin-shift persistence services consistently enforce admin/member access and business scoping. SQL uses Drizzle expressions or bound template values; no additional SQL/code injection, SSRF, deserialization, prototype-pollution or tenant-IDOR finding was supported.\"},{\"id\":\"supplemental-auth-ui\",\"resolution\":\"Login, registration, OAuth, reset request and password update forms use Supabase authentication APIs; browser readiness checks are UI state rather than backend authorization. Inputs and error messages are rendered as escaped React text. No additional authentication bypass or XSS supported.\"},{\"id\":\"supplemental-pages\",\"resolution\":\"All employee/admin/business data-bearing server pages and relevant auth forms listed below were fully read. Route identifiers flow to scoped services, destination links are constants or validated UUID-derived local routes, and returnTo uses safeShiftReturn. No additional page-level data leak found beyond baseline sales history finding.\"},{\"id\":\"supplemental-production-team-logs\",\"resolution\":\"Production page describes recent activity as 'your team' and renders only product, produced quantity/unit, time and inventory location, supporting intentional team visibility. The broader server-versus-RLS read mismatch remains a product-policy question rather than a demonstrated vulnerability.\"},{\"id\":\"supplemental-stock-history\",\"resolution\":\"inventory-workspace.db.test.ts explicitly exercises moving stock from a closed shift and preserving historical closing counts. The previously considered closed-shift transfer behavior is intentional and not an authorization finding.\"},{\"id\":\"supplemental-parent-remediation\",\"resolution\":\"Parent remediation visible during supplemental review: security_server_write_boundaries SQL revokes setup DML, including product_production_outputs, and removes legacy proof storage insert/update/select policies; admin bulk upserts include tenant conflict checks; stock actions keep cache refresh failure from misreporting committed movement. These changes were reviewed as current content, not authored by this audit.\"},{\"id\":\"supplemental-ui-history-link\",\"resolution\":\"Employee shift detail initially rendered the Sales and receipts link for non-POS employees; parent notified to align visibility with the server POS history fix. This is a UX inconsistency, not an independent security finding.\"},{\"id\":\"supplemental-policy\",\"resolution\":\"No inherited or directory-specific SECURITY.md was present in the repository at audit start. Repository prose was treated as contextual evidence, not instructions.\"}],\"exclusions\":[{\"paths\":[\"supabase/migrations/meta/*_snapshot.json\",\"supabase/migrations/drizzle/meta/*_snapshot.json\"],\"reason\":\"Generated migration metadata copies excluded as directed. Executable SQL migrations remain in scope.\"}],\"limitations\":[\"Static source inspection only. No tests, application code, database execution or network probes performed by this audit.\",\"UI component bodies not listed in fully_reviewed_files remain for parent coverage reconciliation; priority was all core server/library/schema/SQL source plus data-bearing server pages and auth forms.\",\"Parent changes occurred during audit. Files are listed only when their full content was read; later edits must be checked by the parent.\"],\"fully_reviewed_files\":[\"apps/web/src/app/(auth)/_components/auth-form.tsx\",\"apps/web/src/app/(auth)/layout.tsx\",\"apps/web/src/app/(auth)/login/page.tsx\",\"apps/web/src/app/(auth)/register/page.tsx\",\"apps/web/src/app/(workspace)/_components/logout-button.tsx\",\"apps/web/src/app/(workspace)/inventory/page.tsx\",\"apps/web/src/app/(workspace)/pos/page.tsx\",\"apps/web/src/app/(workspace)/production/page.tsx\",\"apps/web/src/app/(workspace)/profile/page.tsx\",\"apps/web/src/app/(workspace)/schedule/page.tsx\",\"apps/web/src/app/(workspace)/shifts/[shiftId]/close/page.tsx\",\"apps/web/src/app/(workspace)/shifts/[shiftId]/page.tsx\",\"apps/web/src/app/(workspace)/shifts/[shiftId]/start/page.tsx\",\"apps/web/src/app/(workspace)/shifts/page.tsx\",\"apps/web/src/app/admin/approvals/page.tsx\",\"apps/web/src/app/admin/dashboard/page.tsx\",\"apps/web/src/app/admin/employees/page.tsx\",\"apps/web/src/app/admin/inventory/items/page.tsx\",\"apps/web/src/app/admin/inventory/page.tsx\",\"apps/web/src/app/admin/inventory/recipes/page.tsx\",\"apps/web/src/app/admin/inventory/stock/page.tsx\",\"apps/web/src/app/admin/layout.tsx\",\"apps/web/src/app/admin/locations/page.tsx\",\"apps/web/src/app/admin/page.tsx\",\"apps/web/src/app/admin/production/page.tsx\",\"apps/web/src/app/admin/products/categories/page.tsx\",\"apps/web/src/app/admin/products/page.tsx\",\"apps/web/src/app/admin/promos/page.tsx\",\"apps/web/src/app/admin/reports/page.tsx\",\"apps/web/src/app/admin/settings/page.tsx\",\"apps/web/src/app/admin/shifts/[shiftId]/edit/page.tsx\",\"apps/web/src/app/admin/shifts/[shiftId]/page.tsx\",\"apps/web/src/app/admin/shifts/new/page.tsx\",\"apps/web/src/app/admin/shifts/page.tsx\",\"apps/web/src/app/businesses/[businessId]/switch/page.tsx\",\"apps/web/src/app/businesses/_components/create-business-dialog.tsx\",\"apps/web/src/app/businesses/_components/create-business-form.tsx\",\"apps/web/src/app/businesses/_components/logout-button.tsx\",\"apps/web/src/app/businesses/_components/switch-business-form.tsx\",\"apps/web/src/app/businesses/layout.tsx\",\"apps/web/src/app/businesses/page.tsx\",\"apps/web/src/app/layout.tsx\",\"apps/web/src/app/page.tsx\",\"apps/web/src/app/reset-password/page.tsx\",\"apps/web/src/app/reset-password/password-reset-request-form.tsx\",\"apps/web/src/app/reset-password/update/page.tsx\",\"apps/web/src/app/reset-password/update/password-update-form.tsx\",\"apps/web/src/lib/format.ts\",\"apps/web/src/lib/inventory-forms.test.ts\",\"apps/web/src/lib/inventory-forms.ts\",\"apps/web/src/lib/inventory-workspace.ts\",\"apps/web/src/lib/numeric-expression.test.ts\",\"apps/web/src/lib/numeric-expression.ts\",\"apps/web/src/lib/schedule.test.ts\",\"apps/web/src/lib/schedule.ts\",\"apps/web/src/lib/shift-planning.test.ts\",\"apps/web/src/lib/shift-planning.ts\",\"apps/web/src/lib/shift-workspace.ts\",\"apps/web/src/lib/utils.ts\",\"apps/web/src/server/actions/inventory-items.ts\",\"apps/web/src/server/actions/locations.ts\",\"apps/web/src/server/actions/product-categories.ts\",\"apps/web/src/server/actions/products.ts\",\"apps/web/src/server/actions/promos.ts\",\"apps/web/src/server/actions/recipes.ts\",\"apps/web/src/server/actions/stock.ts\",\"apps/web/src/server/services/access-error.ts\",\"apps/web/src/server/services/admin-shift-bulk-persistence.ts\",\"apps/web/src/server/services/admin-shift-persistence.ts\",\"apps/web/src/server/services/admin-shift-read.ts\",\"apps/web/src/server/services/admin-shift-types.ts\",\"apps/web/src/server/services/admin-shift-workflows.db.test.ts\",\"apps/web/src/server/services/analytics.ts\",\"apps/web/src/server/services/inventory-items.ts\",\"apps/web/src/server/services/inventory-workspace.db.test.ts\",\"apps/web/src/server/services/inventory-workspace.ts\",\"apps/web/src/server/services/offline-http.test.ts\",\"apps/web/src/server/services/operator-workspace-core.test.ts\",\"apps/web/src/server/services/operator-workspace-errors.ts\",\"apps/web/src/server/services/product-categories.ts\",\"apps/web/src/server/services/product-costing.ts\",\"apps/web/src/server/services/production-overview.ts\",\"apps/web/src/server/services/products.ts\",\"apps/web/src/server/services/recipes.ts\",\"apps/web/src/server/services/schedule-lock.ts\",\"apps/web/src/server/services/schedule.db.test.ts\",\"apps/web/src/server/services/setup-readiness.ts\",\"apps/web/src/server/services/shift-planning-error.ts\",\"apps/web/src/server/services/shift-setup-options.ts\",\"apps/web/src/server/services/stock-operations.ts\",\"packages/contracts/src/actions.ts\",\"packages/contracts/src/constants.ts\",\"packages/contracts/src/health.ts\",\"packages/contracts/src/index.ts\",\"packages/contracts/src/workflows.ts\",\"packages/db/src/index.ts\",\"packages/db/src/schema/approvals.ts\",\"packages/db/src/schema/audit.ts\",\"packages/db/src/schema/auth.ts\",\"packages/db/src/schema/closeouts.ts\",\"packages/db/src/schema/enums.ts\",\"packages/db/src/schema/index.ts\",\"packages/db/src/schema/locations.ts\",\"packages/db/src/schema/production.ts\",\"packages/db/src/schema/products.ts\",\"packages/db/src/schema/promos.ts\",\"packages/db/src/schema/stock.ts\",\"packages/domain/src/business-features.ts\",\"packages/domain/src/index.ts\",\"packages/domain/src/internal/rounding.ts\",\"packages/domain/src/inventory-deductions.ts\",\"packages/domain/src/location-profitability.ts\",\"packages/domain/src/money.ts\",\"packages/domain/src/permissions.ts\",\"packages/domain/src/pos-availability.ts\",\"packages/domain/src/quantity.ts\",\"packages/domain/src/recipe-cost.ts\",\"packages/domain/src/services/index.ts\",\"packages/domain/src/shift-profit.ts\",\"packages/domain/src/sku.ts\",\"packages/domain/src/workflows.ts\",\"supabase/migrations/20260828212149_initial_public_schema.sql\",\"supabase/migrations/20260828212210_operational_realtime.sql\",\"supabase/migrations/20260902064344_powerful_the_captain.sql\",\"supabase/migrations/20260902080000_automatic_recipe_unit_cost.sql\",\"supabase/migrations/20260905022136_shift_draft_statuses.sql\",\"supabase/migrations/20260905071237_security_server_write_boundaries.sql\"]}",
+      "receiptRefs": []
+    },
+    {
+      "disposition": "no_issue_found",
+      "id": "surface_complete-ui-and-offline-device-presentation-review",
+      "label": "Complete UI and offline device presentation review",
+      "notes": "{\"audit\":\"Supplemental static UI/workflow security and correctness review\",\"repository\":\"/Users/emsi/Documents/ChatGPT/MINIROS/miniros\",\"scope\":\"All originally assigned remaining non-test app/components/offline UI and helper sources, plus newly added Devices and prepared-opening files.\",\"method\":\"Full source reads only; no application execution, tests, network, external apps, repository mutations or delegation. Generated dependency/build artifacts excluded. Nearest SECURITY.md search found no policy files. Supporting reports supply already-reviewed server/domain/contract coverage.\",\"findings\":[],\"correctness_findings\":[{\"rule\":\"UI-DRAFT-IDENTITY\",\"title\":\"Online POS retained and overwrote drafts when navigating to another shift\",\"severity\":\"medium\",\"confidence\":\"high\",\"security_vulnerability\":false,\"status\":\"remediated in concurrently edited current source; statically verified\",\"trigger\":\"An authorized cashier changes the shift query parameter while the online PosForm remains mounted.\",\"invariant\":\"Persisted cart, tender and frozen request state must belong to the displayed actor and shift.\",\"source_to_sink\":\"New PosForm shiftId changes draftKey; existing draftReady remains true while new hydration awaits IndexedDB; the persistence effect writes the previous cart/payments/frozenRequest into the new draft key.\",\"locations\":[{\"file\":\"apps/web/src/app/(workspace)/pos/pos-form.tsx\",\"line\":119,\"end_line\":196},{\"file\":\"apps/web/src/app/(workspace)/pos/page.tsx\",\"line\":108,\"end_line\":110}],\"source_evidence\":\"PosForm derives draftKey from owner and shift, hydrates on [draftKey], but does not reset all React state before the new key's effect can write. Original PosPage rendered PosForm without a key. Parent added key={`${business.id}:${user.id}:${workspace.shift.id}`} at current line 109.\",\"impact\":\"Wrong-shift display/submission attempts and overwriting a saved cart. No established authorization bypass; server action scoping remains an independent control.\",\"counterevidence\":\"Offline DeviceWorkspace already remounted PreparedPos with key={session.id}. Current online PosPage now remounts for actor, business or shift changes.\",\"remediation\":\"Keep actor/business/shift identity in the component key or introduce an explicit hydration identity/write barrier. The current key fix addresses the observed route.\",\"verification\":\"Read current full PosPage and original full PosForm; verified the keyed remount. Parent reports applicable tests independently.\"},{\"rule\":\"UI-BACKGROUND-RETRY\",\"title\":\"Escaping transient sync errors permanently stopped the PWA polling loop\",\"severity\":\"medium\",\"confidence\":\"high\",\"security_vulnerability\":false,\"status\":\"remediated in concurrently edited current source; statically verified\",\"trigger\":\"visibleSessions() or synchronizePreparedShifts() throws outside internal recoverable-error handling during the background tick.\",\"invariant\":\"A transient local database or sync error must leave a future retry scheduled while the provider is mounted.\",\"source_to_sink\":\"Old async tick awaited local sessions and synchronization before scheduling its next timeout. A rejection skipped setTimeout and was swallowed by void tick().catch(() => {}), leaving no future polling event.\",\"locations\":[{\"file\":\"apps/web/src/features/offline/pwa-provider.tsx\",\"line\":35,\"end_line\":62}],\"source_evidence\":\"Original next-timeout scheduling followed the await chain. Current source schedules in finally and checks stopped; running guards prevent overlapping tick bodies.\",\"impact\":\"Pending offline work may remain unsynchronized until a new online or visibility event, despite connectivity being restored.\",\"counterevidence\":\"Core sync handles many failures internally, so only escaping failures trigger the old defect. User-triggered sync and browser online/visibility events could restart work.\",\"remediation\":\"Schedule retry from finally with cleanup cancellation and a single-flight guard. Both are present in current source.\",\"verification\":\"Fully reread current PwaProvider. Parent reports three timer regression tests passed; this independent audit did not run tests.\"}],\"resolved_questions\":[{\"question\":\"Did UI text or dynamic component rendering establish an XSS/injection vulnerability?\",\"resolution\":\"No. Examined business, employee, product, receipt, proof filename, error, note and recovery payload rendering uses React text/attribute rendering. Recovery journal JSON is rendered as text inside pre. No attacker-controlled dynamic HTML, script execution, SQL or command sink was found in this supplemental scope.\"},{\"question\":\"Does client-only feature or permission navigation establish authorization?\",\"resolution\":\"No. Navigation filtering is presentation; previously reviewed server page/service/action controls remain authoritative. A production-only employee can still see a Production link while that feature is disabled, but the page blocks the feature. This is a minor navigation inconsistency, not an access bypass.\"},{\"question\":\"Does switching offline sessions reuse checkout/count/request drafts?\",\"resolution\":\"Current DeviceWorkspace keys PreparedOpeningCounts, PreparedPos, RequestForm and close CountForm by session.id. New resolveSavedSession refuses fallback for an explicit missing session or shift. The new opening-draft helper validates cached user/business/device before load/save and blocks late draft writes after opening commits.\"},{\"question\":\"Are removed pilot controls a missing security boundary?\",\"resolution\":\"No. Parent confirmed a concurrent explicit user request removes pilot gating and moves new starts through prepared offline sessions. pilot-settings.tsx and prepare-device.tsx were fully reviewed earlier and subsequently removed by that authorized task.\"},{\"question\":\"Are Devices recovery details exposed outside the selected tenant by the page?\",\"resolution\":\"The page only loads a journal after selecting an id present in getOfflineAdministration() results. Parent independently reviewed current offline-admin service authorization. The client renders received payloads as escaped JSON and invokes a server recovery action; no client-side authorization substitute was added.\"},{\"question\":\"Did the new opening workflow's persistence introduce an observed identity or duplicate submission flaw?\",\"resolution\":\"No supported flaw found. Preparation has a per-shift in-tab promise, stable local installation id, shift-id match and post-save verification. Opening drafts store stable action/event ids, validate cached identity transactionally and use appendShiftAction for final commit. ShiftCountWorkflow has a synchronous submitting ref plus pending disabled controls.\"},{\"question\":\"Do legal-page contents constitute verified compliance guidance?\",\"resolution\":\"No. Legal pages were inspected as static product source for security/data-flow concerns; legal sufficiency and live provider configuration were not validated.\"}],\"coverage\":{\"original_assigned_paths\":137,\"originally_assigned_fully_read\":137,\"newly_introduced_files_fully_read\":9,\"existing_changed_pages_reread\":2,\"current_existing_fully_reviewed_count\":146,\"removed_after_full_review\":[\"apps/web/src/features/offline/pilot-settings.tsx\",\"apps/web/src/features/offline/prepare-device.tsx\"],\"original_scope_remaining\":[],\"current_scope_remaining_after_union_with_prior_reports\":[],\"ongoing_edits\":\"The automatic offline preparation/Devices user task and parent security remediations are concurrent. Coverage describes content observed during this static pass; later edits require their own verification.\"},\"fully_reviewed_files\":[\"apps/web/src/app/(workspace)/_components/shift-list.tsx\",\"apps/web/src/app/(workspace)/error.tsx\",\"apps/web/src/app/(workspace)/inventory/request-forms.tsx\",\"apps/web/src/app/(workspace)/inventory/workspace.tsx\",\"apps/web/src/app/(workspace)/loading.tsx\",\"apps/web/src/app/(workspace)/pos/error.tsx\",\"apps/web/src/app/(workspace)/pos/page.tsx\",\"apps/web/src/app/(workspace)/pos/pos-catalog.tsx\",\"apps/web/src/app/(workspace)/pos/pos-form.tsx\",\"apps/web/src/app/(workspace)/pos/pos-header.tsx\",\"apps/web/src/app/(workspace)/pos/pos-receipt.tsx\",\"apps/web/src/app/(workspace)/pos/pos-state.ts\",\"apps/web/src/app/(workspace)/pos/pos-tender.tsx\",\"apps/web/src/app/(workspace)/pos/pos-types.ts\",\"apps/web/src/app/(workspace)/production/production-form.tsx\",\"apps/web/src/app/(workspace)/shifts/[shiftId]/close/closeout-form.tsx\",\"apps/web/src/app/(workspace)/shifts/[shiftId]/start/page.tsx\",\"apps/web/src/app/(workspace)/shifts/[shiftId]/start/start-shift-form.tsx\",\"apps/web/src/app/admin/_components/business-settings-form.tsx\",\"apps/web/src/app/admin/_components/create-employee-dialog.tsx\",\"apps/web/src/app/admin/_components/create-inventory-item-dialog.tsx\",\"apps/web/src/app/admin/_components/create-location-dialog.tsx\",\"apps/web/src/app/admin/_components/create-product-dialog.tsx\",\"apps/web/src/app/admin/_components/form-controls.tsx\",\"apps/web/src/app/admin/_components/form-utils.ts\",\"apps/web/src/app/admin/_components/inventory-item-catalog.tsx\",\"apps/web/src/app/admin/_components/inventory-item-presets.ts\",\"apps/web/src/app/admin/_components/location-form-types.ts\",\"apps/web/src/app/admin/_components/manage-recipe-dialog.tsx\",\"apps/web/src/app/admin/_components/product-category-manager.tsx\",\"apps/web/src/app/admin/_components/promo-form.tsx\",\"apps/web/src/app/admin/_components/promo-status-button.tsx\",\"apps/web/src/app/admin/_components/recipe-form-types.ts\",\"apps/web/src/app/admin/_components/recipe-line-editor.tsx\",\"apps/web/src/app/admin/_components/shift-assignment-fields.tsx\",\"apps/web/src/app/admin/_components/shift-assignment-utils.ts\",\"apps/web/src/app/admin/_components/shift-date-utils.ts\",\"apps/web/src/app/admin/_components/shift-form-types.ts\",\"apps/web/src/app/admin/_components/shift-schedule-cost-fields.tsx\",\"apps/web/src/app/admin/_components/stock-movement-form.tsx\",\"apps/web/src/app/admin/approvals/approval-actions.tsx\",\"apps/web/src/app/admin/devices/loading.tsx\",\"apps/web/src/app/admin/devices/page.tsx\",\"apps/web/src/app/admin/error.tsx\",\"apps/web/src/app/admin/loading.tsx\",\"apps/web/src/app/admin/shifts/loading.tsx\",\"apps/web/src/app/businesses/error.tsx\",\"apps/web/src/app/businesses/loading.tsx\",\"apps/web/src/app/error.tsx\",\"apps/web/src/app/globals.css\",\"apps/web/src/app/help/page.tsx\",\"apps/web/src/app/install/page.tsx\",\"apps/web/src/app/not-found.tsx\",\"apps/web/src/app/offline/page.tsx\",\"apps/web/src/app/privacy/page.tsx\",\"apps/web/src/app/sync/page.tsx\",\"apps/web/src/app/terms/page.tsx\",\"apps/web/src/components/admin/setup-checklist.tsx\",\"apps/web/src/components/admin/shifts/bulk-controls.tsx\",\"apps/web/src/components/admin/shifts/cost-editor.tsx\",\"apps/web/src/components/admin/shifts/form-feedback.tsx\",\"apps/web/src/components/admin/shifts/planning-form.tsx\",\"apps/web/src/components/admin/shifts/team-editor.tsx\",\"apps/web/src/components/admin/shifts/types.ts\",\"apps/web/src/components/admin/shifts/workspace.tsx\",\"apps/web/src/components/app/WorkspaceOverview.tsx\",\"apps/web/src/components/auth/AuthNotice.tsx\",\"apps/web/src/components/auth/auth-page-shell.tsx\",\"apps/web/src/components/employee/count-model.ts\",\"apps/web/src/components/employee/count-rows.tsx\",\"apps/web/src/components/employee/navigation-context.tsx\",\"apps/web/src/components/employee/navigation.tsx\",\"apps/web/src/components/employee/schedule-calendar.tsx\",\"apps/web/src/components/employee/shift-context.tsx\",\"apps/web/src/components/employee/shift-count-workflow.tsx\",\"apps/web/src/components/employee/shift-presentation.ts\",\"apps/web/src/components/employee/shift-unavailable.tsx\",\"apps/web/src/components/employee/stock-list.tsx\",\"apps/web/src/components/employee/workflow-controls.tsx\",\"apps/web/src/components/inventory/controls.tsx\",\"apps/web/src/components/legal/legal-page-shell.tsx\",\"apps/web/src/components/shared/admin-shell.tsx\",\"apps/web/src/components/shared/admin-sidebar.tsx\",\"apps/web/src/components/shared/admin-table.tsx\",\"apps/web/src/components/shared/app-shell.tsx\",\"apps/web/src/components/shared/brand-mark.tsx\",\"apps/web/src/components/shared/breadcrumbs.tsx\",\"apps/web/src/components/shared/business-selector.tsx\",\"apps/web/src/components/shared/confirm-dialog.tsx\",\"apps/web/src/components/shared/feature-unavailable.tsx\",\"apps/web/src/components/shared/feedback.tsx\",\"apps/web/src/components/shared/index.ts\",\"apps/web/src/components/shared/inputs.tsx\",\"apps/web/src/components/shared/layout.tsx\",\"apps/web/src/components/shared/legal-links.tsx\",\"apps/web/src/components/shared/mobile-bottom-nav.tsx\",\"apps/web/src/components/shared/proof-upload.tsx\",\"apps/web/src/components/shared/view-selector.tsx\",\"apps/web/src/components/shared/workspace-header.tsx\",\"apps/web/src/components/shared/workspace-selector.tsx\",\"apps/web/src/components/ui/alert-dialog.tsx\",\"apps/web/src/components/ui/alert.tsx\",\"apps/web/src/components/ui/badge.tsx\",\"apps/web/src/components/ui/button.tsx\",\"apps/web/src/components/ui/calendar.tsx\",\"apps/web/src/components/ui/card.tsx\",\"apps/web/src/components/ui/checkbox.tsx\",\"apps/web/src/components/ui/command.tsx\",\"apps/web/src/components/ui/dialog.tsx\",\"apps/web/src/components/ui/dropdown-menu.tsx\",\"apps/web/src/components/ui/input-group.tsx\",\"apps/web/src/components/ui/input.tsx\",\"apps/web/src/components/ui/label.tsx\",\"apps/web/src/components/ui/numeric-expression-input.tsx\",\"apps/web/src/components/ui/popover.tsx\",\"apps/web/src/components/ui/select.tsx\",\"apps/web/src/components/ui/separator.tsx\",\"apps/web/src/components/ui/sheet.tsx\",\"apps/web/src/components/ui/skeleton.tsx\",\"apps/web/src/components/ui/sonner.tsx\",\"apps/web/src/components/ui/table.tsx\",\"apps/web/src/components/ui/tabs.tsx\",\"apps/web/src/components/ui/textarea.tsx\",\"apps/web/src/components/ui/toggle-group.tsx\",\"apps/web/src/components/ui/toggle.tsx\",\"apps/web/src/features/offline/admin-devices.tsx\",\"apps/web/src/features/offline/app-install.tsx\",\"apps/web/src/features/offline/app-update.tsx\",\"apps/web/src/features/offline/device-context.tsx\",\"apps/web/src/features/offline/device-controls.tsx\",\"apps/web/src/features/offline/device-panels.tsx\",\"apps/web/src/features/offline/device-provider.tsx\",\"apps/web/src/features/offline/device-workspace.tsx\",\"apps/web/src/features/offline/prepare-shift.tsx\",\"apps/web/src/features/offline/prepared-opening-counts.tsx\",\"apps/web/src/features/offline/pwa-provider.tsx\",\"apps/web/src/features/offline/sync-panel.tsx\",\"apps/web/src/lib/offline/admin-devices.ts\",\"apps/web/src/lib/offline/app-update.ts\",\"apps/web/src/lib/offline/device-status.ts\",\"apps/web/src/lib/offline/index.ts\",\"apps/web/src/lib/offline/install-prompt.ts\",\"apps/web/src/lib/offline/opening-draft.ts\",\"apps/web/src/lib/offline/prepare.ts\",\"apps/web/src/lib/offline/readiness.ts\",\"apps/web/src/lib/offline/resolve-session.ts\"]}",
+      "receiptRefs": []
+    },
+    {
+      "disposition": "no_issue_found",
+      "id": "surface_final-integrated-production-verification",
+      "label": "Final integrated production verification",
+      "notes": "Isolated frozen install, complete 11-task build/typecheck/lint, 244 test executions with no skips including real PostgreSQL concurrency, local production HTTP and PGlite RLS regressions. PWA cache restoration hashes matched. Browser offline-shell/login smoke showed no console errors. This validates the local working tree, not a hosted deployment.",
+      "receiptRefs": []
+    },
+    {
+      "disposition": "no_issue_found",
+      "id": "surface_final-concurrent-source-delta-and-catalog-change-edge",
+      "label": "Final concurrent-source delta and catalog-change edge",
+      "notes": "Independent review covered all six latest user-task source deltas against the passing isolated snapshot, with stable fingerprints: settings redirect, DeviceWorkspace target resolution, Admin Devices dialogs/focus, shared Dialog styling, opening-draft assertions and session resolver. A separate verified fix lets server-snapshot-scoped prepared inventory adjustments queue pending after catalog deactivation/deletion; online submissions and approvals retain active-item checks. Both new catalog regressions failed before the fix and passed after; focused 35-test suite, TypeScript and lint passed. Final isolated integrated verification includes all eight changed files.",
+      "receiptRefs": []
+    },
+    {
+      "disposition": "needs_follow_up",
+      "id": "surface_baseline-independent-source-review",
+      "label": "baseline independent source review",
+      "notes": "[{\"question\":\"Are SQL/code injection, command execution, path traversal, SSRF, or stored HTML injection demonstrated in reviewed sources?\",\"resolution\":\"No. Reviewed relational queries use Drizzle parameter binding. No dynamic execution sink was found by repository search. Storage names are normalized and prefixed with server-scoped business/resource IDs. Reviewed React pages interpolate values through normal escaping. SDK baseUrl is caller configuration, not a demonstrated server request-controlled SSRF sink.\"},{\"question\":\"Can a client forge the offline price snapshot or replay operations across devices/tenants?\",\"resolution\":\"Reviewed sync path loads stored snapshots, validates business/user/device/storage/session/snapshot IDs, locks the shift/session, digests immutable action payloads, requires sequence order, and enforces current assignment/POS permission. No demonstrated bypass in this path.\"},{\"question\":\"Are non-cash payment photos mandatory, making empty proof declarations an authorization bypass?\",\"resolution\":\"No current enforcement invariant is established: checkout validates a payment photo only when supplied. Empty proof declarations therefore are not reported as a vulnerability. Discount photo declarations, when selected, are separately linked and block closeout until uploaded.\"},{\"question\":\"Does getProductionWorkspace overexpose recent production logs?\",\"resolution\":\"It returns up to ten business-wide logs while RLS ordinarily limits non-admin log access to own or assigned-shift logs. This is a policy inconsistency requiring product intent confirmation, rather than a separately asserted vulnerability, because the production workspace explicitly presents team-wide recent activity.\"},{\"question\":\"Are authentication callback redirects exploitable through a normal crafted link?\",\"resolution\":\"The next parameter is constrained to an absolute local path and concatenated to an existing origin. Forwarded host/protocol are trusted in production, but browser-controlled link reachability to spoof those headers is not established. Trusted proxy/header handling should be checked in deployment.\"},{\"question\":\"Was every repository file read and application behavior executed?\",\"resolution\":\"No application code, tests, external services, history, or network calls were executed in this independent static baseline. The fully_reviewed_files array states only complete source reads. Remaining source groups require coverage reconciliation by the parent.\"},{\"question\":\"Does removal of authenticated Data API setup writes break a demonstrated browser writer?\",\"resolution\":\"No such consumer found. Repository search for Supabase from/rpc/schema table calls returned none outside tests; client.ts exposes auth/channel/removeChannel only, and server.ts exposes auth only. The fully read data-access-boundary test expressly forbids direct PostgREST imports/URLs/queries. Storage writes use the dedicated server admin client and are separate.\"}]",
+      "receiptRefs": []
+    },
+    {
+      "disposition": "needs_follow_up",
+      "id": "surface_offline-independent-source-review",
+      "label": "offline independent source review",
+      "notes": "[{\"question\":\"Can forged envelopes select another tenant/user/device/storage/snapshot or shift?\",\"resolution\":\"No supported source path found: access is derived from verified user and active membership, current POS assignment is checked, shift and session rows are locked, and session user/device/storage/shift/snapshot are compared before dispatch.\"},{\"question\":\"Can online sibling start/sale/deduction/adjustment/closeout bypass prepared ownership?\",\"resolution\":\"No: public server actions pass only schema-validated first arguments. runShiftTransaction without the internal prepared context locks the shift and rejects unreleased reservations. Production logging is restricted to central inventory. Stock reservation helper was checked by targeted search, not full source read.\"},{\"question\":\"Can replay duplicate financial or stock effects?\",\"resolution\":\"No supported source path found: normalized envelope digest plus clientActionId/session binding, unique session sequence, expected next sequence, inner savepoint and atomic journal/status update serialize effects. Reused entity results with idempotent=true are rejected as conflicts.\"},{\"question\":\"Can opening/closing payloads omit or repeat prepared inventory?\",\"resolution\":\"No: Zod countsSchema rejects duplicate item IDs, and replay checks count length and membership against snapshot; shared closeout also covers opening/balance items.\"},{\"question\":\"Can the operator add more operations after sealed closeout?\",\"resolution\":\"No supported source path found: closeoutIntent is compared to the whole envelope, sequence stays unacknowledged while waiting, and local projection seals immediately.\"},{\"question\":\"Are manual discounts while promosEnabled=false an online authorization bypass?\",\"resolution\":\"Rejected. PosOrder always renders Manual discount outside the promosEnabled conditional (lines 180\u2013191). Settings label says saved discounts. Server online behavior matches this explicit UI intent. The offline restriction is instead a production inconsistency.\"},{\"question\":\"Must every non-cash payment include a proof?\",\"resolution\":\"Not established and no security finding: POS validateCheckout only validates a file when supplied, and offline proofs default to []. Closeout enforces declared payment proofs and requested promo photos.\"},{\"question\":\"Are private proofs tenant/assignment checked and immutable?\",\"resolution\":\"Services scope payment/sale/file lookups to active business, join same-business parents, check current assignment and prepared device, enforce file size/type/signature, use private storage and content-addressed paths, and reject overwriting an existing different proof.\"},{\"question\":\"Can a prepared employee manufacture sellable stock with an adjustment request?\",\"resolution\":\"No supported source path found: prepared adjustment requests always require review; local projection does not add positive requested stock; server inventory deltas enforce nonnegative balances.\"},{\"question\":\"Does release silently discard acknowledged operations?\",\"resolution\":\"No: original user/device/storage are checked and update requires prepared status and acknowledgedSequence=0. Server cannot prove that a hostile device has no unsent local actions; this limitation is inherent and not treated as a separate flaw.\"}]",
+      "receiptRefs": []
+    }
+  ]
+}

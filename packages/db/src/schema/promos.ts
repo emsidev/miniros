@@ -1,4 +1,11 @@
-import { numeric, pgTable, text, timestamp, uuid } from "drizzle-orm/pg-core";
+import {
+  boolean,
+  numeric,
+  pgTable,
+  text,
+  timestamp,
+  uuid,
+} from "drizzle-orm/pg-core";
 import { businesses } from "./business";
 import { discountTypeEnum, promoStatusEnum } from "./enums";
 
@@ -8,6 +15,7 @@ export const promoRules = pgTable("promo_rules", {
     .notNull()
     .references(() => businesses.id, { onDelete: "cascade" }),
   name: text("name").notNull(),
+  requiresPhoto: boolean("requires_photo").default(false).notNull(),
   discountType: discountTypeEnum("discount_type").notNull(),
   discountValue: numeric("discount_value", {
     precision: 14,

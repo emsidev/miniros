@@ -33,6 +33,7 @@ export async function requireCurrentAssignment(
   businessId: string,
   shiftId: string,
   employeeId: string,
+  allowCompleted = false,
 ) {
   const [assignment] = await tx
     .select({ id: shiftAssignments.id, status: shiftAssignments.status })
@@ -42,7 +43,12 @@ export async function requireCurrentAssignment(
         eq(shiftAssignments.businessId, businessId),
         eq(shiftAssignments.shiftId, shiftId),
         eq(shiftAssignments.employeeId, employeeId),
-        inArray(shiftAssignments.status, ["assigned", "confirmed"]),
+        inArray(
+          shiftAssignments.status,
+          allowCompleted
+            ? ["assigned", "confirmed", "completed"]
+            : ["assigned", "confirmed"],
+        ),
       ),
     )
     .limit(1);

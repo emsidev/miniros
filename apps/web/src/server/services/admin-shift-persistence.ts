@@ -6,90 +6,135 @@ import {
   shiftAssignments,
   shiftCosts,
 } from "@miniros/db/schema";
-import { and, eq, inArray, isNull } from "drizzle-orm";
-import { AccessError } from "./access";
-import type { ShiftAssignmentInput } from "./admin-shift-types";
+import { and, eq, inArray, notInArray } from "drizzle-orm";
+import {
+  type PlannedCostInput,
+  type ShiftAssignmentInput,
+} from "@/lib/shift-planning";
+import { ShiftPlanningError } from "./shift-planning-error";
 
-type DatabaseTransaction = Parameters<
+export type ShiftTransaction = Parameters<
   Parameters<Database["transaction"]>[0]
 >[0];
 
 export async function requireScopedLocation(
-  tx: DatabaseTransaction,
+  tx: ShiftTransaction,
   businessId: string,
   locationId: string,
+  publishing = true,
 ) {
   const [location] = await tx
-    .select({
-      id: sellingLocations.id,
-      name: sellingLocations.name,
-      defaultRentalCostCents: sellingLocations.defaultRentalCostCents,
-      defaultTransportCostCents: sellingLocations.defaultTransportCostCents,
-    })
+    .select()
     .from(sellingLocations)
     .where(
       and(
         eq(sellingLocations.id, locationId),
         eq(sellingLocations.businessId, businessId),
-        eq(sellingLocations.status, "active"),
-        isNull(sellingLocations.deletedAt),
       ),
     )
-    .limit(1);
+    .limit(1)
+    .for("share");
+  return validateLocation(location, publishing);
+}
 
-  if (!location) {
-    throw new AccessError("The selected selling location is unavailable.");
+export function validateLocation(
+  location: typeof sellingLocations.$inferSelect | undefined,
+  publishing: boolean,
+) {
+  if (
+    !location ||
+    (publishing && (location.status !== "active" || location.deletedAt))
+  ) {
+    throw new ShiftPlanningError("Choose an available selling location.", {
+      sellingLocationId: [
+        "This location is unavailable. Choose an active location before publishing.",
+      ],
+    });
   }
   return location;
 }
 
 export async function requireScopedAssignments(
-  tx: DatabaseTransaction,
+  tx: ShiftTransaction,
   businessId: string,
   assignments: ShiftAssignmentInput[],
+  publishing = true,
 ) {
-  const employeeIds = assignments.map((item) => item.employeeId);
-  const scopedEmployees = await tx
-    .select({
-      id: employees.id,
-      displayName: employees.displayName,
-      canUsePos: employees.canUsePos,
-    })
+  if (!assignments.length) {
+    validateAssignments(assignments, new Map(), publishing);
+    return;
+  }
+  const rows = await tx
+    .select()
     .from(employees)
     .where(
       and(
         eq(employees.businessId, businessId),
-        inArray(employees.id, employeeIds),
-        eq(employees.status, "active"),
-        isNull(employees.deletedAt),
+        inArray(
+          employees.id,
+          assignments.map((item) => item.employeeId),
+        ),
       ),
-    );
-
-  if (scopedEmployees.length !== employeeIds.length) {
-    throw new AccessError("One or more assigned employees are unavailable.");
-  }
-
-  const employeeById = new Map(
-    scopedEmployees.map((employee) => [employee.id, employee]),
+    )
+    .orderBy(employees.id)
+    .for("share");
+  validateAssignments(
+    assignments,
+    new Map(rows.map((item) => [item.id, item])),
+    publishing,
   );
-  for (const assignment of assignments) {
-    const employee = employeeById.get(assignment.employeeId);
-    if (assignment.roleOnShift === "operator" && !employee?.canUsePos) {
-      throw new AccessError(
-        `${employee?.displayName ?? "The selected employee"} does not have POS permission.`,
-      );
-    }
+}
+
+export function validateAssignments(
+  assignments: ShiftAssignmentInput[],
+  byId: Map<string, typeof employees.$inferSelect>,
+  publishing: boolean,
+) {
+  if (
+    publishing &&
+    !assignments.some((item) => item.roleOnShift === "operator")
+  ) {
+    throw new ShiftPlanningError("Add a POS operator before publishing.", {
+      assignments: [
+        "Assign at least one employee with POS access as an operator.",
+      ],
+    });
   }
+
+  const errors: Record<string, string[]> = {};
+  assignments.forEach((assignment, index) => {
+    const employee = byId.get(assignment.employeeId);
+    if (
+      !employee ||
+      (publishing && (employee.status !== "active" || employee.deletedAt))
+    )
+      errors[`assignments.${index}.employeeId`] = [
+        "This employee is unavailable. Remove or replace them before publishing.",
+      ];
+    else if (
+      publishing &&
+      assignment.roleOnShift === "operator" &&
+      !employee.canUsePos
+    )
+      errors[`assignments.${index}.roleOnShift`] = [
+        `${employee.displayName} does not have POS access.`,
+      ];
+  });
+  if (Object.keys(errors).length)
+    throw new ShiftPlanningError(
+      "Review the highlighted team members.",
+      errors,
+    );
 }
 
 export async function replaceAssignments(
-  tx: DatabaseTransaction,
+  tx: ShiftTransaction,
   businessId: string,
   shiftId: string,
   assignments: ShiftAssignmentInput[],
-  cancelled: boolean,
+  status: "draft" | "assigned",
 ) {
-  const existingAssignments = await tx
+  const existing = await tx
     .select()
     .from(shiftAssignments)
     .where(
@@ -98,139 +143,109 @@ export async function replaceAssignments(
         eq(shiftAssignments.shiftId, shiftId),
       ),
     );
-  const existingByEmployee = new Map(
-    existingAssignments.map((assignment) => [
-      assignment.employeeId,
-      assignment,
-    ]),
-  );
-  const requestedIds = new Set(assignments.map((item) => item.employeeId));
+  const byEmployee = new Map(existing.map((item) => [item.employeeId, item]));
+  const requested = new Set(assignments.map((item) => item.employeeId));
   const now = new Date();
-
-  for (const existing of existingAssignments) {
-    if (!requestedIds.has(existing.employeeId)) {
-      await tx
-        .update(shiftAssignments)
-        .set({ status: "cancelled", updatedAt: now })
-        .where(
-          and(
-            eq(shiftAssignments.id, existing.id),
-            eq(shiftAssignments.businessId, businessId),
-            eq(shiftAssignments.shiftId, shiftId),
-          ),
-        );
-    }
+  for (const item of existing.filter(
+    (item) => !requested.has(item.employeeId),
+  )) {
+    await tx
+      .update(shiftAssignments)
+      .set({ status: "cancelled", updatedAt: now })
+      .where(
+        and(
+          eq(shiftAssignments.id, item.id),
+          eq(shiftAssignments.businessId, businessId),
+        ),
+      );
   }
-
-  const newAssignments: (typeof shiftAssignments.$inferInsert)[] = [];
   for (const assignment of assignments) {
-    const existing = existingByEmployee.get(assignment.employeeId);
-    if (existing) {
+    const item = byEmployee.get(assignment.employeeId);
+    if (item) {
       await tx
         .update(shiftAssignments)
         .set({
-          roleOnShift: assignment.roleOnShift,
-          salaryRateCents: assignment.salaryRateCents,
-          status: cancelled ? "cancelled" : "assigned",
+          ...assignment,
+          status:
+            status === "assigned" && item.status === "confirmed"
+              ? "confirmed"
+              : status,
           updatedAt: now,
         })
         .where(
           and(
-            eq(shiftAssignments.id, existing.id),
+            eq(shiftAssignments.id, item.id),
             eq(shiftAssignments.businessId, businessId),
-            eq(shiftAssignments.shiftId, shiftId),
           ),
         );
     } else {
-      newAssignments.push({
+      await tx.insert(shiftAssignments).values({
         id: randomUUID(),
         businessId,
         shiftId,
-        employeeId: assignment.employeeId,
-        roleOnShift: assignment.roleOnShift,
-        salaryRateCents: assignment.salaryRateCents,
-        status: cancelled ? "cancelled" : "assigned",
+        ...assignment,
+        status,
       });
     }
   }
-
-  if (newAssignments.length) {
-    await tx.insert(shiftAssignments).values(newAssignments);
-  }
 }
 
-async function insertDefaultLocationCosts(
-  tx: DatabaseTransaction,
+export async function replacePlannedCosts(
+  tx: ShiftTransaction,
   businessId: string,
   shiftId: string,
-  location: Awaited<ReturnType<typeof requireScopedLocation>>,
+  costs: PlannedCostInput[],
   actorEmployeeId: string | null,
 ) {
-  const costs: (typeof shiftCosts.$inferInsert)[] = [
-    {
-      id: randomUUID(),
-      businessId,
-      shiftId,
-      costType: "rent",
-      label: "Rental cost",
-      amountCents: location.defaultRentalCostCents,
-      createdBy: actorEmployeeId,
-    },
-    {
-      id: randomUUID(),
-      businessId,
-      shiftId,
-      costType: "transport",
-      label: "Transport cost",
-      amountCents: location.defaultTransportCostCents,
-      createdBy: actorEmployeeId,
-    },
-  ];
-  await tx.insert(shiftCosts).values(costs);
-
-  return {
-    rentalCostCents: location.defaultRentalCostCents,
-    transportCostCents: location.defaultTransportCostCents,
-  };
-}
-
-export async function createDefaultLocationCosts(
-  tx: DatabaseTransaction,
-  businessId: string,
-  shiftId: string,
-  location: Awaited<ReturnType<typeof requireScopedLocation>>,
-  actorEmployeeId: string | null,
-) {
-  return insertDefaultLocationCosts(
-    tx,
-    businessId,
-    shiftId,
-    location,
-    actorEmployeeId,
-  );
-}
-
-export async function replaceDefaultLocationCosts(
-  tx: DatabaseTransaction,
-  businessId: string,
-  shiftId: string,
-  location: Awaited<ReturnType<typeof requireScopedLocation>>,
-  actorEmployeeId: string | null,
-) {
+  const existing = await tx
+    .select()
+    .from(shiftCosts)
+    .where(
+      and(
+        eq(shiftCosts.businessId, businessId),
+        eq(shiftCosts.shiftId, shiftId),
+      ),
+    );
+  const byId = new Map(existing.map((cost) => [cost.id, cost]));
+  if (costs.some((cost) => cost.id && !byId.has(cost.id)))
+    throw new ShiftPlanningError(
+      "A cost changed or is unavailable. Reload the shift before saving.",
+    );
+  const retained = costs.flatMap((cost) => (cost.id ? [cost.id] : []));
   await tx
     .delete(shiftCosts)
     .where(
       and(
         eq(shiftCosts.businessId, businessId),
         eq(shiftCosts.shiftId, shiftId),
-        inArray(shiftCosts.costType, ["rent", "transport"]),
+        retained.length ? notInArray(shiftCosts.id, retained) : undefined,
       ),
     );
-  return insertDefaultLocationCosts(
-    tx,
-    businessId,
-    shiftId,
-    location,
-    actorEmployeeId,
-  );
+  for (const cost of costs) {
+    const values = {
+      costType: cost.costType,
+      label: cost.label,
+      amountCents: cost.amountCents,
+      notes: cost.notes ?? null,
+    };
+    if (cost.id)
+      await tx
+        .update(shiftCosts)
+        .set({ ...values, updatedAt: new Date() })
+        .where(
+          and(
+            eq(shiftCosts.id, cost.id),
+            eq(shiftCosts.businessId, businessId),
+            eq(shiftCosts.shiftId, shiftId),
+          ),
+        );
+    else
+      await tx.insert(shiftCosts).values({
+        id: randomUUID(),
+        businessId,
+        shiftId,
+        ...values,
+        createdBy: actorEmployeeId,
+      });
+  }
 }

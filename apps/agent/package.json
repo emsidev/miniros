@@ -5,7 +5,7 @@
   "type": "module",
   "scripts": {
     "dev": "tsx watch src/index.ts",
-    "build": "tsup src/index.ts --format esm --out-dir dist --clean",
+    "build": "tsdown src/index.ts --format esm --no-fixed-extension --target es2022 --out-dir dist --clean",
     "lint": "eslint src --ext .ts",
     "typecheck": "tsc --noEmit -p tsconfig.json",
     "test": "echo No agent tests yet"

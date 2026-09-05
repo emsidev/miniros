@@ -1,3 +1,5 @@
+import { getSetupReadiness } from "@/server/services/setup-readiness";
+import { SetupChecklist } from "@/components/admin/setup-checklist";
 import Link from "next/link";
 import {
   ArrowRight,
@@ -26,14 +28,17 @@ import { getAdminDashboard } from "@/server/services/analytics";
 export const dynamic = "force-dynamic";
 
 const quickActions = [
-  ["/admin/shifts", "Create shift", CalendarDays],
+  ["/admin/shifts/new", "Plan shifts", CalendarDays],
   ["/admin/products", "Add product", PackagePlus],
   ["/admin/inventory/items", "Add inventory item", Boxes],
   ["/admin/locations", "Add location", MapPin],
 ] as const;
 
 export default async function AdminDashboardPage() {
-  const dashboard = await getAdminDashboard();
+  const [dashboard, readiness] = await Promise.all([
+    getAdminDashboard(),
+    getSetupReadiness(),
+  ]);
 
   return (
     <div className="space-y-8">
@@ -42,11 +47,12 @@ export default async function AdminDashboardPage() {
         description="Track profit, not just sales. See whether each booth is worth renting again."
         action={
           <Button asChild className="h-11 rounded-xl">
-            <Link href="/admin/shifts">Create shift</Link>
+            <Link href="/admin/shifts/new">Plan shifts</Link>
           </Button>
         }
       />
 
+      <SetupChecklist readiness={readiness} />
       <div className="grid gap-3 sm:grid-cols-2 xl:grid-cols-4">
         <MetricCard
           label="Today’s gross sales"
@@ -122,7 +128,7 @@ export default async function AdminDashboardPage() {
             description="Record sales and submit the first closeout to see which booth is worth renting again."
             action={
               <Button asChild variant="outline" className="mt-2 rounded-xl">
-                <Link href="/admin/shifts">Plan the first shift</Link>
+                <Link href="/admin/shifts/new">Plan the first shift</Link>
               </Button>
             }
           />

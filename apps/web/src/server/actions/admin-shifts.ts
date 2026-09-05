@@ -1,170 +1,82 @@
 "use server";
-
 import { actionSuccess } from "@miniros/contracts";
 import { revalidatePath } from "next/cache";
 import { z } from "zod";
 import {
-  cancelAdminShift,
+  bulkShiftSchema,
+  createShiftSchema,
+  updateShiftSchema,
+} from "@/lib/shift-planning";
+import {
+  bulkAdminShifts,
   createAdminShifts,
   listAdminShifts,
-  replaceAdminShiftAssignments,
-  softDeleteAdminShift,
   updateAdminShift,
 } from "../services/admin-shifts";
+import { ShiftPlanningError } from "../services/shift-planning-error";
 import { actionError } from "./helpers";
 
-const centsSchema = z.number().int().nonnegative().max(Number.MAX_SAFE_INTEGER);
-const titleSchema = z.string().trim().min(1, "Enter a shift title.").max(120);
-
-const shiftAssignmentSchema = z.object({
-  employeeId: z.string().uuid(),
-  roleOnShift: z.enum(["operator", "employee", "manager"]),
-  salaryRateCents: centsSchema.default(0),
-});
-
-const assignmentsSchema = z
-  .array(shiftAssignmentSchema)
-  .min(1)
-  .superRefine((assignments, context) => {
-    const seen = new Set<string>();
-    assignments.forEach((assignment, index) => {
-      if (seen.has(assignment.employeeId)) {
-        context.addIssue({
-          code: z.ZodIssueCode.custom,
-          path: [index, "employeeId"],
-          message: "Each employee can be assigned only once.",
-        });
-      }
-      seen.add(assignment.employeeId);
-    });
-    if (!assignments.some((item) => item.roleOnShift === "operator")) {
-      context.addIssue({
-        code: z.ZodIssueCode.custom,
-        message: "Assign at least one POS operator.",
-      });
-    }
+function revalidateShiftSurfaces(ids: string[] = []) {
+  ["/admin/shifts", "/admin/dashboard", "/schedule", "/shifts"].forEach(
+    (path) => revalidatePath(path),
+  );
+  ids.forEach((id) => {
+    revalidatePath(`/admin/shifts/${id}`);
+    revalidatePath(`/admin/shifts/${id}/edit`);
+    revalidatePath(`/shifts/${id}`);
   });
-
-const shiftDateSchema = z
-  .string()
-  .regex(/^\d{4}-\d{2}-\d{2}$/)
-  .refine((value) => {
-    const [year, month, day] = value.split("-").map(Number);
-    const date = new Date(Date.UTC(year!, month! - 1, day!));
-    return (
-      date.getUTCFullYear() === year &&
-      date.getUTCMonth() === month! - 1 &&
-      date.getUTCDate() === day
-    );
-  }, "Enter a valid calendar date.");
-
-const shiftDatesSchema = z
-  .array(shiftDateSchema)
-  .min(1, "Select at least one shift date.")
-  .superRefine((dates, context) => {
-    if (new Set(dates).size !== dates.length) {
-      context.addIssue({
-        code: z.ZodIssueCode.custom,
-        message: "Each shift date can be selected only once.",
-      });
-    }
-    const sortedDates = [...dates].sort();
-    if (sortedDates.some((date, index) => date !== dates[index])) {
-      context.addIssue({
-        code: z.ZodIssueCode.custom,
-        message: "Shift dates must be in ascending order.",
-      });
-    }
-  });
-
-const shiftDetailsShape = {
-  sellingLocationId: z.string().uuid(),
-  title: titleSchema,
-  assignments: assignmentsSchema,
-};
-
-const createShiftSchema = z.object({
-  ...shiftDetailsShape,
-  shiftDates: shiftDatesSchema,
-});
-const updateShiftSchema = z.object({
-  shiftId: z.string().uuid(),
-  ...shiftDetailsShape,
-  shiftDate: shiftDateSchema,
-});
-const replaceAssignmentsSchema = z.object({
-  shiftId: z.string().uuid(),
-  assignments: assignmentsSchema,
-});
-const shiftIdSchema = z.object({ shiftId: z.string().uuid() });
-const emptyInputSchema = z.object({}).strict();
-
-function revalidateShiftSurfaces() {
-  revalidatePath("/admin/shifts");
-  revalidatePath("/schedule");
-  revalidatePath("/shifts");
 }
-
-export async function listAdminShiftsAction(input: unknown = {}) {
+function shiftError(error: unknown) {
+  if (error instanceof ShiftPlanningError)
+    return {
+      ok: false as const,
+      error: error.message,
+      fieldErrors: error.fieldErrors,
+    };
+  if (error instanceof z.ZodError) {
+    const fields: Record<string, string[]> = {};
+    error.issues.forEach((issue) => {
+      (fields[issue.path.join(".")] ??= []).push(issue.message);
+    });
+    return {
+      ok: false as const,
+      error: "Review the highlighted fields.",
+      fieldErrors: fields,
+    };
+  }
+  return actionError(error);
+}
+export async function listAdminShiftsAction() {
   try {
-    emptyInputSchema.parse(input);
     return actionSuccess(await listAdminShifts());
   } catch (error) {
-    return actionError(error);
+    return shiftError(error);
   }
 }
-
 export async function createAdminShiftAction(input: unknown) {
   try {
-    const values = createShiftSchema.parse(input);
-    const result = await createAdminShifts(values);
-    revalidateShiftSurfaces();
+    const result = await createAdminShifts(createShiftSchema.parse(input));
+    revalidateShiftSurfaces(result.shiftIds);
     return actionSuccess(result);
   } catch (error) {
-    return actionError(error);
+    return shiftError(error);
   }
 }
-
 export async function updateAdminShiftAction(input: unknown) {
   try {
-    const { shiftId, ...values } = updateShiftSchema.parse(input);
-    const result = await updateAdminShift(shiftId, values);
-    revalidateShiftSurfaces();
+    const result = await updateAdminShift(updateShiftSchema.parse(input));
+    revalidateShiftSurfaces([result.id]);
     return actionSuccess(result);
   } catch (error) {
-    return actionError(error);
+    return shiftError(error);
   }
 }
-
-export async function cancelAdminShiftAction(input: unknown) {
+export async function bulkAdminShiftsAction(input: unknown) {
   try {
-    const { shiftId } = shiftIdSchema.parse(input);
-    const result = await cancelAdminShift(shiftId);
-    revalidateShiftSurfaces();
+    const result = await bulkAdminShifts(bulkShiftSchema.parse(input));
+    revalidateShiftSurfaces(result.shiftIds);
     return actionSuccess(result);
   } catch (error) {
-    return actionError(error);
-  }
-}
-
-export async function replaceAdminShiftAssignmentsAction(input: unknown) {
-  try {
-    const { shiftId, assignments } = replaceAssignmentsSchema.parse(input);
-    const result = await replaceAdminShiftAssignments(shiftId, assignments);
-    revalidateShiftSurfaces();
-    return actionSuccess(result);
-  } catch (error) {
-    return actionError(error);
-  }
-}
-
-export async function softDeleteAdminShiftAction(input: unknown) {
-  try {
-    const { shiftId } = shiftIdSchema.parse(input);
-    const result = await softDeleteAdminShift(shiftId);
-    revalidateShiftSurfaces();
-    return actionSuccess(result);
-  } catch (error) {
-    return actionError(error);
+    return shiftError(error);
   }
 }

@@ -1,3 +1,4 @@
+import { reservedShiftDevice } from "@/server/services/offline-prepare";
 import Link from "next/link";
 import { redirect } from "next/navigation";
 import { BrandMark } from "@/components/shared/brand-mark";
@@ -63,7 +64,7 @@ export default async function PosPage({
 }: {
   searchParams: Promise<{ shift?: string }>;
 }) {
-  const { employee } = await requireActiveBusiness();
+  const { employee, user, business } = await requireActiveBusiness();
   if (isProductionOnlyEmployee(employee)) redirect("/production");
   const { shift } = await searchParams;
   let workspace: Awaited<ReturnType<typeof getPosWorkspace>>;
@@ -77,6 +78,8 @@ export default async function PosPage({
     throw error;
   }
 
+  const reserved = await reservedShiftDevice(workspace.shift.id);
+  if (reserved?.ownsDevice) redirect(`/offline?session=${reserved.id}`);
   return (
     <div>
       {workspace.products.length === 0 ? (
@@ -103,6 +106,8 @@ export default async function PosPage({
         </div>
       ) : (
         <PosForm
+          key={`${business.id}:${user.id}:${workspace.shift.id}`}
+          draftOwnerKey={`${business.id}:${user.id}`}
           shiftId={workspace.shift.id}
           locationName={workspace.shift.locationName}
           shiftSummary={workspace.shiftSummary}

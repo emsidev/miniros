@@ -13,7 +13,7 @@
   "scripts": {
     "tokens:generate": "node scripts/tokens.mjs write",
     "tokens:check": "node scripts/tokens.mjs check",
-    "build": "pnpm tokens:check && tsup src/index.ts --format esm --dts --out-dir dist --clean",
+    "build": "pnpm tokens:check && tsdown src/index.ts --format esm --no-fixed-extension --target es2022 --dts --out-dir dist --clean",
     "lint": "eslint src --ext .ts",
     "typecheck": "tsc --noEmit -p tsconfig.json",
     "test": "pnpm tokens:check"

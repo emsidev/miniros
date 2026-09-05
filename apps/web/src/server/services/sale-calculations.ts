@@ -4,6 +4,7 @@ import { addCents, assertNonNegativeCents } from "@miniros/domain";
 import { AccessError } from "./access";
 
 export type FinalizeSaleInput = {
+  discount?: { promoId: string; proofFileId: string };
   saleId: string;
   shiftId: string;
   inventoryEventId: string;

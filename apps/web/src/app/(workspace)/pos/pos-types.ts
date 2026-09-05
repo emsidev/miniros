@@ -15,6 +15,7 @@ export type PosProduct = {
 };
 
 export type PosPromo = {
+  requiresPhoto?: boolean;
   id: string;
   name: string;
   discountType: "fixed_amount" | "percentage";
@@ -33,7 +34,13 @@ export type PaymentDraft = {
 
 export type SubmittedPayment = PaymentDraft & { amountCents: number };
 
+export type DiscountPhoto = { fileId: string; file: File | null };
+
 export type SaleReceipt = {
+  discountName?: string;
+  discountPhoto?: DiscountPhoto;
+  pendingDiscountProof?: boolean;
+  savedLocally?: boolean;
   saleId: string;
   totalCents: number;
   amountPaidCents: number;

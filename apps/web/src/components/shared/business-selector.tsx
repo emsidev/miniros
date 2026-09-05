@@ -4,6 +4,7 @@ import { useEffect, useState, useTransition } from "react";
 import { useRouter } from "next/navigation";
 import { Building2, Plus } from "lucide-react";
 import { toast } from "sonner";
+import { guardLocalExit, clearLocalAccount } from "@/lib/offline/store";
 import { switchBusinessAction } from "@/server/actions/businesses";
 import { WorkspaceSelector } from "./workspace-selector";
 import type { WorkspaceView } from "./view-selector";
@@ -82,6 +83,15 @@ export function BusinessSelector({
 
     setSelectedBusinessId(nextBusinessId);
     startTransition(async () => {
+      try {
+        await guardLocalExit();
+      } catch (error) {
+        setSelectedBusinessId(businessId);
+        toast.error(
+          error instanceof Error ? error.message : "Finish pending work first.",
+        );
+        return;
+      }
       const result = await switchBusinessAction(nextBusinessId);
       if (!result.ok) {
         setSelectedBusinessId(businessId);
@@ -89,6 +99,7 @@ export function BusinessSelector({
         return;
       }
 
+      await clearLocalAccount();
       router.replace(businessDestination(business, currentView));
       router.refresh();
     });

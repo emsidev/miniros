@@ -1,128 +1,133 @@
-import { EmptyState, StatusBadge } from "@/components/shared/feedback";
-import {
-  DataCard,
-  PageHeader,
-  SectionHeader,
-} from "@/components/shared/layout";
-import { formatDateTime } from "@/lib/format";
+import { StatusBadge } from "@/components/shared/feedback";
+import { PageHeader } from "@/components/shared/layout";
+import { formatDateTime, formatQuantity } from "@/lib/format";
 import { listStockWorkspace } from "@/server/services/stock-operations";
-import {
-  CentralLocationForm,
-  StockMovementForm,
-} from "../../_components/stock-movement-form";
+import { StockMovementForm } from "../../_components/stock-movement-form";
 
 export const dynamic = "force-dynamic";
-
 export default async function StockPage() {
   const workspace = await listStockWorkspace();
   const locationNames = new Map(
     workspace.locations.map((location) => [location.id, location.name]),
   );
-
   return (
-    <div className="space-y-8">
+    <div className="inventory-workspace space-y-5">
       <PageHeader
         title="Stock movements"
-        description="Receive supplies and move stock between inventory locations while keeping the ledger balanced."
+        description="Receive supplies and transfer stock between locations."
       />
-      <div className="grid gap-5 lg:grid-cols-2">
-        <DataCard>
-          <SectionHeader
-            title="Record movement"
-            description="Every movement creates a ledger event and updates the balance in one transaction."
-          />
-          <StockMovementForm
-            locations={workspace.locations}
-            items={workspace.items}
-          />
-        </DataCard>
-        <DataCard>
-          <SectionHeader
-            title="Inventory locations"
-            description="Central storage and active shift inventory locations available for movement."
-          />
-          {workspace.locations.length === 0 ? (
-            <EmptyState
-              title="No stock locations"
-              description="Create a central location before receiving stock."
-            />
-          ) : (
-            <div className="space-y-2">
-              {workspace.locations.map((location) => (
-                <div
-                  key={location.id}
-                  className="flex items-center justify-between rounded-xl border p-3"
-                >
-                  <span className="font-semibold">{location.name}</span>
-                  <StatusBadge status={location.locationType} />
-                </div>
-              ))}
-            </div>
-          )}
-          <div className="mt-5 border-t pt-5">
-            <CentralLocationForm />
-          </div>
-        </DataCard>
-      </div>
-      <div className="grid gap-5 lg:grid-cols-2">
-        <DataCard>
-          <SectionHeader title="Recent receiving" />
-          {workspace.receivings.length === 0 ? (
+      <StockMovementForm
+        businessId={workspace.businessId}
+        locations={workspace.locations}
+        items={workspace.items}
+      />
+      <div className="grid items-start gap-6 lg:grid-cols-2">
+        <section className="space-y-3">
+          <h2 className="text-lg font-bold">Recent receiving</h2>
+          {!workspace.receivings.length ? (
             <p className="text-sm text-muted-foreground">
-              No stock receipts yet.
+              No stock receipts yet. Use Receive stock to record your first
+              delivery.
             </p>
           ) : (
-            <div className="space-y-3">
+            <ul className="divide-y rounded-xl border bg-card">
               {workspace.receivings.map((record) => (
-                <div
-                  key={record.id}
-                  className="flex items-center justify-between gap-3 text-sm"
-                >
+                <li key={record.id} className="space-y-3 p-4">
                   <div>
-                    <p className="font-semibold">
+                    <p className="break-words font-semibold">
                       {record.referenceNumber ?? "Stock receipt"}
                     </p>
-                    <p className="text-muted-foreground">
+                    <p className="break-words text-sm text-muted-foreground">
                       {locationNames.get(record.locationId) ??
-                        "Inventory location"}
+                        "Archived inventory location"}
                     </p>
+                    <time className="text-xs text-muted-foreground">
+                      {formatDateTime(record.receivedAt)}
+                    </time>
                   </div>
-                  <time className="text-xs text-muted-foreground">
-                    {formatDateTime(record.receivedAt)}
-                  </time>
-                </div>
+                  <MovementLines lines={record.lines} />
+                </li>
               ))}
-            </div>
+            </ul>
           )}
-        </DataCard>
-        <DataCard>
-          <SectionHeader title="Recent transfers" />
-          {workspace.transfers.length === 0 ? (
+        </section>
+        <section className="space-y-3">
+          <h2 className="text-lg font-bold">Recent transfers</h2>
+          {!workspace.transfers.length ? (
             <p className="text-sm text-muted-foreground">
-              No stock transfers yet.
+              No transfers yet. Use Transfer stock to move items between
+              locations.
             </p>
           ) : (
-            <div className="space-y-3">
+            <ul className="divide-y rounded-xl border bg-card">
               {workspace.transfers.map((record) => (
-                <div
-                  key={record.id}
-                  className="flex items-center justify-between gap-3 text-sm"
-                >
+                <li key={record.id} className="space-y-3 p-4">
                   <div>
-                    <p className="font-semibold">
-                      {locationNames.get(record.fromLocationId) ?? "Unknown"} →{" "}
-                      {locationNames.get(record.toLocationId) ?? "Unknown"}
+                    <p className="break-words font-semibold">
+                      {locationNames.get(record.fromLocationId) ??
+                        "Archived location"}{" "}
+                      →{" "}
+                      {locationNames.get(record.toLocationId) ??
+                        "Archived location"}
                     </p>
+                    <time className="text-xs text-muted-foreground">
+                      {formatDateTime(record.transferredAt)}
+                    </time>
                   </div>
-                  <time className="text-xs text-muted-foreground">
-                    {formatDateTime(record.transferredAt)}
-                  </time>
-                </div>
+                  <MovementLines lines={record.lines} />
+                </li>
               ))}
-            </div>
+            </ul>
           )}
-        </DataCard>
+        </section>
       </div>
+      <section className="space-y-3 border-t pt-5">
+        <h2 className="text-lg font-bold">Inventory locations</h2>
+        {!workspace.locations.length ? (
+          <p className="text-sm text-muted-foreground">
+            Use Add location to create central storage before receiving stock.
+          </p>
+        ) : (
+          <ul className="divide-y rounded-xl border bg-card">
+            {workspace.locations.map((location) => (
+              <li
+                key={location.id}
+                className="flex items-center justify-between gap-4 px-4 py-3"
+              >
+                <span className="min-w-0 break-words text-sm font-semibold">
+                  {location.name}
+                </span>
+                <StatusBadge status={location.locationType} />
+              </li>
+            ))}
+          </ul>
+        )}
+      </section>
     </div>
+  );
+}
+function MovementLines({
+  lines,
+}: {
+  lines: readonly {
+    id: string;
+    itemName: string | null;
+    quantity: string;
+    unit: string;
+  }[];
+}) {
+  return (
+    <ul className="space-y-2 border-t pt-3 text-sm">
+      {lines.map((line) => (
+        <li key={line.id} className="flex justify-between gap-4">
+          <span className="min-w-0 break-words">
+            {line.itemName ?? "Archived inventory item"}
+          </span>
+          <span className="shrink-0 font-semibold tabular-nums">
+            {formatQuantity(line.quantity)} {line.unit}
+          </span>
+        </li>
+      ))}
+    </ul>
   );
 }
