@@ -1,11 +1,5 @@
-import {
-  Banknote,
-  CreditCard,
-  Paperclip,
-  Plus,
-  Smartphone,
-  Split,
-} from "lucide-react";
+import { ProofUpload } from "@/components/shared/proof-upload";
+import { Banknote, CreditCard, Plus, Smartphone, Split } from "lucide-react";
 import type { PaymentMethod } from "@miniros/contracts";
 
 import { Button } from "@/components/ui/button";
@@ -127,6 +121,33 @@ function PaymentFields({
         </div>
       ) : null}
 
+      {payment.method === "cash" ? (
+        <div className="flex flex-wrap gap-2" aria-label="Cash shortcuts">
+          {!isSplit ? (
+            <Button
+              type="button"
+              variant="outline"
+              className="min-h-11"
+              onClick={() => onUpdate({ amountMode: "exact" })}
+            >
+              Exact
+            </Button>
+          ) : null}
+          {[20, 50, 100, 200, 500, 1000].map((amount) => (
+            <Button
+              key={amount}
+              type="button"
+              variant="outline"
+              className="min-h-11"
+              onClick={() =>
+                onUpdate({ amount: String(amount), amountMode: "manual" })
+              }
+            >
+              ₱{amount}
+            </Button>
+          ))}
+        </div>
+      ) : null}
       {showAmount ? (
         <div>
           <Label htmlFor={`amount-${payment.id}`}>
@@ -166,27 +187,11 @@ function PaymentFields({
               required
             />
           </div>
-          <div>
-            <Label htmlFor={`proof-${payment.id}`}>
-              Payment proof (optional)
-            </Label>
-            <label
-              htmlFor={`proof-${payment.id}`}
-              className="flex h-11 cursor-pointer items-center gap-2 rounded-lg border bg-card px-3 text-sm transition-colors hover:bg-muted"
-            >
-              <Paperclip className="size-4" aria-hidden="true" />
-              <span className="min-w-0 truncate">
-                {payment.file?.name ?? "Attach image or PDF"}
-              </span>
-            </label>
-            <Input
-              id={`proof-${payment.id}`}
-              className="sr-only"
-              type="file"
-              accept="image/jpeg,image/png,image/webp,application/pdf"
-              onChange={(event) =>
-                onUpdate({ file: event.target.files?.[0] ?? null })
-              }
+          <div className="sm:col-span-2">
+            <ProofUpload
+              label="Payment proof"
+              file={payment.file}
+              onChange={(file) => onUpdate({ file })}
             />
           </div>
         </div>

@@ -1,3 +1,5 @@
+import { WorkspaceHeader } from "./workspace-header";
+import { SyncStatusButton } from "@/features/offline/device-controls";
 import Link from "next/link";
 import type { ReactNode } from "react";
 import { UserPlus } from "lucide-react";
@@ -65,8 +67,8 @@ export function AdminShell({
           </div>
         ) : null}
       </aside>
-      <div>
-        <header className="sticky top-0 z-[var(--mi-z-sticky)] border-b bg-background px-4 py-3 md:px-8">
+      <div className="min-w-0">
+        <WorkspaceHeader className="sticky top-0 z-[var(--mi-z-sticky)] border-b bg-background px-4 py-3 md:px-8">
           <div className="mx-auto flex min-h-10 max-w-7xl items-center gap-2">
             <div className="flex min-w-0 items-center gap-2 md:hidden">
               <Link
@@ -87,6 +89,7 @@ export function AdminShell({
               <p className="hidden text-sm font-semibold xl:block">
                 Track profit, not just sales.
               </p>
+              <SyncStatusButton />
               <ViewSelector
                 currentView="admin"
                 canAccessAdmin
@@ -111,7 +114,43 @@ export function AdminShell({
               ) : null}
             </div>
           </div>
-        </header>
+          <details className="mt-2 md:hidden">
+            <summary className="flex min-h-11 cursor-pointer items-center font-semibold">
+              All business tools
+            </summary>
+            <nav
+              aria-label="All business tools"
+              className="grid grid-cols-2 gap-x-4 border-t py-2"
+            >
+              {[
+                ["/admin/dashboard", "Dashboard"],
+                ["/admin/products", "Products & costs"],
+                ["/admin/employees", "Team"],
+                ["/admin/locations", "Locations"],
+                ["/admin/shifts", "Shifts"],
+                ["/admin/inventory", "Inventory"],
+                ["/admin/approvals", "Approvals"],
+                ["/admin/reports", "Location reports"],
+                ["/admin/devices", "Devices"],
+                ["/admin/settings", "Settings"],
+                ...(businessFeatures.promosEnabled
+                  ? [["/admin/promos", "Promos"]]
+                  : []),
+                ...(businessFeatures.productionEnabled
+                  ? [["/admin/production", "Production"]]
+                  : []),
+              ].map(([href, label]) => (
+                <Link
+                  key={href}
+                  href={href!}
+                  className="inline-flex min-h-11 items-center text-sm"
+                >
+                  {label}
+                </Link>
+              ))}
+            </nav>
+          </details>
+        </WorkspaceHeader>
         <main className="mx-auto w-full max-w-7xl px-4 py-6 md:px-8 md:py-8">
           <AppBreadcrumbs variant="admin" />
           {children}

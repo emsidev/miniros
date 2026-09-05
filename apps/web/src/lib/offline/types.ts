@@ -1,3 +1,4 @@
+/** Historical scaffold records only. Never replay these as prepared-shift actions. */
 import type { PaymentMethod } from "@miniros/contracts/constants";
 
 export const offlineActionTypes = [

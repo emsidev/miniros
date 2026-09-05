@@ -8,24 +8,29 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { numericExpressionToNumber } from "@/lib/numeric-expression";
+import type { PromoRecord } from "@/server/services/promos";
 import { createPromoAction } from "@/server/actions/promos";
 import { ActionErrorAlert, SetupInput } from "./form-controls";
 import { optionalText, type ActionFeedback } from "./form-utils";
 
-export function PromoForm() {
+export function PromoForm({ promo }: { promo?: PromoRecord }) {
   const router = useRouter();
+  const fieldId = (name: string) => `${promo?.id ?? "new-promo"}-${name}`;
   const [discountType, setDiscountType] = useState<
     "fixed_amount" | "percentage"
-  >("fixed_amount");
+  >(promo?.discountType ?? "fixed_amount");
   const [feedback, setFeedback] = useState<ActionFeedback>({});
   const [isPending, startTransition] = useTransition();
 
   function handleSubmit(event: FormEvent<HTMLFormElement>) {
     event.preventDefault();
-    const formData = new FormData(event.currentTarget);
+    const form = event.currentTarget;
+    const formData = new FormData(form);
     setFeedback({});
     startTransition(async () => {
       const result = await createPromoAction({
+        promoId: promo?.id,
+        requiresPhoto: formData.get("requiresPhoto") === "on",
         name: String(formData.get("name") ?? ""),
         discountType,
         discountValue: numericExpressionToNumber(formData.get("discountValue")),
@@ -36,8 +41,11 @@ export function PromoForm() {
         setFeedback({ error: result.error, fieldErrors: result.fieldErrors });
         return;
       }
-      event.currentTarget.reset();
-      toast.success("Promo created.");
+      if (!promo) {
+        form.reset();
+        setDiscountType("fixed_amount");
+      }
+      toast.success(promo ? "Promo updated." : "Promo created.");
       router.refresh();
     });
   }
@@ -48,17 +56,19 @@ export function PromoForm() {
       <SetupInput
         label="Promo name"
         name="name"
+        id={fieldId("name")}
         feedback={feedback}
         required
         maxLength={120}
         disabled={isPending}
-        placeholder="Opening week"
+        defaultValue={promo?.name}
+        placeholder="e.g. PWD Discount"
       />
       <div className="grid gap-4 sm:grid-cols-2">
         <div className="space-y-2">
-          <Label htmlFor="discount-type">Discount type</Label>
+          <Label htmlFor={fieldId("discount-type")}>Discount type</Label>
           <select
-            id="discount-type"
+            id={fieldId("discount-type")}
             name="discountType"
             value={discountType}
             onChange={(event) =>
@@ -74,6 +84,7 @@ export function PromoForm() {
         <SetupInput
           label={discountType === "fixed_amount" ? "Amount (₱)" : "Percent (%)"}
           name="discountValue"
+          id={fieldId("discountValue")}
           feedback={feedback}
           type="number"
           min="0.01"
@@ -81,34 +92,53 @@ export function PromoForm() {
           step="0.01"
           required
           disabled={isPending}
+          defaultValue={promo?.discountValue}
           placeholder={discountType === "fixed_amount" ? "50.00" : "10"}
         />
       </div>
       <div className="grid gap-4 sm:grid-cols-2">
         <div className="space-y-2">
-          <Label htmlFor="starts-at">Starts</Label>
+          <Label htmlFor={fieldId("starts-at")}>Starts</Label>
           <Input
-            id="starts-at"
+            id={fieldId("starts-at")}
             name="startsAt"
+            defaultValue={promo?.startsAt?.slice(0, 10)}
             type="date"
             disabled={isPending}
             className="h-11 rounded-xl"
           />
         </div>
         <div className="space-y-2">
-          <Label htmlFor="ends-at">Ends</Label>
+          <Label htmlFor={fieldId("ends-at")}>Ends</Label>
           <Input
-            id="ends-at"
+            id={fieldId("ends-at")}
             name="endsAt"
+            defaultValue={promo?.endsAt?.slice(0, 10)}
             type="date"
             disabled={isPending}
             className="h-11 rounded-xl"
           />
         </div>
       </div>
+      <label className="flex items-start gap-3 rounded-xl border p-3">
+        <input
+          type="checkbox"
+          name="requiresPhoto"
+          defaultChecked={promo?.requiresPhoto ?? false}
+          disabled={isPending}
+          className="mt-1 size-4"
+        />
+        <span>
+          <span className="text-sm font-semibold">Photo required</span>
+          <span className="mt-1 block text-xs text-muted-foreground">
+            Require a photo at checkout when this promo is applied, such as for
+            PWD or Senior discounts.
+          </span>
+        </span>
+      </label>
       <Button type="submit" className="h-11 rounded-xl" disabled={isPending}>
         <Plus aria-hidden="true" />
-        {isPending ? "Creating…" : "Create promo"}
+        {isPending ? "Saving…" : promo ? "Save promo" : "Create promo"}
       </Button>
     </form>
   );

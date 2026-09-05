@@ -196,7 +196,7 @@ export async function softDeleteLocation(locationId: string) {
         and(
           eq(shifts.businessId, access.business.id),
           eq(shifts.sellingLocationId, locationId),
-          inArray(shifts.status, ["scheduled", "active", "closing"]),
+          inArray(shifts.status, ["draft", "scheduled", "active", "closing"]),
           isNull(shifts.deletedAt),
         ),
       )

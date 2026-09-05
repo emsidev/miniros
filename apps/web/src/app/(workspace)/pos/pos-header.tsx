@@ -1,4 +1,6 @@
 import Link from "next/link";
+import { SyncStatusButton } from "@/features/offline/device-controls";
+import { ShiftNavigationScope } from "@/components/employee/navigation-context";
 import { ArrowLeft, ShoppingCart } from "lucide-react";
 
 import { BrandMark } from "@/components/shared/brand-mark";
@@ -24,6 +26,7 @@ export function PosHeader({
 }) {
   return (
     <header className="sticky top-0 z-[var(--mi-z-sticky)] bg-[var(--mi-color-ink)] text-white">
+      <ShiftNavigationScope id={shiftId} status="active" />
       <div className="mx-auto flex min-h-24 max-w-[1440px] items-center gap-3 px-4 py-4 sm:px-6 lg:px-8">
         <Button
           asChild
@@ -31,21 +34,22 @@ export function PosHeader({
           variant="ghost"
           className="text-white hover:bg-white/10 hover:text-white"
         >
-          <Link href={`/shifts/${shiftId}`} aria-label="Exit point of sale">
+          <Link href={`/shifts/${shiftId}`} aria-label="Back to shift">
             <ArrowLeft aria-hidden="true" />
           </Link>
         </Button>
         <BrandMark variant="inverse" className="hidden sm:grid" />
         <div className="min-w-0 flex-1">
-          <p className="truncate text-base font-bold sm:text-lg">
+          <p className="break-words text-base font-bold sm:text-lg">
             {locationName}
           </p>
-          <p className="mt-0.5 truncate text-xs text-white/65 sm:text-sm">
+          <p className="mt-0.5 text-xs leading-relaxed text-white/80 sm:text-sm">
             Shift open · {saleCount} {saleCount === 1 ? "sale" : "sales"} ·{" "}
             {itemCount} {itemCount === 1 ? "unit" : "units"} ·{" "}
             {formatMoney(salesCents)} sold
           </p>
         </div>
+        <SyncStatusButton inverse />
         {onOpenCart ? (
           <Button
             type="button"
@@ -67,7 +71,7 @@ export function PosHeader({
           variant="outline"
           className="hidden border-white/25 bg-transparent text-white hover:bg-white/10 hover:text-white lg:inline-flex"
         >
-          <Link href={`/shifts/${shiftId}`}>Exit POS</Link>
+          <Link href={`/shifts/${shiftId}`}>Back to shift</Link>
         </Button>
       </div>
     </header>

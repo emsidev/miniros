@@ -14,7 +14,9 @@ export const dynamic = "force-dynamic";
 
 export default async function ApprovalsPage() {
   const { business } = await requireActiveBusiness({ admin: true });
-  if (!business.features.approvalsEnabled) {
+  const approvals = await listPendingApprovals();
+  const empty = approvals.cash.length === 0 && approvals.inventory.length === 0;
+  if (!business.features.approvalsEnabled && empty) {
     return (
       <FeatureUnavailable
         feature="Approvals"
@@ -23,9 +25,6 @@ export default async function ApprovalsPage() {
       />
     );
   }
-
-  const approvals = await listPendingApprovals();
-  const empty = approvals.cash.length === 0 && approvals.inventory.length === 0;
 
   return (
     <div className="space-y-8">

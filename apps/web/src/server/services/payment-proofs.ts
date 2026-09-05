@@ -1,6 +1,16 @@
+import { safeObjectName, hasExpectedSignature } from "./proof-files";
+import { createHash } from "node:crypto";
+import { assertProofDevice } from "./offline-context";
 import { requireDatabase } from "@miniros/db";
-import { files, payments, sales, shifts } from "@miniros/db/schema";
-import { and, eq, isNull } from "drizzle-orm";
+import {
+  files,
+  offlineSyncActions,
+  payments,
+  sales,
+  shifts,
+} from "@miniros/db/schema";
+import type { OfflineEnvelope } from "@miniros/contracts";
+import { and, eq, isNull, sql } from "drizzle-orm";
 
 import { createStorageAdmin } from "@/lib/supabase/storage-admin";
 import { AccessError, requireActiveBusiness } from "./access";
@@ -8,6 +18,7 @@ import {
   insertAuditLog,
   requireCurrentAssignment,
   requireEmployee,
+  type OperationalTransaction,
 } from "./operational-helpers";
 
 const PAYMENT_PROOF_BUCKET = "payment-proofs";
@@ -27,60 +38,14 @@ export type AttachPaymentProofInput = {
   file: File;
 };
 
-function safeObjectName(fileId: string, originalName: string) {
-  const cleaned = originalName
-    .normalize("NFKC")
-    .replace(/[^a-zA-Z0-9._-]+/g, "-")
-    .replace(/^[.-]+|[.-]+$/g, "")
-    .slice(0, 96);
-  return `${fileId}-${cleaned || "proof"}`;
-}
-
-async function hasExpectedSignature(file: File) {
-  const bytes = new Uint8Array(await file.slice(0, 12).arrayBuffer());
-  const startsWith = (...signature: number[]) =>
-    signature.every((byte, index) => bytes[index] === byte);
-
-  switch (file.type) {
-    case "application/pdf":
-      return startsWith(0x25, 0x50, 0x44, 0x46, 0x2d);
-    case "image/jpeg":
-      return startsWith(0xff, 0xd8, 0xff);
-    case "image/png":
-      return startsWith(0x89, 0x50, 0x4e, 0x47, 0x0d, 0x0a, 0x1a, 0x0a);
-    case "image/webp":
-      return (
-        startsWith(0x52, 0x49, 0x46, 0x46) &&
-        bytes[8] === 0x57 &&
-        bytes[9] === 0x45 &&
-        bytes[10] === 0x42 &&
-        bytes[11] === 0x50
-      );
-    default:
-      return false;
-  }
-}
-
-async function removeUploadedObject(
-  admin: ReturnType<typeof createStorageAdmin>,
-  objectPath: string,
-) {
-  try {
-    const { error } = await admin.storage
-      .from(PAYMENT_PROOF_BUCKET)
-      .remove([objectPath]);
-    if (error) console.error("Payment proof cleanup failed", error);
-  } catch (error) {
-    console.error("Payment proof cleanup could not run", error);
-  }
-}
-
 export async function attachPaymentProof(input: AttachPaymentProofInput) {
   const access = await requireActiveBusiness({ employeePermission: "pos" });
   requireEmployee(access);
   if (!UUID_PATTERN.test(input.paymentId) || !UUID_PATTERN.test(input.fileId)) {
     throw new AccessError("Payment and file IDs must be valid UUIDs.");
   }
+  const paymentId = input.paymentId.toLowerCase();
+  const fileId = input.fileId.toLowerCase();
   if (!(input.file instanceof File)) {
     throw new AccessError("A payment proof file is required.");
   }
@@ -95,11 +60,15 @@ export async function attachPaymentProof(input: AttachPaymentProofInput) {
   }
 
   const database = requireDatabase();
-  const objectPath = `${access.business.id}/payments/${input.paymentId}/${safeObjectName(input.fileId, input.file.name)}`;
-  const preflight = await database.transaction(async (tx) => {
+  const contentDigest = createHash("sha256")
+    .update(Buffer.from(await input.file.arrayBuffer()))
+    .digest("hex");
+  const objectPath = `${access.business.id}/payments/${paymentId}/${contentDigest}/${safeObjectName(fileId, input.file.name)}`;
+  async function authorize(tx: OperationalTransaction) {
     const [payment] = await tx
       .select({
         id: payments.id,
+        saleId: payments.saleId,
         paymentMethod: payments.paymentMethod,
         proofFileId: payments.proofFileId,
         shiftId: sales.shiftId,
@@ -122,18 +91,56 @@ export async function attachPaymentProof(input: AttachPaymentProofInput) {
       )
       .where(
         and(
-          eq(payments.id, input.paymentId),
+          eq(payments.id, paymentId),
           eq(payments.businessId, access.business.id),
           eq(payments.status, "completed"),
           isNull(shifts.deletedAt),
         ),
       )
+      .for("update")
       .limit(1);
 
     if (!payment || payment.paymentMethod === "cash") {
       throw new AccessError("An eligible non-cash payment was not found.");
     }
-    if (payment.shiftStatus !== "active" && payment.shiftStatus !== "closing") {
+    const session = await assertProofDevice(
+      tx,
+      access.business.id,
+      payment.shiftId,
+      access.user.id,
+    );
+    if (session) {
+      const [record] = await tx
+        .select({ payload: offlineSyncActions.payload })
+        .from(offlineSyncActions)
+        .where(
+          and(
+            eq(offlineSyncActions.businessId, access.business.id),
+            eq(offlineSyncActions.sessionId, session.id),
+            eq(offlineSyncActions.actionType, "CREATE_SALE"),
+            eq(offlineSyncActions.status, "synced"),
+            sql`(${offlineSyncActions.payload} #>> '{operation,payload,saleId}')::uuid = ${payment.saleId}::uuid`,
+          ),
+        )
+        .limit(1);
+      const operation = (record?.payload as OfflineEnvelope | undefined)
+        ?.operation;
+      const declared =
+        operation?.type === "CREATE_SALE"
+          ? operation.proofs.find(
+              (proof) => proof.paymentId.toLowerCase() === paymentId,
+            )
+          : undefined;
+      if (declared && declared.fileId.toLowerCase() !== fileId)
+        throw new AccessError(
+          "This payment requires the proof file declared by its original offline sale.",
+        );
+    }
+    if (
+      !payment.proofFileId &&
+      payment.shiftStatus !== "active" &&
+      payment.shiftStatus !== "closing"
+    ) {
       throw new AccessError("Payment proof upload is closed for this shift.");
     }
     await requireCurrentAssignment(
@@ -141,6 +148,7 @@ export async function attachPaymentProof(input: AttachPaymentProofInput) {
       access.business.id,
       payment.shiftId,
       access.employee.id,
+      Boolean(payment.proofFileId),
     );
 
     if (!payment.proofFileId) return { shiftId: payment.shiftId };
@@ -155,19 +163,18 @@ export async function attachPaymentProof(input: AttachPaymentProofInput) {
         ),
       )
       .limit(1);
-    if (
-      existingFile?.id === input.fileId &&
-      existingFile.objectPath === objectPath
-    ) {
+    if (existingFile?.id === fileId && existingFile.objectPath === objectPath) {
       return { shiftId: payment.shiftId, existing: true as const };
     }
-    throw new AccessError("This payment already has a proof file.");
-  });
+    throw new AccessError("This payment already has a different proof file.");
+  }
+
+  const preflight = await database.transaction(authorize);
 
   if ("existing" in preflight) {
     return {
-      paymentId: input.paymentId,
-      fileId: input.fileId,
+      paymentId: paymentId,
+      fileId: fileId,
       objectPath,
       idempotent: true,
     };
@@ -182,108 +189,69 @@ export async function attachPaymentProof(input: AttachPaymentProofInput) {
       upsert: false,
     });
   if (uploadError) {
-    console.error("Payment proof upload failed", uploadError);
-    throw new AccessError("The payment proof could not be uploaded.");
+    // An upload may have succeeded before the browser lost its acknowledgement.
+    // Content-addressed paths make retry safe without overwriting another proof.
+    const { data: stored } = await storageAdmin.storage
+      .from(PAYMENT_PROOF_BUCKET)
+      .download(objectPath);
+    if (
+      !stored ||
+      createHash("sha256")
+        .update(Buffer.from(await stored.arrayBuffer()))
+        .digest("hex") !== contentDigest
+    )
+      throw new AccessError(
+        "The payment proof could not be uploaded. Its local copy is retained for retry.",
+      );
   }
 
-  try {
-    await database.transaction(async (tx) => {
-      const [payment] = await tx
-        .select({
-          id: payments.id,
-          paymentMethod: payments.paymentMethod,
-          proofFileId: payments.proofFileId,
-          shiftId: sales.shiftId,
-          shiftStatus: shifts.status,
-        })
-        .from(payments)
-        .innerJoin(
-          sales,
-          and(
-            eq(sales.id, payments.saleId),
-            eq(sales.businessId, payments.businessId),
-          ),
-        )
-        .innerJoin(
-          shifts,
-          and(
-            eq(shifts.id, sales.shiftId),
-            eq(shifts.businessId, sales.businessId),
-          ),
-        )
-        .where(
-          and(
-            eq(payments.id, input.paymentId),
-            eq(payments.businessId, access.business.id),
-            eq(payments.status, "completed"),
-            isNull(shifts.deletedAt),
-          ),
-        )
-        .for("update")
-        .limit(1);
+  await database.transaction(async (tx) => {
+    const payment = await authorize(tx);
+    if ("existing" in payment) return;
 
-      if (
-        !payment ||
-        payment.paymentMethod === "cash" ||
-        payment.proofFileId ||
-        (payment.shiftStatus !== "active" && payment.shiftStatus !== "closing")
-      ) {
-        throw new AccessError("The payment is no longer eligible for proof.");
-      }
-      await requireCurrentAssignment(
-        tx,
-        access.business.id,
-        payment.shiftId,
-        access.employee.id,
-      );
+    await tx.insert(files).values({
+      id: fileId,
+      businessId: access.business.id,
+      bucketId: PAYMENT_PROOF_BUCKET,
+      objectPath,
+      fileType: "payment_proof",
+      mimeType: input.file.type,
+      sizeBytes: input.file.size,
+      uploadedBy: access.user.id,
+    });
+    const [updated] = await tx
+      .update(payments)
+      .set({ proofFileId: fileId })
+      .where(
+        and(
+          eq(payments.id, paymentId),
+          eq(payments.businessId, access.business.id),
+          isNull(payments.proofFileId),
+        ),
+      )
+      .returning({ id: payments.id });
+    if (!updated) {
+      throw new AccessError("The payment proof could not be linked.");
+    }
 
-      await tx.insert(files).values({
-        id: input.fileId,
-        businessId: access.business.id,
+    await insertAuditLog(tx, access, {
+      action: "payment.proof_attached",
+      entityType: "payment",
+      entityId: paymentId,
+      shiftId: payment.shiftId,
+      metadata: {
+        fileId: fileId,
         bucketId: PAYMENT_PROOF_BUCKET,
         objectPath,
-        fileType: "payment_proof",
         mimeType: input.file.type,
         sizeBytes: input.file.size,
-        uploadedBy: access.user.id,
-      });
-      const [updated] = await tx
-        .update(payments)
-        .set({ proofFileId: input.fileId })
-        .where(
-          and(
-            eq(payments.id, input.paymentId),
-            eq(payments.businessId, access.business.id),
-            isNull(payments.proofFileId),
-          ),
-        )
-        .returning({ id: payments.id });
-      if (!updated) {
-        throw new AccessError("The payment proof could not be linked.");
-      }
-
-      await insertAuditLog(tx, access, {
-        action: "payment.proof_attached",
-        entityType: "payment",
-        entityId: input.paymentId,
-        shiftId: payment.shiftId,
-        metadata: {
-          fileId: input.fileId,
-          bucketId: PAYMENT_PROOF_BUCKET,
-          objectPath,
-          mimeType: input.file.type,
-          sizeBytes: input.file.size,
-        },
-      });
+      },
     });
-  } catch (error) {
-    await removeUploadedObject(storageAdmin, objectPath);
-    throw error;
-  }
+  });
 
   return {
-    paymentId: input.paymentId,
-    fileId: input.fileId,
+    paymentId: paymentId,
+    fileId: fileId,
     objectPath,
     idempotent: false,
   };

@@ -1,3 +1,6 @@
+import Link from "next/link";
+import { CalendarDays } from "lucide-react";
+import { Button } from "@/components/ui/button";
 import { redirect } from "next/navigation";
 import { PageHeader } from "@/components/shared/layout";
 import {
@@ -19,9 +22,17 @@ export default async function ShiftsPage() {
     <>
       <PageHeader
         title="My shifts"
-        description="Start work, sell, count inventory, and close out from one place."
+        description="Your assignments, your next action, and the day’s results."
+        action={
+          <Button asChild variant="outline">
+            <Link href="/schedule">
+              <CalendarDays aria-hidden="true" />
+              Schedule
+            </Link>
+          </Button>
+        }
       />
-      <ShiftList shifts={shifts} />
+      <ShiftList shifts={shifts} canUsePos={employee?.canUsePos ?? false} />
     </>
   );
 }

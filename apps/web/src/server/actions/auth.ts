@@ -1,4 +1,5 @@
 "use server";
+import { assertDeviceCanLeave } from "../services/offline-context";
 
 import { actionFailure, actionSuccess } from "@miniros/contracts";
 import { cookies } from "next/headers";
@@ -32,10 +33,19 @@ export async function registerAction(input: unknown) {
       return actionFailure(error?.message ?? "Registration failed.");
     }
 
-    await Promise.all([
-      ensureProfile(data.user.id, values.fullName),
-      claimMembershipInvitations(data.user),
-    ]);
+    if (data.session) {
+      // With email confirmation enabled, signUp can also return an obfuscated
+      // user for an existing account. Only persist an authenticated identity.
+      const { data: verified, error: verificationError } =
+        await supabase.auth.getUser();
+      if (verificationError || !verified.user) {
+        return actionFailure("Please sign in to finish registration.");
+      }
+      await Promise.all([
+        ensureProfile(verified.user.id, values.fullName),
+        claimMembershipInvitations(verified.user),
+      ]);
+    }
     return actionSuccess({
       userId: data.user.id,
       requiresEmailConfirmation: !data.session,
@@ -72,6 +82,8 @@ export async function loginAction(input: unknown) {
 
 export async function logoutAction() {
   try {
+    const { requireUser } = await import("../services/access");
+    await assertDeviceCanLeave((await requireUser()).id);
     const supabase = await createClient();
     const { error } = await supabase.auth.signOut();
 

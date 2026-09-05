@@ -14,7 +14,6 @@ import { requireActiveBusiness } from "./access";
 export async function listPendingApprovals() {
   const { business } = await requireActiveBusiness({
     admin: true,
-    feature: "approvals",
   });
   const database = requireDatabase();
   const [cash, inventory] = await Promise.all([

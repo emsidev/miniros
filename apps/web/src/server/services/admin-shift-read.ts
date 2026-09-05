@@ -1,3 +1,4 @@
+import { planningTotals } from "@/lib/shift-planning";
 import type { Database } from "@miniros/db";
 import {
   employees,
@@ -50,11 +51,8 @@ function shiftDto(
     rentalCostCents,
     transportCostCents,
     otherCostCents,
-    totalExpectedCostCents: sumCents(
-      rentalCostCents,
-      transportCostCents,
-      otherCostCents,
-    ),
+    salaryCostCents: planningTotals(assignments, costs).payCents,
+    totalExpectedCostCents: planningTotals(assignments, costs).totalCents,
     assignments,
     costs,
     createdAt: row.createdAt.toISOString(),

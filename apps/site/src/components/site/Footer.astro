@@ -1,6 +1,7 @@
 ---
 import { navItems } from "../../content/home";
 import BrandMark from "./BrandMark.astro";
+const appUrl = import.meta.env.PUBLIC_APP_URL || "http://localhost:3000";
 ---
 
 <footer class="site-footer" id="early-access">
@@ -9,26 +10,17 @@ import BrandMark from "./BrandMark.astro";
       <p class="section-context">Early access</p>
       <h2>Put the next location decision on a better record.</h2>
       <p>
-        Join the early access list for pop-up sellers, booth owners, and small
-        retail teams.
+        Create an early access account for your team. Offline shifts remain
+        limited to verified pilot locations.
       </p>
     </div>
-    <form class="waitlist-form" aria-label="Early access interest form">
-      <label for="early-access-email">Work email</label>
-      <div>
-        <input
-          id="early-access-email"
-          name="email"
-          type="email"
-          placeholder="you@example.com"
-          autocomplete="email"
-          required
-        />
-        <button type="submit">Join early access</button>
-      </div>
-      <small>Limited invitations will be sent before public availability.</small
+    <div class="waitlist-form">
+      <a class="button button-accent" href={`${appUrl}/register`}
+        >Create early access account</a
       >
-    </form>
+      <small>Already registered? <a href={`${appUrl}/login`}>Sign in</a>.</small
+      >
+    </div>
   </div>
 
   <div class="footer-bottom">

@@ -1,6 +1,12 @@
 "use client";
 
-import { useState, useTransition, type FormEvent } from "react";
+import {
+  useEffect,
+  useRef,
+  useState,
+  useTransition,
+  type FormEvent,
+} from "react";
 import { useRouter } from "next/navigation";
 import { AlertCircle, Factory } from "lucide-react";
 import { toast } from "sonner";
@@ -23,6 +29,12 @@ export function ProductionForm({
   const router = useRouter();
   const [isPending, startTransition] = useTransition();
   const [error, setError] = useState<string>();
+  const errorRef = useRef<HTMLDivElement>(null);
+  useEffect(() => {
+    if (error) errorRef.current?.focus();
+  }, [error]);
+  const [productId, setProductId] = useState("");
+  const product = products.find((item) => item.id === productId);
   const [requestIds, setRequestIds] = useState(() => ({
     productionLogId: crypto.randomUUID(),
     productionInputEventId: crypto.randomUUID(),
@@ -35,51 +47,69 @@ export function ProductionForm({
     const form = new FormData(formElement);
     setError(undefined);
     startTransition(async () => {
-      const result = await logProductionAction({
-        productionLogId: requestIds.productionLogId,
-        productionInputEventId: requestIds.productionInputEventId,
-        productionOutputEventId: requestIds.productionOutputEventId,
-        inventoryLocationId: String(form.get("inventoryLocationId") ?? ""),
-        productId: String(form.get("productId") ?? ""),
-        quantityProduced: normalizeNumericExpression(
-          form.get("quantityProduced"),
-          3,
-        ),
-        notes: String(form.get("notes") ?? "") || null,
-      });
-      if (!result.ok) {
-        setError(result.error);
-        return;
+      try {
+        const result = await logProductionAction({
+          productionLogId: requestIds.productionLogId,
+          productionInputEventId: requestIds.productionInputEventId,
+          productionOutputEventId: requestIds.productionOutputEventId,
+          inventoryLocationId: String(form.get("inventoryLocationId") ?? ""),
+          productId: String(form.get("productId") ?? ""),
+          quantityProduced: normalizeNumericExpression(
+            form.get("quantityProduced"),
+            3,
+          ),
+          notes: String(form.get("notes") ?? "") || null,
+        });
+        if (!result.ok) {
+          setError(result.error);
+          return;
+        }
+        formElement.reset();
+        setProductId("");
+        setRequestIds({
+          productionLogId: crypto.randomUUID(),
+          productionInputEventId: crypto.randomUUID(),
+          productionOutputEventId: crypto.randomUUID(),
+        });
+        toast.success(
+          "Production logged: inputs deducted and finished goods added.",
+        );
+        router.refresh();
+      } catch {
+        setError(
+          "Couldn’t reach the server. Your entries are still here. Try again.",
+        );
       }
-      formElement.reset();
-      setRequestIds({
-        productionLogId: crypto.randomUUID(),
-        productionInputEventId: crypto.randomUUID(),
-        productionOutputEventId: crypto.randomUUID(),
-      });
-      toast.success(
-        "Production logged: inputs deducted and finished goods added.",
-      );
-      router.refresh();
     });
   }
 
   return (
     <form
       onSubmit={handleSubmit}
-      className="space-y-4 rounded-xl border bg-card p-4"
+      className="space-y-5 rounded-xl border bg-card p-5 sm:p-6"
     >
+      <div>
+        <h2 className="text-lg font-bold">Log a production batch</h2>
+        <p className="mt-1 text-sm text-muted-foreground">
+          Choose where you’re making stock, then enter the finished quantity.
+        </p>
+      </div>
       {error ? (
-        <Alert variant="destructive">
-          <AlertCircle aria-hidden="true" />
-          <AlertDescription>{error}</AlertDescription>
-        </Alert>
+        <div ref={errorRef} tabIndex={-1}>
+          <Alert variant="destructive">
+            <AlertCircle aria-hidden="true" />
+            <AlertDescription>{error}</AlertDescription>
+          </Alert>
+        </div>
       ) : null}
       <div className="space-y-2">
         <Label htmlFor="inventoryLocationId">Central inventory location</Label>
         <select
           id="inventoryLocationId"
           name="inventoryLocationId"
+          defaultValue={
+            inventoryLocations.length === 1 ? inventoryLocations[0].id : ""
+          }
           required
           className="h-12 w-full rounded-xl border bg-background px-3"
           disabled={isPending}
@@ -97,6 +127,8 @@ export function ProductionForm({
         <select
           id="productId"
           name="productId"
+          value={productId}
+          onChange={(event) => setProductId(event.target.value)}
           required
           className="h-12 w-full rounded-xl border bg-background px-3"
           disabled={isPending}
@@ -111,7 +143,7 @@ export function ProductionForm({
       </div>
       <div className="space-y-2">
         <Label htmlFor="quantityProduced">
-          Finished-good quantity produced
+          Quantity produced{product ? ` (${product.unit})` : ""}
         </Label>
         <NumericExpressionInput
           id="quantityProduced"
@@ -124,15 +156,24 @@ export function ProductionForm({
           className="h-12 rounded-xl"
         />
       </div>
-      <div className="space-y-2">
-        <Label htmlFor="notes">Notes</Label>
-        <Textarea
-          id="notes"
-          name="notes"
-          maxLength={2000}
-          disabled={isPending}
-        />
-      </div>
+      <details className="rounded-lg border">
+        <summary className="min-h-11 cursor-pointer px-3 py-3 text-sm font-semibold">
+          Add notes (optional)
+        </summary>
+        <div className="space-y-2 px-3 pb-3">
+          <Label htmlFor="notes">Batch notes</Label>
+          <Textarea
+            id="notes"
+            name="notes"
+            maxLength={2000}
+            disabled={isPending}
+          />
+        </div>
+      </details>
+      <p className="text-sm text-muted-foreground">
+        Logging deducts recipe inputs and adds finished goods to the selected
+        central inventory.
+      </p>
       <Button
         type="submit"
         size="lg"

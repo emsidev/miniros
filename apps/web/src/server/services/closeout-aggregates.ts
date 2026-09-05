@@ -1,3 +1,4 @@
+import type { PreparedSnapshot } from "@miniros/contracts";
 import {
   cashDeductions,
   payments,
@@ -13,7 +14,7 @@ import {
   multiplyCentsByQuantity,
   subtractCents,
 } from "@miniros/domain";
-import { and, eq, ne, sql } from "drizzle-orm";
+import { and, eq, inArray, sql } from "drizzle-orm";
 
 import { AccessError } from "./access";
 import type { OperationalTransaction } from "./operational-helpers";
@@ -31,6 +32,7 @@ export async function aggregateCloseoutFinancials(
   tx: OperationalTransaction,
   businessId: string,
   shiftId: string,
+  preparedCosts?: PreparedSnapshot["costs"],
 ) {
   const [saleTotalRows, productCostRows] = await Promise.all([
     tx
@@ -99,7 +101,11 @@ export async function aggregateCloseoutFinancials(
       and(
         eq(shiftAssignments.businessId, businessId),
         eq(shiftAssignments.shiftId, shiftId),
-        ne(shiftAssignments.status, "cancelled"),
+        inArray(shiftAssignments.status, [
+          "assigned",
+          "confirmed",
+          "completed",
+        ]),
       ),
     );
   const [costTotals] = await tx
@@ -162,13 +168,18 @@ export async function aggregateCloseoutFinancials(
     netSalesCents: grossSalesCents,
     cashSalesCents,
     nonCashSalesCents,
-    salaryCostCents: aggregateCents(salaryTotals?.salary, "salaryCostCents"),
-    rentalCostCents: aggregateCents(costTotals?.rent, "rentalCostCents"),
-    transportCostCents: aggregateCents(
-      costTotals?.transport,
-      "transportCostCents",
-    ),
-    otherCostsCents: aggregateCents(costTotals?.other, "otherCostsCents"),
+    salaryCostCents:
+      preparedCosts?.salaryCents ??
+      aggregateCents(salaryTotals?.salary, "salaryCostCents"),
+    rentalCostCents:
+      preparedCosts?.rentCents ??
+      aggregateCents(costTotals?.rent, "rentalCostCents"),
+    transportCostCents:
+      preparedCosts?.transportCents ??
+      aggregateCents(costTotals?.transport, "transportCostCents"),
+    otherCostsCents:
+      preparedCosts?.otherCents ??
+      aggregateCents(costTotals?.other, "otherCostsCents"),
     productCostCents,
     approvedDeductionsCents,
   });

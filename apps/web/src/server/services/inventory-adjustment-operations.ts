@@ -1,3 +1,7 @@
+import {
+  runShiftTransaction,
+  type PreparedOperationContext,
+} from "./offline-context";
 import { requireDatabase } from "@miniros/db";
 import {
   inventoryAdjustments,
@@ -28,6 +32,7 @@ export type SubmitInventoryAdjustmentInput = {
 
 export async function submitInventoryAdjustment(
   input: SubmitInventoryAdjustmentInput,
+  prepared?: PreparedOperationContext,
 ) {
   const access = await requireActiveBusiness({
     employeePermission: "pos",
@@ -39,90 +44,15 @@ export async function submitInventoryAdjustment(
     throw new AccessError("An inventory adjustment must not be zero.");
   }
 
-  return requireDatabase().transaction(async (tx) => {
-    const approvalsEnabled = access.business.features.approvalsEnabled;
-    const [existing] = await tx
-      .select({
-        id: inventoryAdjustments.id,
-        shiftId: inventoryAdjustments.shiftId,
-        status: inventoryAdjustments.status,
-        quantityDelta: inventoryAdjustments.quantityDelta,
-      })
-      .from(inventoryAdjustments)
-      .where(
-        and(
-          eq(inventoryAdjustments.id, input.adjustmentId),
-          eq(inventoryAdjustments.businessId, access.business.id),
-        ),
-      )
-      .limit(1);
-    if (existing) {
-      if (existing.shiftId !== input.shiftId) {
-        throw new AccessError("The inventory adjustment ID is already in use.");
-      }
-      return { ...existing, idempotent: true };
-    }
-
-    const [shift] = await tx
-      .select({ id: shifts.id, status: shifts.status })
-      .from(shifts)
-      .where(
-        and(
-          eq(shifts.id, input.shiftId),
-          eq(shifts.businessId, access.business.id),
-          isNull(shifts.deletedAt),
-        ),
-      )
-      .for("update")
-      .limit(1);
-    if (!shift || (shift.status !== "active" && shift.status !== "closing")) {
-      throw new AccessError("Inventory adjustments require an open shift.");
-    }
-    await requireCurrentAssignment(
-      tx,
-      access.business.id,
-      shift.id,
-      access.employee.id,
-    );
-    const inventoryLocation = await getShiftInventoryLocation(
-      tx,
-      access.business.id,
-      shift.id,
-    );
-    const [item] = await tx
-      .select({ id: inventoryItems.id })
-      .from(inventoryItems)
-      .where(
-        and(
-          eq(inventoryItems.id, input.inventoryItemId),
-          eq(inventoryItems.businessId, access.business.id),
-          eq(inventoryItems.status, "active"),
-          isNull(inventoryItems.deletedAt),
-        ),
-      )
-      .limit(1);
-    if (!item) throw new AccessError("Inventory item not found.");
-
-    const reviewedAt = approvalsEnabled ? null : new Date();
-    const status = approvalsEnabled ? "pending" : "applied";
-    const [created] = await tx
-      .insert(inventoryAdjustments)
-      .values({
-        id: input.adjustmentId,
-        businessId: access.business.id,
-        shiftId: shift.id,
-        inventoryLocationId: inventoryLocation.id,
-        inventoryItemId: item.id,
-        quantityDelta: databaseQuantity(quantityDelta),
-        reason: input.reason.trim(),
-        status,
-        requestedBy: access.employee.id,
-        reviewedAt,
-      })
-      .onConflictDoNothing()
-      .returning({ id: inventoryAdjustments.id });
-    if (!created) {
-      const [raced] = await tx
+  return runShiftTransaction(
+    access.business.id,
+    input.shiftId,
+    prepared,
+    async (tx) => {
+      const approvalsEnabled = prepared
+        ? true
+        : access.business.features.approvalsEnabled;
+      const [existing] = await tx
         .select({
           id: inventoryAdjustments.id,
           shiftId: inventoryAdjustments.shiftId,
@@ -137,52 +67,145 @@ export async function submitInventoryAdjustment(
           ),
         )
         .limit(1);
-      if (raced?.shiftId === input.shiftId) {
-        return { ...raced, idempotent: true };
+      if (existing) {
+        if (existing.shiftId !== input.shiftId) {
+          throw new AccessError(
+            "The inventory adjustment ID is already in use.",
+          );
+        }
+        return { ...existing, idempotent: true };
       }
-      throw new AccessError("The inventory adjustment ID is already in use.");
-    }
-    if (!approvalsEnabled) {
-      await applyInventoryDeltas(tx, {
-        businessId: access.business.id,
+
+      const [shift] = await tx
+        .select({ id: shifts.id, status: shifts.status })
+        .from(shifts)
+        .where(
+          and(
+            eq(shifts.id, input.shiftId),
+            eq(shifts.businessId, access.business.id),
+            isNull(shifts.deletedAt),
+          ),
+        )
+        .for("update")
+        .limit(1);
+      if (!shift || (shift.status !== "active" && shift.status !== "closing")) {
+        throw new AccessError("Inventory adjustments require an open shift.");
+      }
+      await requireCurrentAssignment(
+        tx,
+        access.business.id,
+        shift.id,
+        access.employee.id,
+      );
+      const inventoryLocation = await getShiftInventoryLocation(
+        tx,
+        access.business.id,
+        shift.id,
+      );
+      // Prepared requests retain their verified catalog and always await review.
+      // Approval still requires the current item to be active and undeleted.
+      const item = prepared
+        ? prepared.snapshot.inventory.find(
+            (candidate) => candidate.id === input.inventoryItemId,
+          )
+        : (
+            await tx
+              .select({ id: inventoryItems.id })
+              .from(inventoryItems)
+              .where(
+                and(
+                  eq(inventoryItems.id, input.inventoryItemId),
+                  eq(inventoryItems.businessId, access.business.id),
+                  eq(inventoryItems.status, "active"),
+                  isNull(inventoryItems.deletedAt),
+                ),
+              )
+              .limit(1)
+          )[0];
+      if (!item) throw new AccessError("Inventory item not found.");
+
+      const reviewedAt = approvalsEnabled ? null : new Date();
+      const status = approvalsEnabled ? "pending" : "applied";
+      const [created] = await tx
+        .insert(inventoryAdjustments)
+        .values({
+          id: input.adjustmentId,
+          businessId: access.business.id,
+          shiftId: shift.id,
+          inventoryLocationId: inventoryLocation.id,
+          inventoryItemId: item.id,
+          quantityDelta: databaseQuantity(quantityDelta),
+          reason: input.reason.trim(),
+          status,
+          requestedBy: access.employee.id,
+          createdAt: prepared?.occurredAt,
+          reviewedAt,
+        })
+        .onConflictDoNothing()
+        .returning({ id: inventoryAdjustments.id });
+      if (!created) {
+        const [raced] = await tx
+          .select({
+            id: inventoryAdjustments.id,
+            shiftId: inventoryAdjustments.shiftId,
+            status: inventoryAdjustments.status,
+            quantityDelta: inventoryAdjustments.quantityDelta,
+          })
+          .from(inventoryAdjustments)
+          .where(
+            and(
+              eq(inventoryAdjustments.id, input.adjustmentId),
+              eq(inventoryAdjustments.businessId, access.business.id),
+            ),
+          )
+          .limit(1);
+        if (raced?.shiftId === input.shiftId) {
+          return { ...raced, idempotent: true };
+        }
+        throw new AccessError("The inventory adjustment ID is already in use.");
+      }
+      if (!approvalsEnabled) {
+        await applyInventoryDeltas(tx, {
+          businessId: access.business.id,
+          shiftId: shift.id,
+          inventoryLocationId: inventoryLocation.id,
+          eventId: input.inventoryEventId,
+          eventType: "adjustment",
+          sourceType: "inventory_adjustment",
+          sourceId: input.adjustmentId,
+          employeeId: access.employee.id,
+          notes: input.reason,
+          lines: [
+            {
+              inventoryItemId: item.id,
+              quantityDelta: databaseQuantity(quantityDelta),
+            },
+          ],
+        });
+      }
+      await insertAuditLog(tx, access, {
+        action: approvalsEnabled
+          ? "inventory_adjustment.submitted"
+          : "inventory_adjustment.applied_without_approval",
+        entityType: "inventory_adjustment",
+        entityId: input.adjustmentId,
         shiftId: shift.id,
-        inventoryLocationId: inventoryLocation.id,
-        eventId: input.inventoryEventId,
-        eventType: "adjustment",
-        sourceType: "inventory_adjustment",
-        sourceId: input.adjustmentId,
-        employeeId: access.employee.id,
-        notes: input.reason,
-        lines: [
-          {
-            inventoryItemId: item.id,
-            quantityDelta: databaseQuantity(quantityDelta),
-          },
-        ],
+        metadata: {
+          inventoryItemId: item.id,
+          quantityDelta,
+          inventoryEventId: approvalsEnabled ? null : input.inventoryEventId,
+          approvalsEnabled,
+        },
       });
-    }
-    await insertAuditLog(tx, access, {
-      action: approvalsEnabled
-        ? "inventory_adjustment.submitted"
-        : "inventory_adjustment.applied_without_approval",
-      entityType: "inventory_adjustment",
-      entityId: input.adjustmentId,
-      shiftId: shift.id,
-      metadata: {
-        inventoryItemId: item.id,
-        quantityDelta,
-        inventoryEventId: approvalsEnabled ? null : input.inventoryEventId,
-        approvalsEnabled,
-      },
-    });
-    return {
-      id: input.adjustmentId,
-      shiftId: shift.id,
-      status,
-      quantityDelta: databaseQuantity(quantityDelta),
-      idempotent: false,
-    };
-  });
+      return {
+        id: input.adjustmentId,
+        shiftId: shift.id,
+        status,
+        quantityDelta: databaseQuantity(quantityDelta),
+        idempotent: false,
+      };
+    },
+  );
 }
 
 export async function reviewInventoryAdjustment(
@@ -200,7 +223,6 @@ export async function reviewInventoryAdjustment(
 ) {
   const access = await requireActiveBusiness({
     admin: true,
-    feature: "approvals",
   });
   return requireDatabase().transaction(async (tx) => {
     const [adjustment] = await tx
@@ -273,13 +295,12 @@ export async function reviewInventoryAdjustment(
         ),
       )
       .limit(1);
-    if (!location || !item) {
-      throw new AccessError("The adjustment inventory linkage is invalid.");
-    }
-
     const reviewedAt = new Date();
     const status = input.decision === "approved" ? "applied" : "rejected";
     if (input.decision === "approved") {
+      if (!location || !item) {
+        throw new AccessError("The adjustment inventory linkage is invalid.");
+      }
       await applyInventoryDeltas(tx, {
         businessId: access.business.id,
         shiftId: shift.id,
@@ -322,7 +343,7 @@ export async function reviewInventoryAdjustment(
       entityId: adjustment.id,
       shiftId: shift.id,
       metadata: {
-        inventoryItemId: item.id,
+        inventoryItemId: adjustment.inventoryItemId,
         quantityDelta: adjustment.quantityDelta,
         inventoryEventId:
           input.decision === "approved" ? input.inventoryEventId : null,

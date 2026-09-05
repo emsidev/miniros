@@ -171,3 +171,29 @@ body {
     transition-duration: 0.01ms !important;
   }
 }
+
+/* Employee task controls leave room for the shell and bottom navigation. */
+.employee-workspace
+  :is(input, textarea, select, button, a, summary, [tabindex]) {
+  scroll-margin-top: 9rem;
+  scroll-margin-bottom: 12rem;
+}
+.employee-workspace summary:focus-visible {
+  outline: 2px solid var(--ring);
+  outline-offset: 3px;
+}
+.employee-workspace summary::-webkit-details-marker {
+  display: none;
+}
+
+/* Inventory controls account for the live shell and action-toolbar heights. */
+.inventory-workspace :is(input, textarea, button, a, [tabindex]) {
+  scroll-margin-top: calc(
+    var(--workspace-header-height, 4rem) +
+      var(--inventory-toolbar-height, 8rem) + 1rem
+  );
+  scroll-margin-bottom: 7rem;
+}
+.inventory-drawer :is(input, textarea, button, a, [tabindex]) {
+  scroll-margin-block: 1rem;
+}

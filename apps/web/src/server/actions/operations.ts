@@ -1,7 +1,16 @@
 "use server";
 
-import { actionSuccess, paymentMethods } from "@miniros/contracts";
-import { normalizeQuantity } from "@miniros/domain";
+import {
+  actionSuccess,
+  startShiftSchema,
+  saleSchema,
+  productionSchema,
+  cashDeductionSchema,
+  inventoryAdjustmentSchema,
+  reviewCashSchema,
+  reviewAdjustmentSchema,
+  closeoutSchema,
+} from "@miniros/contracts";
 import { revalidatePath } from "next/cache";
 import { z } from "zod";
 
@@ -13,167 +22,16 @@ import {
   reviewInventoryAdjustment,
   submitInventoryAdjustment,
 } from "../services/inventory-adjustment-operations";
+import { attachDiscountProof } from "../services/discount-proofs";
 import { attachPaymentProof } from "../services/payment-proofs";
 import { logProduction } from "../services/production-operations";
 import { finalizeSale } from "../services/sales-operations";
 import { submitShiftCloseout } from "../services/shift-closeout";
 import { startAssignedShift } from "../services/shift-start";
+import { joinShift } from "../services/shift-join";
 import { actionError } from "./helpers";
 
 const uuidSchema = z.string().uuid();
-const centsSchema = z.number().int().nonnegative().max(Number.MAX_SAFE_INTEGER);
-const nullableText = (maximum: number) =>
-  z.string().trim().max(maximum).nullable().optional().default(null);
-const normalizedQuantitySchema = z
-  .union([z.number().finite(), z.string().trim().min(1).max(32)])
-  .transform((value, context) => {
-    try {
-      return normalizeQuantity(value);
-    } catch {
-      context.addIssue({
-        code: z.ZodIssueCode.custom,
-        message: "Use a valid quantity within the supported range.",
-      });
-      return z.NEVER;
-    }
-  });
-const positiveQuantitySchema = normalizedQuantitySchema.refine(
-  (value) => value > 0,
-  "Quantity must be positive.",
-);
-const nonnegativeQuantitySchema = normalizedQuantitySchema.refine(
-  (value) => value >= 0,
-  "Quantity must not be negative.",
-);
-const nonzeroQuantitySchema = normalizedQuantitySchema.refine(
-  (value) => value !== 0,
-  "Quantity must not be zero.",
-);
-const countSchema = z.object({
-  inventoryItemId: uuidSchema,
-  quantity: nonnegativeQuantitySchema,
-});
-const countsSchema = z
-  .array(countSchema)
-  .min(1)
-  .max(500)
-  .refine(
-    (counts) =>
-      new Set(counts.map((count) => count.inventoryItemId)).size ===
-      counts.length,
-    "Each inventory item may be counted only once.",
-  );
-
-const startShiftSchema = z
-  .object({
-    shiftId: uuidSchema,
-    inventoryLocationId: uuidSchema,
-    openingEventId: uuidSchema,
-    counts: countsSchema,
-    notes: nullableText(2_000),
-  })
-  .strict();
-const saleSchema = z
-  .object({
-    saleId: uuidSchema,
-    shiftId: uuidSchema,
-    inventoryEventId: uuidSchema,
-    items: z
-      .array(
-        z
-          .object({
-            id: uuidSchema,
-            productId: uuidSchema,
-            quantity: positiveQuantitySchema,
-            discountCents: centsSchema.optional().default(0),
-          })
-          .strict(),
-      )
-      .min(1)
-      .max(100),
-    payments: z
-      .array(
-        z
-          .object({
-            id: uuidSchema,
-            paymentMethod: z.enum(paymentMethods),
-            amountCents: centsSchema.positive(),
-            referenceNumber: nullableText(200),
-          })
-          .strict(),
-      )
-      .min(1)
-      .max(10),
-  })
-  .strict();
-const productionSchema = z
-  .object({
-    productionLogId: uuidSchema,
-    productionInputEventId: uuidSchema,
-    productionOutputEventId: uuidSchema,
-    inventoryLocationId: uuidSchema,
-    productId: uuidSchema,
-    quantityProduced: positiveQuantitySchema,
-    notes: nullableText(2_000),
-  })
-  .strict()
-  .refine(
-    (input) => input.productionInputEventId !== input.productionOutputEventId,
-    "Production input and output event IDs must be different.",
-  );
-const cashDeductionSchema = z
-  .object({
-    deductionId: uuidSchema,
-    shiftId: uuidSchema,
-    label: z.string().trim().min(1).max(120),
-    amountCents: centsSchema.positive(),
-    reason: nullableText(2_000),
-  })
-  .strict();
-const inventoryAdjustmentSchema = z
-  .object({
-    adjustmentId: uuidSchema,
-    inventoryEventId: uuidSchema,
-    shiftId: uuidSchema,
-    inventoryItemId: uuidSchema,
-    quantityDelta: nonzeroQuantitySchema,
-    reason: z.string().trim().min(1).max(2_000),
-  })
-  .strict();
-const reviewCashSchema = z
-  .object({
-    deductionId: uuidSchema,
-    decision: z.enum(["approved", "rejected"]),
-  })
-  .strict();
-const reviewAdjustmentSchema = z.discriminatedUnion("decision", [
-  z
-    .object({
-      adjustmentId: uuidSchema,
-      inventoryEventId: uuidSchema,
-      decision: z.literal("approved"),
-    })
-    .strict(),
-  z
-    .object({
-      adjustmentId: uuidSchema,
-      inventoryEventId: uuidSchema.optional(),
-      decision: z.literal("rejected"),
-    })
-    .strict(),
-]);
-const closeoutSchema = z
-  .object({
-    closeoutId: uuidSchema,
-    cashReconciliationId: uuidSchema,
-    profitSummaryId: uuidSchema,
-    inventoryEventId: uuidSchema,
-    shiftId: uuidSchema,
-    actualCashCents: centsSchema,
-    counts: countsSchema,
-    notes: nullableText(2_000),
-  })
-  .strict();
 const proofFileSchema = z
   .custom<File>((value) => value instanceof File, "Select a proof file.")
   .refine((file) => file.size > 0 && file.size <= 3_500_000, {
@@ -209,7 +67,12 @@ async function execute<TSchema extends z.ZodTypeAny, TResult>(
 ) {
   try {
     const result = await operation(schema.parse(input));
-    paths.forEach((path) => revalidatePath(path));
+    // A refresh failure must not turn an already committed sale into a rejection.
+    try {
+      paths.forEach((path) => revalidatePath(path));
+    } catch (error) {
+      console.error("Operation saved, refresh failed", error);
+    }
     return actionSuccess(result);
   } catch (error) {
     return actionError(error);
@@ -232,6 +95,22 @@ const adminPaths = [
 
 export async function startAssignedShiftAction(input: unknown) {
   return execute(startShiftSchema, input, startAssignedShift, operatorPaths);
+}
+export async function joinShiftAction(input: unknown) {
+  const result = await execute(uuidSchema, input, joinShift, [
+    ...operatorPaths,
+    ...adminPaths,
+  ]);
+  if (result.ok) {
+    try {
+      const shiftId = result.data.shiftId;
+      revalidatePath(`/shifts/${shiftId}`, "layout");
+      revalidatePath(`/admin/shifts/${shiftId}`, "layout");
+    } catch (error) {
+      console.error("Shift joined, detail refresh failed", error);
+    }
+  }
+  return result;
 }
 export async function finalizeSaleAction(input: unknown) {
   return execute(saleSchema, input, finalizeSale, operatorPaths);
@@ -279,4 +158,17 @@ export async function submitShiftCloseoutAction(input: unknown) {
     ...operatorPaths,
     ...adminPaths,
   ]);
+}
+
+export async function uploadDiscountProofAction(form: FormData) {
+  try {
+    const result = await attachDiscountProof({
+      saleId: String(form.get("saleId")),
+      fileId: String(form.get("fileId")),
+      file: form.get("file") as File,
+    });
+    return actionSuccess(result);
+  } catch (error) {
+    return actionError(error);
+  }
 }

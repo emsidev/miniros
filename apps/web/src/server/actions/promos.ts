@@ -8,6 +8,8 @@ import { createPromo, setPromoStatus } from "../services/promos";
 
 const promoWriteSchema = z
   .object({
+    promoId: z.string().uuid().optional(),
+    requiresPhoto: z.boolean().optional().default(false),
     name: z.string().trim().min(2).max(120),
     discountType: z.enum(["fixed_amount", "percentage"]),
     discountValue: z.number().finite().positive().max(1_000_000),
@@ -43,7 +45,7 @@ const statusSchema = z
 export async function createPromoAction(input: unknown) {
   try {
     const values = promoWriteSchema.parse(input);
-    return actionSuccess(await createPromo(values));
+    return actionSuccess(await createPromo(values, values.promoId));
   } catch (error) {
     return actionError(error);
   } finally {

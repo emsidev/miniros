@@ -152,3 +152,86 @@ describe("POS checkout calculations", () => {
     expect(posCartReducer({ bread: 3 }, { type: "reset" })).toEqual({});
   });
 });
+
+describe("promo photos", () => {
+  const cash = {
+    id: "cash",
+    proofFileId: "unused",
+    method: "cash" as const,
+    amount: "20",
+    amountMode: "exact" as const,
+    reference: "",
+    file: null,
+    amountCents: 2000,
+  };
+  it("uses the configured peso discount and requires a photo even for cash", () => {
+    const checkout = calculateCheckout({
+      products: [product],
+      cart: { bread: 2 },
+      discount: "99",
+      promoId: "pwd",
+      promos: [
+        {
+          id: "pwd",
+          name: "PWD Discount",
+          discountType: "fixed_amount",
+          discountValue: 10,
+          requiresPhoto: true,
+        },
+      ],
+    });
+    expect(checkout.totalCents).toBe(2000);
+    expect(
+      validateCheckout({
+        itemCount: 1,
+        totalCents: checkout.totalCents,
+        payments: [cash],
+        requiresPhoto: true,
+      }),
+    ).toMatch(/Attach a photo/);
+    expect(
+      validateCheckout({
+        itemCount: 1,
+        totalCents: 2000,
+        payments: [cash],
+        requiresPhoto: true,
+        discountPhoto: new File(["photo"], "id.jpg", { type: "image/jpeg" }),
+      }),
+    ).toBeNull();
+  });
+  it("rejects a PDF or oversized promo photo before saving a sale", () => {
+    for (const file of [
+      new File(["%PDF"], "id.pdf", { type: "application/pdf" }),
+      new File([new Uint8Array(3_500_001)], "id.jpg", { type: "image/jpeg" }),
+    ]) {
+      expect(
+        validateCheckout({
+          itemCount: 1,
+          totalCents: 2000,
+          payments: [cash],
+          requiresPhoto: true,
+          discountPhoto: file,
+        }),
+      ).toBeTruthy();
+    }
+  });
+  it("validates attached non-cash files without requiring photos for normal promos", () => {
+    expect(
+      validateCheckout({
+        itemCount: 1,
+        totalCents: 2000,
+        payments: [
+          {
+            ...cash,
+            method: "gcash",
+            reference: "REF",
+            file: new File(["bad"], "bad.txt", { type: "text/plain" }),
+          },
+        ],
+      }),
+    ).toMatch(/Choose a JPEG/);
+    expect(
+      validateCheckout({ itemCount: 1, totalCents: 2000, payments: [cash] }),
+    ).toBeNull();
+  });
+});

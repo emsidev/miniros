@@ -53,9 +53,14 @@ const transferSchema = z
   .strict();
 
 function refreshStock() {
-  revalidatePath("/admin/inventory");
-  revalidatePath("/admin/inventory/stock");
-  revalidatePath("/inventory");
+  // Cache invalidation cannot turn an already committed movement into a failure.
+  try {
+    revalidatePath("/admin/inventory");
+    revalidatePath("/admin/inventory/stock");
+    revalidatePath("/inventory");
+  } catch (error) {
+    console.error("Stock saved, refresh failed", error);
+  }
 }
 
 export async function createCentralInventoryLocationAction(input: unknown) {

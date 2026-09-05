@@ -2,8 +2,22 @@ import * as React from "react";
 
 import { cn } from "@/lib/utils";
 
+function clearInputValue(input: HTMLInputElement) {
+  // Use the native setter so React notices the programmatic change when this
+  // input is controlled, then bubble an input event through its normal handler.
+  const nativeValueSetter = Object.getOwnPropertyDescriptor(
+    HTMLInputElement.prototype,
+    "value",
+  )?.set;
+
+  nativeValueSetter?.call(input, "");
+  input.dispatchEvent(new Event("input", { bubbles: true }));
+}
+
 const Input = React.forwardRef<HTMLInputElement, React.ComponentProps<"input">>(
-  ({ className, type, ...props }, ref) => {
+  ({ className, type, onFocus, ...props }, ref) => {
+    const hasClearedInitialValue = React.useRef(false);
+
     return (
       <input
         ref={ref}
@@ -14,6 +28,20 @@ const Input = React.forwardRef<HTMLInputElement, React.ComponentProps<"input">>(
           className,
         )}
         {...props}
+        onFocus={(event) => {
+          onFocus?.(event);
+
+          if (
+            type !== "number" ||
+            hasClearedInitialValue.current ||
+            !event.currentTarget.value
+          ) {
+            return;
+          }
+
+          hasClearedInitialValue.current = true;
+          clearInputValue(event.currentTarget);
+        }}
       />
     );
   },

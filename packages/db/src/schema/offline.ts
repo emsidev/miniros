@@ -23,6 +23,11 @@ export const offlineSyncActions = pgTable(
     shiftId: uuid("shift_id").references(() => shifts.id, {
       onDelete: "set null",
     }),
+    sessionId: uuid("session_id"),
+    sequence: integer("sequence"),
+    payloadDigest: text("payload_digest"),
+    result: jsonb("result"),
+    conflictCode: text("conflict_code"),
     clientActionId: uuid("client_action_id").notNull(),
     actionType: offlineActionTypeEnum("action_type").notNull(),
     status: offlineActionStatusEnum("status").default("pending").notNull(),
@@ -41,6 +46,9 @@ export const offlineSyncActions = pgTable(
     businessClientActionUnique: uniqueIndex(
       "offline_sync_actions_business_client_action_unique",
     ).on(table.businessId, table.clientActionId),
+    sessionSequenceUnique: uniqueIndex(
+      "offline_sync_session_sequence_unique",
+    ).on(table.sessionId, table.sequence),
     shiftIdx: index("offline_sync_actions_shift_id_idx").on(table.shiftId),
   }),
 );

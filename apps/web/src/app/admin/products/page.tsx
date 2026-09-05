@@ -1,9 +1,15 @@
-import { CookingPot, Package } from "lucide-react";
+import { AdminTable } from "@/components/shared/admin-table";
+import {
+  TableBody,
+  TableCell,
+  TableHead,
+  TableHeader,
+  TableRow,
+} from "@/components/ui/table";
 import { subtractCents } from "@miniros/domain";
 import { EmptyState, StatusBadge } from "@/components/shared/feedback";
 import { PageHeader } from "@/components/shared/layout";
 import { Badge } from "@/components/ui/badge";
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { formatMoney } from "@/lib/format";
 import { requireActiveBusiness } from "@/server/services/access";
 import { listProductCategories } from "@/server/services/product-categories";
@@ -51,60 +57,50 @@ export default async function ProductsPage() {
           action={createAction}
         />
       ) : (
-        <div className="grid gap-4 lg:grid-cols-2">
-          {products.map((product) => (
-            <Card key={product.id} className="rounded-xl py-5 shadow-none">
-              <CardHeader className="flex-row items-start gap-3 px-5">
-                <span className="grid size-11 shrink-0 place-items-center rounded-xl bg-muted">
-                  <Package className="size-5" aria-hidden="true" />
-                </span>
-                <div className="min-w-0 flex-1">
-                  <CardTitle className="truncate font-bold">
-                    {product.name}
-                  </CardTitle>
-                  <p className="mt-1 truncate text-sm text-muted-foreground">
-                    {product.categoryName ?? "Uncategorized"}
-                  </p>
-                </div>
-                <div className="flex shrink-0 flex-col items-end gap-2">
-                  <StatusBadge status={product.status} />
-                  <CreateProductDialog
-                    product={product}
-                    categories={categories}
-                    recipesEnabled={business.features.recipesEnabled}
-                    productionEnabled={business.features.productionEnabled}
-                    finishedGoods={finishedGoods}
-                  />
-                </div>
-              </CardHeader>
-              <CardContent className="space-y-4 px-5">
-                <div className="grid grid-cols-3 gap-2 rounded-xl bg-muted/60 p-3">
-                  <div>
-                    <p className="text-xs text-muted-foreground">Price</p>
-                    <p className="mt-1 font-bold">
-                      {formatMoney(product.priceCents)}
-                    </p>
-                  </div>
-                  <div>
-                    <p className="text-xs text-muted-foreground">Cost</p>
-                    <p className="mt-1 font-bold">
-                      {formatMoney(product.costCents)}
-                    </p>
-                  </div>
-                  <div>
-                    <p className="text-xs text-muted-foreground">Margin</p>
-                    <p className="mt-1 font-bold">
-                      {formatMoney(
-                        subtractCents(product.priceCents, product.costCents),
-                      )}
-                    </p>
-                  </div>
-                </div>
-                <div className="flex flex-wrap gap-2">
-                  <Badge variant="secondary">{product.sku}</Badge>
-                  <Badge variant="outline">
-                    {product.categoryName ?? "Uncategorized"}
-                  </Badge>
+        <AdminTable label="Products">
+          <TableHeader>
+            <TableRow>
+              <TableHead scope="col">Product / SKU</TableHead>
+              <TableHead scope="col">Category</TableHead>
+              <TableHead scope="col" className="text-right">
+                Price
+              </TableHead>
+              <TableHead scope="col" className="text-right">
+                Cost
+              </TableHead>
+              <TableHead scope="col" className="text-right">
+                Margin
+              </TableHead>
+              <TableHead scope="col">Cost source</TableHead>
+              <TableHead scope="col">Availability / stock</TableHead>
+              <TableHead scope="col">Status</TableHead>
+              <TableHead scope="col" className="text-right">
+                Actions
+              </TableHead>
+            </TableRow>
+          </TableHeader>
+          <TableBody>
+            {products.map((product) => (
+              <TableRow key={product.id}>
+                <TableCell className="min-w-48 max-w-72 whitespace-normal break-words">
+                  <p className="font-semibold">{product.name}</p>
+                  <p className="mt-1 text-muted-foreground">{product.sku}</p>
+                </TableCell>
+                <TableCell className="min-w-36 max-w-48 whitespace-normal break-words">
+                  {product.categoryName ?? "Uncategorized"}
+                </TableCell>
+                <TableCell className="text-right font-semibold">
+                  {formatMoney(product.priceCents)}
+                </TableCell>
+                <TableCell className="text-right">
+                  {formatMoney(product.costCents)}
+                </TableCell>
+                <TableCell className="text-right font-semibold">
+                  {formatMoney(
+                    subtractCents(product.priceCents, product.costCents),
+                  )}
+                </TableCell>
+                <TableCell>
                   <Badge
                     variant={
                       product.costSource === "recipe" ? "default" : "outline"
@@ -116,28 +112,40 @@ export default async function ProductsPage() {
                         ? "Cost overridden"
                         : "Manual cost"}
                   </Badge>
+                </TableCell>
+                <TableCell className="min-w-48 max-w-64 whitespace-normal break-words">
                   <Badge variant={product.isSellable ? "default" : "outline"}>
                     {product.isSellable
                       ? "Available in POS"
                       : "Hidden from POS"}
                   </Badge>
                   {product.inventoryMode === "produced" ? (
-                    <Badge variant="outline">
-                      <CookingPot aria-hidden="true" />
+                    <p className="mt-2 text-muted-foreground">
                       Produced stock: {product.outputInventoryItemName}
-                    </Badge>
+                    </p>
                   ) : business.features.recipesEnabled &&
                     product.requiresRecipeDeduction ? (
-                    <Badge variant="outline">
-                      <CookingPot aria-hidden="true" />
+                    <p className="mt-2 text-muted-foreground">
                       Recipe deduction
-                    </Badge>
+                    </p>
                   ) : null}
-                </div>
-              </CardContent>
-            </Card>
-          ))}
-        </div>
+                </TableCell>
+                <TableCell>
+                  <StatusBadge status={product.status} />
+                </TableCell>
+                <TableCell className="text-right">
+                  <CreateProductDialog
+                    product={product}
+                    categories={categories}
+                    recipesEnabled={business.features.recipesEnabled}
+                    productionEnabled={business.features.productionEnabled}
+                    finishedGoods={finishedGoods}
+                  />
+                </TableCell>
+              </TableRow>
+            ))}
+          </TableBody>
+        </AdminTable>
       )}
     </>
   );

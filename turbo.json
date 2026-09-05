@@ -11,9 +11,19 @@
         "DATABASE_URL",
         "SUPABASE_PROJECT_ID",
         "SUPABASE_SECRET_KEY",
-        "SUPABASE_SERVICE_ROLE_KEY"
+        "SUPABASE_SERVICE_ROLE_KEY",
+        "NEXT_PUBLIC_SUPABASE_URL",
+        "NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY",
+        "NEXT_PUBLIC_SUPABASE_ANON_KEY",
+        "PUBLIC_APP_URL"
       ],
-      "outputs": ["dist/**", ".next/**", ".astro/**", "coverage/**"]
+      "outputs": [
+        "dist/**",
+        ".next/**",
+        ".astro/**",
+        "public/sw.js",
+        "public/pwa-assets.json"
+      ]
     },
     "lint": {
       "dependsOn": ["^lint"]
@@ -23,7 +33,9 @@
     },
     "test": {
       "dependsOn": ["^test"],
-      "outputs": ["coverage/**"]
+      "outputs": [],
+      "cache": false,
+      "env": ["SHIFT_TEST_DATABASE_URL", "MINIROS_PREVIEW_URL"]
     },
     "db:generate": {
       "cache": false

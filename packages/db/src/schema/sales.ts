@@ -64,6 +64,13 @@ export const sales = pgTable(
       .notNull()
       .references(() => sellingLocations.id, { onDelete: "restrict" }),
     saleNumber: text("sale_number").notNull(),
+    discountPromoName: text("discount_promo_name"),
+    discountPromoId: uuid("discount_promo_id"),
+    discountProofRequestId: uuid("discount_proof_request_id"),
+    discountProofFileId: uuid("discount_proof_file_id").references(
+      () => files.id,
+      { onDelete: "restrict" },
+    ),
     status: saleStatusEnum("status").default("completed").notNull(),
     subtotalCents: bigint("subtotal_cents", { mode: "number" })
       .default(0)

@@ -1,3 +1,4 @@
+import { assertUnreservedShift } from "./offline-context";
 import { randomUUID } from "node:crypto";
 import { requireDatabase } from "@miniros/db";
 import {
@@ -10,7 +11,7 @@ import {
   stockTransfers,
 } from "@miniros/db/schema";
 import { normalizeQuantity } from "@miniros/domain";
-import { and, asc, desc, eq, isNull } from "drizzle-orm";
+import { and, asc, desc, eq, inArray, isNull } from "drizzle-orm";
 import { AccessError, requireActiveBusiness } from "./access";
 import { applyInventoryDeltas, databaseQuantity } from "./inventory-ledger";
 import type { OperationalTransaction } from "./operational-helpers";
@@ -79,7 +80,75 @@ export async function listStockWorkspace() {
       .limit(10),
   ]);
 
-  return { locations, items, receivings, transfers };
+  const [receivingLines, transferLines] = await Promise.all([
+    receivings.length
+      ? database
+          .select({
+            recordId: stockReceivingLines.stockReceivingId,
+            id: stockReceivingLines.id,
+            itemName: inventoryItems.name,
+            quantity: stockReceivingLines.quantity,
+            unit: stockReceivingLines.unit,
+          })
+          .from(stockReceivingLines)
+          .leftJoin(
+            inventoryItems,
+            and(
+              eq(inventoryItems.id, stockReceivingLines.inventoryItemId),
+              eq(inventoryItems.businessId, business.id),
+            ),
+          )
+          .where(
+            and(
+              eq(stockReceivingLines.businessId, business.id),
+              inArray(
+                stockReceivingLines.stockReceivingId,
+                receivings.map((row) => row.id),
+              ),
+            ),
+          )
+      : Promise.resolve([]),
+    transfers.length
+      ? database
+          .select({
+            recordId: stockTransferLines.stockTransferId,
+            id: stockTransferLines.id,
+            itemName: inventoryItems.name,
+            quantity: stockTransferLines.quantity,
+            unit: stockTransferLines.unit,
+          })
+          .from(stockTransferLines)
+          .leftJoin(
+            inventoryItems,
+            and(
+              eq(inventoryItems.id, stockTransferLines.inventoryItemId),
+              eq(inventoryItems.businessId, business.id),
+            ),
+          )
+          .where(
+            and(
+              eq(stockTransferLines.businessId, business.id),
+              inArray(
+                stockTransferLines.stockTransferId,
+                transfers.map((row) => row.id),
+              ),
+            ),
+          )
+      : Promise.resolve([]),
+  ]);
+  return {
+    businessId: business.id,
+    locations,
+    items,
+    receivings: receivings.map((row) => ({
+      ...row,
+      lines: receivingLines.filter((line) => line.recordId === row.id),
+    })),
+    transfers: transfers.map((row) => ({
+      ...row,
+      lines: transferLines.filter((line) => line.recordId === row.id),
+    })),
+  };
 }
 
 export async function createCentralInventoryLocation(name: string) {
@@ -158,7 +227,7 @@ async function requireLocation(
   database: OperationalTransaction,
 ) {
   const [location] = await database
-    .select({ id: inventoryLocations.id })
+    .select({ id: inventoryLocations.id, shiftId: inventoryLocations.shiftId })
     .from(inventoryLocations)
     .where(
       and(
@@ -170,6 +239,8 @@ async function requireLocation(
     )
     .limit(1);
   if (!location) throw new AccessError("Inventory location not found.");
+  if (location.shiftId)
+    await assertUnreservedShift(database, businessId, location.shiftId);
   return location;
 }
 

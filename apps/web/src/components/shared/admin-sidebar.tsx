@@ -13,6 +13,7 @@ import {
   PackageOpen,
   Settings,
   ShieldCheck,
+  Smartphone,
   Tags,
   UsersRound,
   type LucideIcon,
@@ -78,9 +79,9 @@ const navigationItems: readonly (DirectNavigationItem | GroupNavigationItem)[] =
       href: "/admin/approvals",
       label: "Approvals",
       icon: ShieldCheck,
-      feature: "approvals",
     },
     { href: "/admin/reports", label: "Reports", icon: ChartNoAxesCombined },
+    { href: "/admin/devices", label: "Devices", icon: Smartphone },
     { href: "/admin/settings", label: "Settings", icon: Settings },
   ];
 

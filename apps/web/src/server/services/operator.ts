@@ -62,6 +62,7 @@ export async function listAssignedShifts() {
           "completed",
         ]),
         isNull(shifts.deletedAt),
+        inArray(shifts.status, ["scheduled", "active", "closing", "closed"]),
       ),
     )
     .orderBy(asc(shifts.shiftDate), asc(shifts.createdAt));
@@ -96,6 +97,11 @@ export async function getAssignedShift(shiftId: string) {
       and(
         eq(shiftAssignments.businessId, context.business.id),
         eq(shiftAssignments.shiftId, shiftId),
+        inArray(shiftAssignments.status, [
+          "assigned",
+          "confirmed",
+          "completed",
+        ]),
       ),
     );
 

@@ -1,12 +1,18 @@
+import { AdminTable } from "@/components/shared/admin-table";
+import {
+  TableBody,
+  TableCell,
+  TableHead,
+  TableHeader,
+  TableRow,
+} from "@/components/ui/table";
 import Link from "next/link";
-import { CookingPot } from "lucide-react";
 import { calculateIngredientCostCents } from "@miniros/domain";
 import { EmptyState } from "@/components/shared/feedback";
 import { FeatureUnavailable } from "@/components/shared/feature-unavailable";
 import { PageHeader } from "@/components/shared/layout";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { formatMoney } from "@/lib/format";
 import { listInventoryItems } from "@/server/services/inventory-items";
 import { listProducts } from "@/server/services/products";
@@ -96,100 +102,100 @@ export default async function RecipesPage() {
           }
         />
       ) : (
-        <div className="grid gap-4 lg:grid-cols-2">
-          {recipeResults.map((recipe) => (
-            <Card
-              key={recipe.product.id}
-              className="rounded-xl py-5 shadow-none"
-            >
-              <CardHeader className="flex-row items-start gap-3 px-5">
-                <span className="grid size-11 shrink-0 place-items-center rounded-xl bg-muted">
-                  <CookingPot className="size-5" aria-hidden="true" />
-                </span>
-                <div className="min-w-0 flex-1">
-                  <CardTitle className="truncate font-bold">
-                    {recipe.product.name}
-                  </CardTitle>
-                  <p className="mt-1 text-sm text-muted-foreground">
-                    {recipe.lines.length === 1
-                      ? "1 recipe line"
-                      : `${recipe.lines.length} recipe lines`}
-                  </p>
-                </div>
-                <Badge
-                  variant={recipe.lines.length > 0 ? "default" : "outline"}
-                >
-                  {recipe.lines.length > 0
-                    ? recipe.product.costSource === "override"
-                      ? "Cost overridden"
-                      : "Automatic cost"
-                    : "Manual cost"}
-                </Badge>
-              </CardHeader>
-              <CardContent className="space-y-3 px-5">
-                {recipe.lines.length > 0 ? (
-                  <ul className="divide-y rounded-xl border">
-                    {recipe.lines.map((line) => (
-                      <li
-                        key={line.id}
-                        className="flex items-center justify-between gap-4 px-3 py-2.5 text-sm"
-                      >
-                        <span className="truncate">
-                          {line.inventoryItemName}
+        <AdminTable label="Product recipes">
+          <TableHeader>
+            <TableRow>
+              <TableHead scope="col">Product / recipe</TableHead>
+              <TableHead scope="col">Cost source</TableHead>
+              <TableHead scope="col" className="text-right">
+                Ingredients
+              </TableHead>
+              <TableHead scope="col" className="text-right">
+                Labor
+              </TableHead>
+              <TableHead scope="col" className="text-right">
+                Overhead
+              </TableHead>
+              <TableHead scope="col" className="text-right">
+                Unit cost
+              </TableHead>
+            </TableRow>
+          </TableHeader>
+          <TableBody>
+            {recipeResults.map((recipe) => (
+              <TableRow key={recipe.product.id}>
+                <TableCell className="min-w-72 max-w-md whitespace-normal break-words">
+                  <p className="font-semibold">{recipe.product.name}</p>
+                  {recipe.lines.length > 0 ? (
+                    <details className="mt-1">
+                      <summary className="min-h-11 cursor-pointer content-center text-muted-foreground underline-offset-4 hover:underline">
+                        {recipe.lines.length === 1
+                          ? "1 recipe line"
+                          : `${recipe.lines.length} recipe lines`}
+                        <span className="sr-only">
+                          {" "}
+                          for {recipe.product.name}
                         </span>
-                        <span className="shrink-0 text-right">
-                          <span className="block font-semibold">
-                            {line.quantity} {line.unit}
-                          </span>
-                          <span className="text-xs text-muted-foreground">
-                            {formatMoney(
-                              calculateIngredientCostCents([
-                                {
-                                  quantity: line.quantity,
-                                  unitCostCents: line.unitCostCents,
-                                },
-                              ]),
-                            )}
-                          </span>
-                        </span>
-                      </li>
-                    ))}
-                  </ul>
-                ) : (
-                  <p className="rounded-xl border border-dashed p-4 text-center text-sm text-muted-foreground">
-                    This product does not deduct inventory yet.
-                  </p>
-                )}
-                <div className="grid grid-cols-2 gap-2 rounded-xl bg-muted/60 p-3 text-sm sm:grid-cols-4">
-                  <div>
-                    <p className="text-muted-foreground">Ingredients</p>
-                    <p className="font-bold">
-                      {formatMoney(recipe.product.ingredientCostCents)}
+                      </summary>
+                      <ul className="divide-y">
+                        {recipe.lines.map((line) => (
+                          <li
+                            key={line.id}
+                            className="flex items-start justify-between gap-4 py-2"
+                          >
+                            <span>{line.inventoryItemName}</span>
+                            <span className="shrink-0 text-right">
+                              <span className="block">
+                                {line.quantity} {line.unit}
+                              </span>
+                              <span className="text-muted-foreground">
+                                {formatMoney(
+                                  calculateIngredientCostCents([
+                                    {
+                                      quantity: line.quantity,
+                                      unitCostCents: line.unitCostCents,
+                                    },
+                                  ]),
+                                )}
+                              </span>
+                            </span>
+                          </li>
+                        ))}
+                      </ul>
+                    </details>
+                  ) : (
+                    <p className="mt-1 text-muted-foreground">
+                      This product does not deduct inventory yet.
                     </p>
-                  </div>
-                  <div>
-                    <p className="text-muted-foreground">Labor</p>
-                    <p className="font-bold">
-                      {formatMoney(recipe.product.laborCostCents)}
-                    </p>
-                  </div>
-                  <div>
-                    <p className="text-muted-foreground">Overhead</p>
-                    <p className="font-bold">
-                      {formatMoney(recipe.product.overheadCostCents)}
-                    </p>
-                  </div>
-                  <div>
-                    <p className="text-muted-foreground">Unit cost</p>
-                    <p className="font-bold">
-                      {formatMoney(recipe.product.effectiveCostCents)}
-                    </p>
-                  </div>
-                </div>
-              </CardContent>
-            </Card>
-          ))}
-        </div>
+                  )}
+                </TableCell>
+                <TableCell>
+                  <Badge
+                    variant={recipe.lines.length > 0 ? "default" : "outline"}
+                  >
+                    {recipe.lines.length > 0
+                      ? recipe.product.costSource === "override"
+                        ? "Cost overridden"
+                        : "Automatic cost"
+                      : "Manual cost"}
+                  </Badge>
+                </TableCell>
+                <TableCell className="text-right">
+                  {formatMoney(recipe.product.ingredientCostCents)}
+                </TableCell>
+                <TableCell className="text-right">
+                  {formatMoney(recipe.product.laborCostCents)}
+                </TableCell>
+                <TableCell className="text-right">
+                  {formatMoney(recipe.product.overheadCostCents)}
+                </TableCell>
+                <TableCell className="text-right font-semibold">
+                  {formatMoney(recipe.product.effectiveCostCents)}
+                </TableCell>
+              </TableRow>
+            ))}
+          </TableBody>
+        </AdminTable>
       )}
     </>
   );

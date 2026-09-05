@@ -52,6 +52,7 @@ export const shiftStatusEnum = pgEnum("shift_status", [
   "closing",
   "closed",
   "cancelled",
+  "draft",
 ]);
 export const shiftAssignmentRoleEnum = pgEnum("shift_assignment_role", [
   "operator",
@@ -63,6 +64,7 @@ export const shiftAssignmentStatusEnum = pgEnum("shift_assignment_status", [
   "confirmed",
   "cancelled",
   "completed",
+  "draft",
 ]);
 export const shiftCostTypeEnum = pgEnum("shift_cost_type", [
   "rent",

@@ -64,6 +64,19 @@ export default async function AdminPromosPage() {
                       ? `₱${promo.discountValue.toFixed(2)} off`
                       : `${promo.discountValue}% off`}
                   </p>
+                  {promo.requiresPhoto ? (
+                    <p className="mt-1 text-xs font-semibold">
+                      Photo required at checkout
+                    </p>
+                  ) : null}
+                  <details className="mt-3">
+                    <summary className="cursor-pointer text-sm font-semibold">
+                      Edit promo
+                    </summary>
+                    <div className="mt-3">
+                      <PromoForm promo={promo} />
+                    </div>
+                  </details>
                   <p className="mt-1 text-xs text-muted-foreground">
                     {promo.startsAt ? formatDate(promo.startsAt) : "Any date"} →{" "}
                     {promo.endsAt ? formatDate(promo.endsAt) : "No end date"}

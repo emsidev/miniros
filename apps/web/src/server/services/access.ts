@@ -186,6 +186,7 @@ export async function requireActiveBusiness(options: AccessOptions = {}) {
           ]),
           eq(shifts.businessId, context.business.id),
           isNull(shifts.deletedAt),
+          inArray(shifts.status, ["scheduled", "active", "closing", "closed"]),
         ),
       )
       .limit(1);

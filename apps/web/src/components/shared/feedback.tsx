@@ -17,6 +17,7 @@ const statusStyles: Record<string, string> = {
   cancelled: "bg-destructive-surface text-destructive",
   pending: "bg-warning-surface text-warning",
   approved: "bg-success-surface text-success",
+  applied: "bg-success-surface text-success",
   rejected: "bg-destructive-surface text-destructive",
 };
 
@@ -141,11 +142,14 @@ export function ErrorState({
 
 export function LoadingSkeleton({ rows = 3 }: { rows?: number }) {
   return (
-    <div className="space-y-3" aria-label="Loading">
-      <Skeleton className="h-8 w-48" />
-      {Array.from({ length: rows }, (_, index) => (
-        <Skeleton key={index} className="h-24 w-full rounded-xl" />
-      ))}
+    <div role="status" aria-live="polite" aria-atomic="true">
+      <span className="sr-only">Loading page…</span>
+      <div className="space-y-3" aria-hidden="true">
+        <Skeleton className="h-8 w-48 max-w-full" />
+        {Array.from({ length: rows }, (_, index) => (
+          <Skeleton key={index} className="h-24 w-full rounded-xl" />
+        ))}
+      </div>
     </div>
   );
 }

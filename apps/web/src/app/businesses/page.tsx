@@ -1,5 +1,5 @@
 import Link from "next/link";
-import { ArrowRight, Building2 } from "lucide-react";
+import { ArrowRight, Building2, Check } from "lucide-react";
 import { EmptyState } from "@/components/shared/feedback";
 import { PageHeader } from "@/components/shared/layout";
 import { Badge } from "@/components/ui/badge";
@@ -56,15 +56,30 @@ export default async function BusinessesPage() {
           return (
             <Card
               key={business.id}
-              className="rounded-xl py-5 shadow-none transition-colors hover:border-foreground/30"
+              className={
+                business.isActive
+                  ? "rounded-xl py-5 shadow-none ring-1 ring-foreground transition-colors"
+                  : "rounded-xl py-5 shadow-none transition-colors hover:ring-foreground/30"
+              }
             >
               <CardHeader className="grid-cols-[1fr_auto] px-5">
                 <div className="flex min-w-0 items-center gap-3">
-                  <span className="grid size-11 shrink-0 place-items-center rounded-xl bg-muted">
+                  <span
+                    className={
+                      business.isActive
+                        ? "relative grid size-12 shrink-0 place-items-center rounded-xl bg-accent text-accent-foreground"
+                        : "grid size-12 shrink-0 place-items-center rounded-xl bg-muted"
+                    }
+                  >
                     <Building2 className="size-5" aria-hidden="true" />
+                    {business.isActive ? (
+                      <span className="absolute -right-1 -bottom-1 grid size-5 place-items-center rounded-full bg-foreground text-background ring-2 ring-card">
+                        <Check className="size-3" aria-hidden="true" />
+                      </span>
+                    ) : null}
                   </span>
                   <div className="min-w-0">
-                    <CardTitle className="truncate text-base font-bold">
+                    <CardTitle className="truncate text-lg font-bold tracking-[-0.01em]">
                       {business.name}
                     </CardTitle>
                     <CardDescription className="capitalize">
@@ -82,7 +97,7 @@ export default async function BusinessesPage() {
               </CardHeader>
               <CardContent className="flex items-center gap-2 px-5">
                 {business.isActive ? (
-                  <Button asChild className="h-10 flex-1 rounded-xl">
+                  <Button asChild className="h-11 flex-1 rounded-xl">
                     <Link href={destination}>
                       Open workspace
                       <ArrowRight aria-hidden="true" />
@@ -92,7 +107,7 @@ export default async function BusinessesPage() {
                   <Button
                     asChild
                     variant="outline"
-                    className="h-10 flex-1 rounded-xl"
+                    className="h-11 flex-1 rounded-xl border-foreground/70"
                   >
                     <Link href={`/businesses/${business.id}/switch`}>
                       Select business

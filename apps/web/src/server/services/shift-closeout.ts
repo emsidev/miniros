@@ -1,6 +1,12 @@
-import { requireDatabase } from "@miniros/db";
 import {
+  runShiftTransaction,
+  type PreparedOperationContext,
+} from "./offline-context";
+import {
+  sales,
+  cashDeductions,
   cashReconciliations,
+  inventoryAdjustments,
   inventoryBalances,
   shiftAssignments,
   shiftCloseouts,
@@ -9,7 +15,7 @@ import {
   shifts,
 } from "@miniros/db/schema";
 import { assertNonNegativeCents, subtractCents } from "@miniros/domain";
-import { and, eq, inArray, isNull, or } from "drizzle-orm";
+import { and, eq, inArray, isNull, isNotNull, or } from "drizzle-orm";
 
 import { AccessError, requireActiveBusiness } from "./access";
 import { aggregateCloseoutFinancials } from "./closeout-aggregates";
@@ -85,7 +91,10 @@ async function findExistingCloseout(
   return existing;
 }
 
-export async function submitShiftCloseout(input: SubmitShiftCloseoutInput) {
+export async function submitShiftCloseout(
+  input: SubmitShiftCloseoutInput,
+  prepared?: PreparedOperationContext,
+) {
   const access = await requireActiveBusiness({
     employeePermission: "pos",
     assignedShiftId: input.shiftId,
@@ -93,186 +102,240 @@ export async function submitShiftCloseout(input: SubmitShiftCloseoutInput) {
   requireEmployee(access);
   assertNonNegativeCents(input.actualCashCents, "actualCashCents");
 
-  return requireDatabase().transaction(async (tx) => {
-    const existing = await findExistingCloseout(
-      tx,
-      access.business.id,
-      input.shiftId,
-      input.closeoutId,
-    );
-    if (existing) return { ...existing, idempotent: true };
-
-    const [shift] = await tx
-      .select({
-        id: shifts.id,
-        sellingLocationId: shifts.sellingLocationId,
-        status: shifts.status,
-      })
-      .from(shifts)
-      .where(
-        and(
-          eq(shifts.id, input.shiftId),
-          eq(shifts.businessId, access.business.id),
-          isNull(shifts.deletedAt),
-        ),
-      )
-      .for("update")
-      .limit(1);
-    if (!shift) throw new AccessError("Shift not found.");
-    if (shift.status === "closed") {
-      const raced = await findExistingCloseout(
+  return runShiftTransaction(
+    access.business.id,
+    input.shiftId,
+    prepared,
+    async (tx) => {
+      const existing = await findExistingCloseout(
         tx,
         access.business.id,
         input.shiftId,
         input.closeoutId,
       );
-      if (raced) return { ...raced, idempotent: true };
-    }
-    if (shift.status !== "active" && shift.status !== "closing") {
-      throw new AccessError("Only an open shift can be closed.");
-    }
-    await requireCurrentAssignment(
-      tx,
-      access.business.id,
-      shift.id,
-      access.employee.id,
-    );
-    const inventoryLocation = await getShiftInventoryLocation(
-      tx,
-      access.business.id,
-      shift.id,
-    );
-    if (inventoryLocation.sellingLocationId !== shift.sellingLocationId) {
-      throw new AccessError("The shift inventory location is inconsistent.");
-    }
+      if (existing) return { ...existing, idempotent: true };
 
-    const balanceItems = await tx
-      .select({ id: inventoryBalances.inventoryItemId })
-      .from(inventoryBalances)
-      .where(
-        and(
-          eq(inventoryBalances.businessId, access.business.id),
-          eq(inventoryBalances.inventoryLocationId, inventoryLocation.id),
-        ),
+      const [shift] = await tx
+        .select({
+          id: shifts.id,
+          sellingLocationId: shifts.sellingLocationId,
+          status: shifts.status,
+        })
+        .from(shifts)
+        .where(
+          and(
+            eq(shifts.id, input.shiftId),
+            eq(shifts.businessId, access.business.id),
+            isNull(shifts.deletedAt),
+          ),
+        )
+        .for("update")
+        .limit(1);
+      if (!shift) throw new AccessError("Shift not found.");
+      if (shift.status === "closed") {
+        const raced = await findExistingCloseout(
+          tx,
+          access.business.id,
+          input.shiftId,
+          input.closeoutId,
+        );
+        if (raced) return { ...raced, idempotent: true };
+      }
+      if (shift.status !== "active" && shift.status !== "closing") {
+        throw new AccessError("Only an open shift can be closed.");
+      }
+      await requireCurrentAssignment(
+        tx,
+        access.business.id,
+        shift.id,
+        access.employee.id,
       );
-    const openingItems = await tx
-      .select({ id: shiftInventoryCounts.inventoryItemId })
-      .from(shiftInventoryCounts)
-      .where(
-        and(
-          eq(shiftInventoryCounts.businessId, access.business.id),
-          eq(shiftInventoryCounts.shiftId, shift.id),
-          eq(shiftInventoryCounts.countType, "opening"),
-        ),
+      const [pendingCash, pendingInventory] = await Promise.all([
+        tx
+          .select({ id: cashDeductions.id })
+          .from(cashDeductions)
+          .where(
+            and(
+              eq(cashDeductions.businessId, access.business.id),
+              eq(cashDeductions.shiftId, shift.id),
+              eq(cashDeductions.status, "pending"),
+            ),
+          )
+          .limit(1),
+        tx
+          .select({ id: inventoryAdjustments.id })
+          .from(inventoryAdjustments)
+          .where(
+            and(
+              eq(inventoryAdjustments.businessId, access.business.id),
+              eq(inventoryAdjustments.shiftId, shift.id),
+              eq(inventoryAdjustments.status, "pending"),
+            ),
+          )
+          .limit(1),
+      ]);
+      if (pendingCash.length || pendingInventory.length)
+        throw new AccessError(
+          "An owner must review the pending cash and inventory requests before closing this shift.",
+        );
+      const [pendingPhoto] = await tx
+        .select({ id: sales.id })
+        .from(sales)
+        .where(
+          and(
+            eq(sales.businessId, access.business.id),
+            eq(sales.shiftId, input.shiftId),
+            eq(sales.status, "completed"),
+            isNotNull(sales.discountProofRequestId),
+            isNull(sales.discountProofFileId),
+          ),
+        )
+        .limit(1);
+      if (pendingPhoto)
+        throw new AccessError(
+          "Upload the pending promo photos before closing this shift.",
+        );
+
+      const inventoryLocation = await getShiftInventoryLocation(
+        tx,
+        access.business.id,
+        shift.id,
       );
-    const providedIds = new Set(
-      input.counts.map((count) => count.inventoryItemId),
-    );
-    const missingCount = [...balanceItems, ...openingItems].some(
-      (item) => !providedIds.has(item.id),
-    );
-    if (input.counts.length === 0 || missingCount) {
-      throw new AccessError("Closing counts must cover every shift item.");
-    }
+      if (inventoryLocation.sellingLocationId !== shift.sellingLocationId) {
+        throw new AccessError("The shift inventory location is inconsistent.");
+      }
 
-    const { summary, expectedCashCents } = await aggregateCloseoutFinancials(
-      tx,
-      access.business.id,
-      shift.id,
-    );
-    const cashDifferenceCents = subtractCents(
-      input.actualCashCents,
-      expectedCashCents,
-    );
-
-    await tx.insert(shiftCloseouts).values({
-      id: input.closeoutId,
-      businessId: access.business.id,
-      shiftId: shift.id,
-      status: "submitted",
-      submittedBy: access.employee.id,
-      notes: input.notes?.trim() || null,
-      clientGeneratedId: input.closeoutId,
-    });
-    await setInventoryCounts(tx, {
-      businessId: access.business.id,
-      shiftId: shift.id,
-      inventoryLocationId: inventoryLocation.id,
-      eventId: input.inventoryEventId,
-      countType: "closing",
-      employeeId: access.employee.id,
-      notes: input.notes,
-      counts: input.counts,
-    });
-    await tx.insert(cashReconciliations).values({
-      id: input.cashReconciliationId,
-      businessId: access.business.id,
-      closeoutId: input.closeoutId,
-      expectedCashCents,
-      actualCashCents: input.actualCashCents,
-      cashDifferenceCents,
-      notes: input.notes?.trim() || null,
-    });
-    await tx.insert(shiftProfitSummaries).values({
-      id: input.profitSummaryId,
-      businessId: access.business.id,
-      shiftId: shift.id,
-      sellingLocationId: shift.sellingLocationId,
-      ...summary,
-    });
-
-    const closedAt = new Date();
-    const [closed] = await tx
-      .update(shifts)
-      .set({
-        status: "closed",
-        actualEndAt: closedAt,
-        closedBy: access.employee.id,
-        updatedAt: closedAt,
-      })
-      .where(
-        and(
-          eq(shifts.id, shift.id),
-          eq(shifts.businessId, access.business.id),
-          inArray(shifts.status, ["active", "closing"]),
-        ),
-      )
-      .returning({ id: shifts.id });
-    if (!closed) throw new AccessError("The shift closeout conflicted.");
-    await tx
-      .update(shiftAssignments)
-      .set({ status: "completed", updatedAt: closedAt })
-      .where(
-        and(
-          eq(shiftAssignments.businessId, access.business.id),
-          eq(shiftAssignments.shiftId, shift.id),
-          inArray(shiftAssignments.status, ["assigned", "confirmed"]),
-        ),
+      const balanceItems = await tx
+        .select({ id: inventoryBalances.inventoryItemId })
+        .from(inventoryBalances)
+        .where(
+          and(
+            eq(inventoryBalances.businessId, access.business.id),
+            eq(inventoryBalances.inventoryLocationId, inventoryLocation.id),
+          ),
+        );
+      const openingItems = await tx
+        .select({ id: shiftInventoryCounts.inventoryItemId })
+        .from(shiftInventoryCounts)
+        .where(
+          and(
+            eq(shiftInventoryCounts.businessId, access.business.id),
+            eq(shiftInventoryCounts.shiftId, shift.id),
+            eq(shiftInventoryCounts.countType, "opening"),
+          ),
+        );
+      const providedIds = new Set(
+        input.counts.map((count) => count.inventoryItemId),
       );
-    await insertAuditLog(tx, access, {
-      action: "shift.closeout_submitted",
-      entityType: "shift_closeout",
-      entityId: input.closeoutId,
-      shiftId: shift.id,
-      metadata: {
-        inventoryEventId: input.inventoryEventId,
+      const missingCount = [...balanceItems, ...openingItems].some(
+        (item) => !providedIds.has(item.id),
+      );
+      if (input.counts.length === 0 || missingCount) {
+        throw new AccessError("Closing counts must cover every shift item.");
+      }
+
+      const { summary, expectedCashCents } = await aggregateCloseoutFinancials(
+        tx,
+        access.business.id,
+        shift.id,
+        prepared?.snapshot.costs,
+      );
+      const cashDifferenceCents = subtractCents(
+        input.actualCashCents,
+        expectedCashCents,
+      );
+
+      await tx.insert(shiftCloseouts).values({
+        id: input.closeoutId,
+        businessId: access.business.id,
+        shiftId: shift.id,
+        status: "submitted",
+        submittedBy: access.employee.id,
+        submittedAt: prepared?.occurredAt,
+        notes: input.notes?.trim() || null,
+        clientGeneratedId: input.closeoutId,
+      });
+      await setInventoryCounts(tx, {
+        businessId: access.business.id,
+        shiftId: shift.id,
+        inventoryLocationId: inventoryLocation.id,
+        eventId: input.inventoryEventId,
+        countType: "closing",
+        employeeId: access.employee.id,
+        notes: input.notes,
+        counts: input.counts,
+        prepared,
+      });
+      await tx.insert(cashReconciliations).values({
+        id: input.cashReconciliationId,
+        businessId: access.business.id,
+        closeoutId: input.closeoutId,
+        expectedCashCents,
+        actualCashCents: input.actualCashCents,
+        cashDifferenceCents,
+        notes: input.notes?.trim() || null,
+      });
+      await tx.insert(shiftProfitSummaries).values({
+        id: input.profitSummaryId,
+        businessId: access.business.id,
+        shiftId: shift.id,
+        sellingLocationId: shift.sellingLocationId,
+        ...summary,
+      });
+
+      const closedAt = prepared?.occurredAt ?? new Date();
+      const [closed] = await tx
+        .update(shifts)
+        .set({
+          status: "closed",
+          actualEndAt: closedAt,
+          closedBy: access.employee.id,
+          updatedAt: closedAt,
+        })
+        .where(
+          and(
+            eq(shifts.id, shift.id),
+            eq(shifts.businessId, access.business.id),
+            inArray(shifts.status, ["active", "closing"]),
+          ),
+        )
+        .returning({ id: shifts.id });
+      if (!closed) throw new AccessError("The shift closeout conflicted.");
+      await tx
+        .update(shiftAssignments)
+        .set({ status: "completed", updatedAt: closedAt })
+        .where(
+          and(
+            eq(shiftAssignments.businessId, access.business.id),
+            eq(shiftAssignments.shiftId, shift.id),
+            inArray(shiftAssignments.status, ["assigned", "confirmed"]),
+          ),
+        );
+      await insertAuditLog(tx, access, {
+        action: "shift.closeout_submitted",
+        entityType: "shift_closeout",
+        entityId: input.closeoutId,
+        shiftId: shift.id,
+        metadata: {
+          inventoryEventId: input.inventoryEventId,
+          expectedCashCents,
+          actualCashCents: input.actualCashCents,
+          cashDifferenceCents,
+          profitCents: summary.profitCents,
+          profitResult: summary.result,
+        },
+      });
+      return {
+        id: input.closeoutId,
+        shiftId: shift.id,
+        status: "submitted" as const,
         expectedCashCents,
         actualCashCents: input.actualCashCents,
         cashDifferenceCents,
         profitCents: summary.profitCents,
         profitResult: summary.result,
-      },
-    });
-    return {
-      id: input.closeoutId,
-      shiftId: shift.id,
-      status: "submitted" as const,
-      expectedCashCents,
-      actualCashCents: input.actualCashCents,
-      cashDifferenceCents,
-      profitCents: summary.profitCents,
-      profitResult: summary.result,
-      idempotent: false,
-    };
-  });
+        idempotent: false,
+      };
+    },
+  );
 }

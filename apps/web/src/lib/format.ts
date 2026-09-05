@@ -17,6 +17,7 @@ const paymentMethodLabels: Record<PaymentMethod, string> = {
 };
 
 const shiftStatusLabels: Record<ShiftStatus, string> = {
+  draft: "Draft",
   active: "Active",
   cancelled: "Cancelled",
   closed: "Closed",
