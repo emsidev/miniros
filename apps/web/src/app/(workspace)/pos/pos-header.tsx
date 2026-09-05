@@ -15,6 +15,7 @@ export function PosHeader({
   salesCents,
   cartCount,
   onOpenCart,
+  onBack,
 }: {
   shiftId: string;
   locationName: string;
@@ -23,21 +24,35 @@ export function PosHeader({
   salesCents: number;
   cartCount: number;
   onOpenCart?: () => void;
+  onBack?: () => void;
 }) {
   return (
     <header className="sticky top-0 z-[var(--mi-z-sticky)] bg-[var(--mi-color-ink)] text-white">
       <ShiftNavigationScope id={shiftId} status="active" />
       <div className="mx-auto flex min-h-24 max-w-[1440px] items-center gap-3 px-4 py-4 sm:px-6 lg:px-8">
-        <Button
-          asChild
-          size="icon"
-          variant="ghost"
-          className="text-white hover:bg-white/10 hover:text-white"
-        >
-          <Link href={`/shifts/${shiftId}`} aria-label="Back to shift">
+        {onBack ? (
+          <Button
+            type="button"
+            size="icon"
+            variant="ghost"
+            className="text-white hover:bg-white/10 hover:text-white"
+            aria-label="Back to shift"
+            onClick={onBack}
+          >
             <ArrowLeft aria-hidden="true" />
-          </Link>
-        </Button>
+          </Button>
+        ) : (
+          <Button
+            asChild
+            size="icon"
+            variant="ghost"
+            className="text-white hover:bg-white/10 hover:text-white"
+          >
+            <Link href={`/shifts/${shiftId}`} aria-label="Back to shift">
+              <ArrowLeft aria-hidden="true" />
+            </Link>
+          </Button>
+        )}
         <BrandMark variant="inverse" className="hidden sm:grid" />
         <div className="min-w-0 flex-1">
           <p className="break-words text-base font-bold sm:text-lg">
@@ -66,13 +81,24 @@ export function PosHeader({
             ) : null}
           </Button>
         ) : null}
-        <Button
-          asChild
-          variant="outline"
-          className="hidden border-white/25 bg-transparent text-white hover:bg-white/10 hover:text-white lg:inline-flex"
-        >
-          <Link href={`/shifts/${shiftId}`}>Back to shift</Link>
-        </Button>
+        {onBack ? (
+          <Button
+            type="button"
+            variant="outline"
+            className="hidden border-white/25 bg-transparent text-white hover:bg-white/10 hover:text-white lg:inline-flex"
+            onClick={onBack}
+          >
+            Back to shift
+          </Button>
+        ) : (
+          <Button
+            asChild
+            variant="outline"
+            className="hidden border-white/25 bg-transparent text-white hover:bg-white/10 hover:text-white lg:inline-flex"
+          >
+            <Link href={`/shifts/${shiftId}`}>Back to shift</Link>
+          </Button>
+        )}
       </div>
     </header>
   );

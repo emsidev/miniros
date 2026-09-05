@@ -30,14 +30,23 @@ export function EmployeeNavigation({
   permissions,
   features,
   desktop = false,
+  pathnameOverride,
+  shiftOverride,
+  onNavigate,
 }: {
   permissions?: EmployeePermissions;
   features?: BusinessFeatureFlags;
   desktop?: boolean;
+  pathnameOverride?: string;
+  shiftOverride?: { id: string; status: string } | null;
+  onNavigate?: (href: string) => void;
 }) {
-  const pathname = usePathname();
+  const routerPathname = usePathname();
+  const pathname = pathnameOverride ?? routerPathname;
   const searchParams = useSearchParams();
-  const selectedShift = useNavigationShift();
+  const contextShift = useNavigationShift();
+  const selectedShift =
+    shiftOverride === undefined ? contextShift : shiftOverride;
   const requestedShiftId = searchParams.get("shift");
   const productionOnly =
     permissions?.canLogProduction && !permissions.canUsePos;
@@ -83,6 +92,20 @@ export function EmployeeNavigation({
             <li key={href}>
               <Link
                 href={destination}
+                prefetch={onNavigate ? false : undefined}
+                onClick={(event) => {
+                  if (
+                    !onNavigate ||
+                    event.button !== 0 ||
+                    event.metaKey ||
+                    event.ctrlKey ||
+                    event.shiftKey ||
+                    event.altKey
+                  )
+                    return;
+                  event.preventDefault();
+                  onNavigate(destination);
+                }}
                 aria-current={active ? "page" : undefined}
                 className={cn(
                   "flex min-h-12 items-center justify-center gap-1 rounded-md px-1 text-xs font-semibold transition-colors hover:bg-muted focus-visible:outline-2 focus-visible:outline-offset-2",

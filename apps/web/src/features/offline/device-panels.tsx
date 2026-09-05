@@ -68,7 +68,7 @@ export function DevicePanels({
               ? "Add MINIROS to your device."
               : displayedPanel === "sync"
                 ? "Saved shifts and changes waiting for server confirmation."
-                : "Installation, saved shifts, and app updates."}
+                : "Installation, synchronization, and app updates."}
           </DialogDescription>
         </DialogHeader>
         {displayedPanel === "install" ? (

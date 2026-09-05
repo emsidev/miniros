@@ -1,15 +1,12 @@
 "use client";
 
-import Link from "next/link";
 import {
   ArrowRight,
   Check,
   CircleAlert,
   CloudUpload,
   Download,
-  FolderClock,
   RefreshCw,
-  Smartphone,
   WifiOff,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
@@ -78,24 +75,8 @@ export function SyncStatusButton({
   );
 }
 
-export function DeviceMenuButton() {
-  const { openPanel } = useDevice();
-  return (
-    <Button
-      data-device-menu
-      type="button"
-      variant="ghost"
-      aria-haspopup="dialog"
-      onClick={() => openPanel("device")}
-    >
-      <Smartphone aria-hidden="true" />
-      <span>This device</span>
-    </Button>
-  );
-}
-
 export function ThisDevice({ heading = true }: { heading?: boolean }) {
-  const { openPanel, closePanel } = useDevice();
+  const { openPanel } = useDevice();
   return (
     <section className="space-y-3" aria-label="This device">
       {heading ? <h2 className="text-lg font-bold">This device</h2> : null}
@@ -121,21 +102,6 @@ export function ThisDevice({ heading = true }: { heading?: boolean }) {
             />
           </button>
         ))}
-        <Link
-          href="/offline"
-          onClick={closePanel}
-          className="flex min-h-14 items-center gap-3 px-4 py-3 text-sm font-medium transition-colors hover:bg-muted"
-        >
-          <FolderClock
-            className="size-4 text-muted-foreground"
-            aria-hidden="true"
-          />
-          <span className="flex-1">Saved shifts</span>
-          <ArrowRight
-            className="size-4 text-muted-foreground"
-            aria-hidden="true"
-          />
-        </Link>
       </div>
       <AppUpdate />
     </section>

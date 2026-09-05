@@ -9,6 +9,7 @@ export function ShiftContext({
   title,
   backHref,
   backLabel = "Back to shift",
+  onBack,
 }: {
   shift: {
     id: string;
@@ -21,6 +22,7 @@ export function ShiftContext({
   title: string;
   backHref?: string;
   backLabel?: string;
+  onBack?: () => void;
 }) {
   return (
     <header className="space-y-4">
@@ -33,13 +35,24 @@ export function ShiftContext({
             : shift.status
         }
       />
-      <Link
-        href={backHref ?? `/shifts/${shift.id}`}
-        className="inline-flex min-h-11 items-center gap-2 text-sm font-semibold text-muted-foreground hover:text-foreground"
-      >
-        <ArrowLeft className="size-4" aria-hidden="true" />
-        {backLabel}
-      </Link>
+      {onBack ? (
+        <button
+          type="button"
+          onClick={onBack}
+          className="inline-flex min-h-11 items-center gap-2 text-sm font-semibold text-muted-foreground hover:text-foreground"
+        >
+          <ArrowLeft className="size-4" aria-hidden="true" />
+          {backLabel}
+        </button>
+      ) : (
+        <Link
+          href={backHref ?? `/shifts/${shift.id}`}
+          className="inline-flex min-h-11 items-center gap-2 text-sm font-semibold text-muted-foreground hover:text-foreground"
+        >
+          <ArrowLeft className="size-4" aria-hidden="true" />
+          {backLabel}
+        </Link>
+      )}
       <div className="flex flex-wrap items-start justify-between gap-3">
         <h1 className="min-w-0 break-words text-2xl font-extrabold tracking-tight sm:text-3xl">
           {title}
