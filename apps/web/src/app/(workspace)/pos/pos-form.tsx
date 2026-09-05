@@ -76,6 +76,7 @@ export function PosForm({
   products,
   promosEnabled,
   promos,
+  onBack,
 }: {
   shiftId: string;
   offlineSessionId?: string;
@@ -89,6 +90,7 @@ export function PosForm({
   products: readonly PosProduct[];
   promosEnabled: boolean;
   promos: readonly PosPromo[];
+  onBack?: () => void;
 }) {
   const router = useRouter();
   const isDesktop = useDesktopCheckout();
@@ -693,6 +695,7 @@ export function PosForm({
         salesCents={shiftSummary.salesCents}
         cartCount={cartCount}
         onOpenCart={() => setOrderOpen(true)}
+        onBack={onBack}
       />
       <div className="mx-auto grid w-full max-w-[1440px] gap-8 px-4 py-5 pb-28 sm:px-6 lg:grid-cols-[minmax(0,1fr)_390px] lg:px-8 lg:py-8 lg:pb-8">
         <PosCatalog

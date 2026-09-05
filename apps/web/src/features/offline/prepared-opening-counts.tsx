@@ -1,7 +1,7 @@
 "use client";
 
 import { useCallback, useEffect, useState } from "react";
-import { Check, RefreshCw } from "lucide-react";
+import { RefreshCw } from "lucide-react";
 import { ShiftCountWorkflow } from "@/components/employee/shift-count-workflow";
 import { Button } from "@/components/ui/button";
 import {
@@ -81,16 +81,6 @@ export function PreparedOpeningCounts({
     );
   return (
     <div className="space-y-5">
-      <p
-        role="status"
-        className="mx-auto flex max-w-3xl items-center gap-2 text-sm font-medium text-success"
-      >
-        <Check className="size-4" aria-hidden="true" />
-        Offline ready
-        <span className="font-normal text-muted-foreground">
-          · Saved on this device
-        </span>
-      </p>
       {saveError ? (
         <p role="alert" className="mx-auto max-w-3xl text-sm text-destructive">
           {saveError}
