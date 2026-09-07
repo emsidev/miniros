@@ -29,7 +29,7 @@ Staged run: EP00 then EP01 only. EP02 and later remain out of scope. Evidence le
 
 Branch: `dev`. Original source: `edbba0e4fd86459a40a372b5c4abf83558fc7d43`.
 EP00 checkpoint: `657a6c28eeeeeac2bc119fa7c5ab1d90cdfe93b6`.
-EP01 checkpoint: see SESSION_HANDOFF.md (final commit recorded after integration).
+EP01 checkpoint: `66af5263e864b1ef181620d59cd1941e9b0997d7`. Final handoff: SESSION_HANDOFF.md.
 
 EP00 and EP01 are code complete and independently accepted for their stated scope.
 This is **not working booth operations or release acceptance**. All ten EP00/EP01
