@@ -1,3 +1,4 @@
+import { assertDisposableDatabase } from "@/test/isolation-guard";
 import { randomUUID } from "node:crypto";
 import { readFileSync } from "node:fs";
 import { resolve } from "node:path";
@@ -44,6 +45,7 @@ import {
   updateShiftInTransaction,
 } from "./admin-shift-workflows";
 const connection = process.env.SHIFT_TEST_DATABASE_URL;
+if (connection) assertDisposableDatabase(connection);
 const pg = connection ? null : new PGlite();
 const database: Database = connection
   ? createDatabase(connection)

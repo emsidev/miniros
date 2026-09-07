@@ -1,10 +1,10 @@
-# Execution status — initial state
+# Execution status — staged EP00 / EP01
 
-This is the starting tracker, not a completed implementation report. Every plan starts unimplemented and untested. Update after actual execution.
+Staged run: EP00 then EP01 only. EP02 and later remain out of scope. Evidence levels remain separate; no release acceptance.
 
 | Plan | Implementation | Automated tests | Device/staging evidence | Review | Blocker / next slice |
 |---|---|---|---|---|---|
-| EP00 — Baseline audit, preservation, and truthful test inventory | NOT STARTED | NOT RUN | NOT RUN / assess required tier | PENDING | Begin after listed prerequisites |
+| EP00 — Baseline audit, preservation, and truthful test inventory | CODE COMPLETE | PASSED with explicit baseline skips | NOT REQUIRED for G0; hosted/device unverified | ACCEPTED G0 | See EP00_EVIDENCE.md; next EP01 after reviewer acceptance |
 | EP01 — Product contract, architecture decisions, and runnable UX skeleton | NOT STARTED | NOT RUN | NOT RUN / assess required tier | PENDING | Begin after listed prerequisites |
 | EP02 — Native two-phone communication feasibility spike | NOT STARTED | NOT RUN | NOT RUN / assess required tier | PENDING | Begin after listed prerequisites |
 | EP03 — Shared domain model, operation contracts, and golden arithmetic | NOT STARTED | NOT RUN | NOT RUN / assess required tier | PENDING | Begin after listed prerequisites |
@@ -26,11 +26,11 @@ This is the starting tracker, not a completed implementation report. Every plan 
 | EP19 — Physical acceptance, full-shift pilot and authorized rollout | NOT STARTED | NOT RUN | NOT RUN / assess required tier | PENDING | Begin after listed prerequisites |
 
 ## Session checkpoint
-Current branch/commit:
-Unrelated working-tree changes preserved:
-Active agent/path ownership:
-Most recent integrated slice:
-Exact tests already run:
-Current blockers:
-Next unblocked plan/slice and command:
-Production/pilot authorization: NOT GRANTED BY THIS PLAN
+Current branch/commit: dev / edbba0e4fd86459a40a372b5c4abf83558fc7d43 + EP00 diff.
+Unrelated working-tree changes preserved: nested checkout initially clean; parent design/ untouched. Generated tracked compiler cache restored.
+Active agent/path ownership: lead integrates docs/tests/contracts; Terra Medium repository_audit and test_audit read-only audits finished; inherited-settings reviewer independently reviews.
+Most recent integrated slice: EP00.1–4; G0 accepted.
+Exact tests already run: EP00_EVIDENCE.md and BASELINE_AUDIT.md; focused 9/0/0, web 153/0/12, local HTTP e2e 45/0/0; type/lint/build/diff passed.
+Current blockers: no disposable external PostgreSQL supplied (12 skipped); physical/hosted gates not verified.
+Next unblocked plan/slice and command: after G0 acceptance, EP01.1 architecture decisions and shared workflow contract. Do not start EP02+.
+Production/pilot authorization: NOT GRANTED. No push, deployment or production migration.

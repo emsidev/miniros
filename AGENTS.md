@@ -55,3 +55,11 @@ These workflows should be implemented as server-side transactions:
 - Use ledger-style inventory tables.
 - Store snapshots for money values such as price, salary, cost, and profit.
 - Do not use derived totals as the source of truth.
+
+## Miniros v2 staged execution
+
+Use `docs/miniros-v2/MASTER_PLAN.md`, `PRODUCT_AND_ARCHITECTURE.md`,
+`AGENT_EXECUTION_RULES.md`, `TEST_STRATEGY.md`, and `EXECUTION_STATUS.md`
+for v2 work. Follow the user's staged scope over the pack's execute-all default.
+Owner scheduling never requires per-shift stock/product allocation; staff counts
+actual opening stock. Preserve legacy journals and require independent evidence.
