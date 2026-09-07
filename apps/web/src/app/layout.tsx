@@ -1,5 +1,4 @@
-import { DeviceProvider } from "@/features/offline/device-provider";
-import { PwaProvider } from "@/features/offline/pwa-provider";
+import { ApplicationProviders } from "@/features/offline/application-providers";
 import type { Metadata, Viewport } from "next";
 import { Outfit } from "next/font/google";
 import { Toaster } from "@/components/ui/sonner";
@@ -30,8 +29,7 @@ export default function RootLayout({
   return (
     <html lang="en" className={outfit.className}>
       <body>
-        <DeviceProvider>{children}</DeviceProvider>
-        <PwaProvider />
+        <ApplicationProviders>{children}</ApplicationProviders>
         <Toaster richColors position="top-center" />
       </body>
     </html>

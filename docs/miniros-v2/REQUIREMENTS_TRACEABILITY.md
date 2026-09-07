@@ -2,23 +2,73 @@
 
 These IDs identify the agreed product requirements, not source citations. All mapped tests must be implemented or explicitly recorded blocked.
 
-| Requirement | Contract | Plans | Key acceptance tests |
-|---|---|---|---|
-| R-01 | Owner schedules only date/time, venue/address and assigned staff | EP01, EP06 | EP06-T01, EP17-T03, EP19-T05 |
-| R-02 | Reusable checklist configured once; equipment presence is not stock consumption | EP06, EP08 | EP06-T02, EP08-T01, EP08-T02 |
-| R-03 | Staff enters actual opening quantities with categories/search/Uncounted | EP09, EP17 | EP09-T01, EP09-T02, EP09-T07, EP17-T04 |
-| R-04 | Opening observation is not a purchase or duplicate central inventory | EP03, EP09 | EP09-T05 |
-| R-05 | Automatic offline catalog/checklist/schedule snapshots, no owner-built package | EP06, EP07 | EP07-T01, EP07-T03, EP07-T05 |
-| R-06 | Cashier and prep on Android/iOS communicate with no internet | EP02, EP11, EP19 | EP02-T01, EP11-T01, EP19-T02 |
-| R-07 | Durable atomic local sales/drafts with restart recovery | EP04, EP10 | EP04-T01, EP04-T02, EP10-T03, EP10-T04 |
-| R-08 | Local save, peer delivery, cloud delivery and media are independent | EP10, EP11, EP13 | EP10-T02, EP11-T01, EP13-T01, EP13-T03 |
-| R-09 | Expected stock, refunds, remakes and prepared batches reconcile | EP03, EP12 | EP03-T01, EP03-T05, EP12-T01, EP12-T02, EP12-T06 |
-| R-10 | Owner visibility is live when reachable and honest when stale | EP14 | EP14-T01, EP14-T02, EP14-T04, EP14-T07 |
-| R-11 | Offline closing; actual and expected counts remain distinct | EP15 | EP15-T01, EP15-T02, EP15-T04 |
-| R-12 | QR fallback transfers the same data once with truthful receipts | EP16 | EP16-T01, EP16-T02, EP16-T03, EP16-T05 |
-| R-13 | Tenant/role/device security and offline-auth boundaries | EP05, EP07, EP13, EP18 | EP05-T03, EP05-T04, EP07-T04, EP13-T04, EP13-T05, EP18-T04 |
-| R-14 | No unproven auto-failover or invented lost records | EP02, EP11, EP19 | EP11-T07, EP19-T06 |
-| R-15 | Existing Miniros data/code preserved through staged migration | EP00, EP18 | EP00-T04, EP18-T01, EP18-T02, EP18-T05 |
-| R-16 | Real agents, tests and independent evidence—not mock completion | EP00, EP18, EP19 | EP00-T01, EP18-T03, EP19-T06 |
-| R-17 | Staff simplicity/accessibility rather than generic admin screens | EP01, EP17 | EP01-T02, EP17-T01, EP17-T02, EP17-T07 |
-| R-18 | Planned times do not silently lock active work; timezone/version semantics | EP01, EP06, EP07 | EP01-T01, EP06-T04, EP07-T05 |
+| Requirement | Contract                                                                        | Plans                  | Key acceptance tests                                       |
+| ----------- | ------------------------------------------------------------------------------- | ---------------------- | ---------------------------------------------------------- |
+| R-01        | Owner schedules only date/time, venue/address and assigned staff                | EP01, EP06             | EP06-T01, EP17-T03, EP19-T05                               |
+| R-02        | Reusable checklist configured once; equipment presence is not stock consumption | EP06, EP08             | EP06-T02, EP08-T01, EP08-T02                               |
+| R-03        | Staff enters actual opening quantities with categories/search/Uncounted         | EP09, EP17             | EP09-T01, EP09-T02, EP09-T07, EP17-T04                     |
+| R-04        | Opening observation is not a purchase or duplicate central inventory            | EP03, EP09             | EP09-T05                                                   |
+| R-05        | Automatic offline catalog/checklist/schedule snapshots, no owner-built package  | EP06, EP07             | EP07-T01, EP07-T03, EP07-T05                               |
+| R-06        | Cashier and prep on Android/iOS communicate with no internet                    | EP02, EP11, EP19       | EP02-T01, EP11-T01, EP19-T02                               |
+| R-07        | Durable atomic local sales/drafts with restart recovery                         | EP04, EP10             | EP04-T01, EP04-T02, EP10-T03, EP10-T04                     |
+| R-08        | Local save, peer delivery, cloud delivery and media are independent             | EP10, EP11, EP13       | EP10-T02, EP11-T01, EP13-T01, EP13-T03                     |
+| R-09        | Expected stock, refunds, remakes and prepared batches reconcile                 | EP03, EP12             | EP03-T01, EP03-T05, EP12-T01, EP12-T02, EP12-T06           |
+| R-10        | Owner visibility is live when reachable and honest when stale                   | EP14                   | EP14-T01, EP14-T02, EP14-T04, EP14-T07                     |
+| R-11        | Offline closing; actual and expected counts remain distinct                     | EP15                   | EP15-T01, EP15-T02, EP15-T04                               |
+| R-12        | QR fallback transfers the same data once with truthful receipts                 | EP16                   | EP16-T01, EP16-T02, EP16-T03, EP16-T05                     |
+| R-13        | Tenant/role/device security and offline-auth boundaries                         | EP05, EP07, EP13, EP18 | EP05-T03, EP05-T04, EP07-T04, EP13-T04, EP13-T05, EP18-T04 |
+| R-14        | No unproven auto-failover or invented lost records                              | EP02, EP11, EP19       | EP11-T07, EP19-T06                                         |
+| R-15        | Existing Miniros data/code preserved through staged migration                   | EP00, EP18             | EP00-T04, EP18-T01, EP18-T02, EP18-T05                     |
+| R-16        | Real agents, tests and independent evidence—not mock completion                 | EP00, EP18, EP19       | EP00-T01, EP18-T03, EP19-T06                               |
+| R-17        | Staff simplicity/accessibility rather than generic admin screens                | EP01, EP17             | EP01-T02, EP17-T01, EP17-T02, EP17-T07                     |
+| R-18        | Planned times do not silently lock active work; timezone/version semantics      | EP01, EP06, EP07       | EP01-T01, EP06-T04, EP07-T05                               |
+
+## EP01 clause coverage and accountable owners
+
+The full PRODUCT_AND_ARCHITECTURE contract is adopted. Older owner allocation/menu
+preparation assumptions are explicitly superseded, including older planning prose.
+The rows below expand R-01–18 to every binding clause group. A future test reference
+is a verification obligation, **not evidence it passed**. EP02+ is not executed here.
+
+| Clause group                                                                                  | Requirements / accountable owner                                     | Verification path                                                                                              |
+| --------------------------------------------------------------------------------------------- | -------------------------------------------------------------------- | -------------------------------------------------------------------------------------------------------------- |
+| §1 owner setup, minimal schedule, automatic readiness                                         | R-01/02/05; owner/backend EP06, mobile enrollment EP07               | EP01-T02, EP06-T01, EP06-T02, EP07-T01, EP07-T03                                                               |
+| §1 staff supplies, actual counts, cashier, prep, dashboard, closing, recovery                 | R-03/06–12; mobile EP08–13/15/16, owner EP14                         | EP08-T01, EP09-T01, EP10-T01, EP11-T01, EP14-T01, EP15-T01, EP16-T01                                           |
+| §1 one cashier/one prep; phone combinations and tenant scope                                  | R-19; lead EP01, backend EP05, connectivity EP02/11, acceptance EP19 | EP01-T01, EP05-T03, EP02-T01, EP11-T07, EP19-T02                                                               |
+| §1 first enrollment online; prepared outage support                                           | R-20; enrollment EP07                                                | EP07-T01, EP07-T04, EP07-T06                                                                                   |
+| §1 exclusions and preserving historical features/tax/discount/manual settlement meanings      | R-21; lead/owner EP06/18/19                                          | EP06-T01, EP18-T01, EP19-T06; review existing routes and retained tax/discount regression tests before rollout |
+| §2 separate staff/cloud/review/prep machines; audited correction and no time lock             | R-22; lead EP01, backend EP05/14, closeout EP15                      | EP01-T01, EP05-T02, EP14-T04, EP15-T07, EP06-T04                                                               |
+| §2 checklist editor/evidence/exception                                                        | R-23; mobile workflow EP08                                           | EP08-T02, EP08-T03, EP08-T06; actor/time/template/reason must be asserted by these cases                       |
+| §2 count blank/zero/not brought; explicit bulk confirmation; closing unverified               | R-24; inventory EP09, closeout EP15                                  | EP01-T03, EP09-T01, EP09-T02, EP15-T02                                                                         |
+| §2 opening not purchases/central debit; checklist not consumption; separate transfers         | R-04/25; domain EP03, inventory EP09/12                              | EP09-T05, EP08-T01, EP12-T04                                                                                   |
+| §3 search/categories/progress/filter, snapshot stock, unavailable products                    | R-03/26; inventory EP09, UX EP17                                     | EP09-T01, EP09-T07, EP17-T04                                                                                   |
+| §3 packs/base atoms/dimensions/configuration, invalid numbers/pieces, frozen conversion       | R-27; domain EP03, setup EP06, inventory EP09                        | EP03-T03, EP03-T04, EP09-T03, EP09-T01                                                                         |
+| §3 durable autosave/text/error/restart context, review/seal then adjustments                  | R-28; persistence EP04, inventory EP09                               | EP04-T04, EP09-T04, EP09-T06, EP09-T07                                                                         |
+| §3 cashier/prep interface, plain status, accessible targets/scaling/motion/brand              | R-17/29; mobile EP10/11, UX EP17                                     | EP01-T02, EP10-T07, EP11-T01, EP17-T01, EP17-T02, EP17-T06, EP17-T07                                           |
+| §4 retained architecture, SQLite vs Dexie, transport selection gate                           | R-15/30; lead EP01, connectivity EP02, persistence EP04              | EP01-T05, EP02-T01, EP02-T06, EP04-T01, EP18-T05                                                               |
+| §4 four paths, truthful saved receipts/disk errors, background/resume                         | R-08/31; persistence EP04, connectivity EP11, sync EP13              | EP04-T02, EP10-T02, EP11-T05, EP13-T01, EP13-T03, EP13-T07                                                     |
+| §5 cashier authority, owner future snapshots, prep canonical commands, cloud projections      | R-32; lead/domain EP01/03, backend EP05, connectivity EP11           | EP01-T01, EP03-T07, EP05-T04, EP11-T02, EP11-T07                                                               |
+| §5 envelope identity/version/digest/authenticity; occurrence vs receipt clock                 | R-33; domain EP03, backend EP05, recovery EP16                       | EP03-T02, EP03-T07, EP05-T02, EP05-T04, EP16-T04                                                               |
+| §5 atomic effects/outboxes, durable before ack, duplicates/conflicts and original receipt     | R-34; persistence EP04, ingestion EP05                               | EP04-T01, EP04-T02, EP05-T01, EP05-T02, EP05-T06                                                               |
+| §5 contiguous sequence/gaps/quarantine and unrelated tenant progress                          | R-35; ingestion EP05, cloud EP13                                     | EP05-T02, EP05-T03, EP13-T02, EP13-T06                                                                         |
+| §5 conceptual entities reuse; tenant-safe relationships                                       | R-36; domain EP03, backend EP05                                      | EP03-T07, EP05-T03, EP05-T04; WORKFLOW_CONTRACTS existing-model mapping                                        |
+| §5 integer money/atoms, rounding, frozen prices/recipes/packs/costs                           | R-37; domain EP03                                                    | EP03-T01, EP03-T03, EP03-T04                                                                                   |
+| §6 expected stock formula, prepared vs raw, cycles/readiness                                  | R-09/38; domain EP03, inventory EP12                                 | EP03-T01, EP03-T03, EP12-T01, EP12-T06                                                                         |
+| §6 sale consumption, refund vs return, uncertain prep/cancel, remake/complimentary            | R-39; inventory EP12                                                 | EP12-T01, EP12-T02, EP12-T03, EP12-T07                                                                         |
+| §6 no oversell or unapproved upward adjustment; bounded/refund retry                          | R-40; domain EP03, cashier EP10, inventory EP12                      | EP03-T05, EP03-T06, EP10-T05, EP12-T02                                                                         |
+| §6 staff cash float, tender less change, paid ins/outs, digital confirmation only             | R-41; domain EP03, cashier EP10, closeout EP15                       | EP03-T01, EP10-T01, EP10-T06, EP15-T01                                                                         |
+| §7 current auth, scoped issuance/QR, freeze/refresh/schedule revisions                        | R-13/42; backend EP05, enrollment EP07                               | EP05-T04, EP07-T01, EP07-T03, EP07-T05                                                                         |
+| §7 expiry vs revocation/account switch; offline limits/quarantine/clock                       | R-43; enrollment EP07, cloud EP13                                    | EP07-T04, EP13-T04, EP13-T05                                                                                   |
+| §7 no secret keys, RLS/read grants/storage/realtime/native auth preserves CSRF                | R-44; backend EP05, security/release EP18                            | EP05-T03, EP05-T04, EP18-T04                                                                                   |
+| §7 prep operational-only data/opaque recovery, no private owner key/custom crypto             | R-45; connectivity EP11, recovery EP16, security EP18                | EP01-T05, EP11-T06, EP16-T04, EP18-T04                                                                         |
+| §7 replicated checkpoint, no auto promotion/lost-record invention                             | R-14/46; connectivity EP11, acceptance EP19                          | EP11-T07, EP19-T06                                                                                             |
+| §8 realtime invalidation/requery on resume/resubscribe/periodic, honest unknown unsent totals | R-10/47; owner dashboard EP14                                        | EP14-T01, EP14-T02, EP14-T03, EP14-T07                                                                         |
+| §8 closing manifest/boundary/digest/media/counts and completeness; prep resolution            | R-11/48; closeout EP15, ingestion EP05                               | EP15-T01, EP15-T03, EP15-T04, EP15-T07, EP05-T02                                                               |
+| §8 multipart same-ID QR staged/verified/bounded/tenant/version/auth                           | R-12/49; recovery EP16                                               | EP16-T01, EP16-T02, EP16-T03, EP16-T04, EP16-T07                                                               |
+| §8 cached owner offline import/camera/durable receipt vs cloud/staff retention                | R-50; recovery EP16                                                  | EP16-T05, EP16-T06                                                                                             |
+| §8 media separation, retained unsent files, size envelope and reviewed cleanup                | R-51; recovery EP16, release EP18                                    | EP16-T01, EP16-T07, EP18-T04, EP18-T05                                                                         |
+| Test/evidence/agent/preservation governance and owner authorization                           | R-15/16; lead + independent reviewer                                 | EP00-T01, EP00-T02, EP00-T04, EP18-T03, EP19-T06, EP19-T07                                                     |
+
+EP01-T04 independent review checks this entire table against the eight contract
+sections and TEST_CASE_INDEX.json. Detailed later assertions retain their full plan
+setup/fault/outcome definitions. No downstream case has been marked passed here.

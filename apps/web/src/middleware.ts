@@ -1,7 +1,16 @@
-import type { NextRequest } from "next/server";
+import { NextResponse, type NextRequest } from "next/server";
+import { developmentSkeletonEnabled } from "@/lib/development-skeleton";
 import { updateSession } from "@/lib/supabase/middleware";
 
 export async function middleware(request: NextRequest) {
+  if (request.nextUrl.pathname === "/dev/workflow-skeleton") {
+    return developmentSkeletonEnabled(
+      process.env.NODE_ENV,
+      process.env.MINIROS_V2_SKELETON,
+    )
+      ? NextResponse.next()
+      : new NextResponse(null, { status: 404 });
+  }
   if (
     [
       "/offline",
