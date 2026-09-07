@@ -1,20 +1,29 @@
-import type { NextRequest } from "next/server";
+import { NextResponse, type NextRequest } from "next/server";
 import { updateSession } from "@/lib/supabase/middleware";
 
+const publicPaths = new Set([
+  "/offline",
+  "/install",
+  "/sync",
+  "/help",
+  "/sw.js",
+  "/pwa-assets.json",
+  "/manifest.webmanifest",
+]);
+
+function hasSupabasePublicConfig() {
+  return Boolean(
+    process.env.NEXT_PUBLIC_SUPABASE_URL &&
+    (process.env.NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY ||
+      process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY),
+  );
+}
+
 export async function middleware(request: NextRequest) {
-  if (
-    [
-      "/offline",
-      "/install",
-      "/sync",
-      "/help",
-      "/sw.js",
-      "/pwa-assets.json",
-      "/manifest.webmanifest",
-    ].includes(request.nextUrl.pathname)
-  ) {
-    return (await import("next/server")).NextResponse.next();
+  if (publicPaths.has(request.nextUrl.pathname) || !hasSupabasePublicConfig()) {
+    return NextResponse.next();
   }
+
   return updateSession(request);
 }
 
