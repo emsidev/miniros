@@ -1,0 +1,177 @@
+[
+  {
+    "path": "AGENT_EXECUTION_RULES.md",
+    "bytes": 5917,
+    "sha256": "0a84b7dd8824b48acb853a5e03f833c6d1a030ca5069b52c320abafc6a20a18e"
+  },
+  {
+    "path": "EXECUTION_STATUS.md",
+    "bytes": 4070,
+    "sha256": "f0188c098996d34c95563ac2cf1b25b76a7b33bd93fa7e92db3d275af5dc0c5d"
+  },
+  {
+    "path": "MASTER_PLAN.md",
+    "bytes": 8767,
+    "sha256": "f30f17b520cfdce43f9b5c1038adcac4c07e8b4aad91b6a17803bf8545b282e0"
+  },
+  {
+    "path": "PLAN_PACK_VALIDATION.json",
+    "bytes": 856,
+    "sha256": "7f2f135ff46930ec6f27a6653acf843bee5a737ff9dbc633297625ebd67b7813"
+  },
+  {
+    "path": "PRODUCT_AND_ARCHITECTURE.md",
+    "bytes": 19243,
+    "sha256": "000b1de3a5bf79d1b7b5633d0aae639212b270913416d1f5e716cbec61cbe0e6"
+  },
+  {
+    "path": "README.md",
+    "bytes": 1389,
+    "sha256": "2a4e4885475dbbe3ae9dde254665a5da676871a676e566ebbd2c4346a7fcef39"
+  },
+  {
+    "path": "REQUIREMENTS_TRACEABILITY.md",
+    "bytes": 2528,
+    "sha256": "cefe046da73113066a25899805767c7958ba2ac92181011dbed1de41b53c4832"
+  },
+  {
+    "path": "SOURCE_REGISTER.md",
+    "bytes": 4558,
+    "sha256": "5cd1bcf075bd0a3d2a12429c3854027906086bf3809c6b25fc48b0055fa8a566"
+  },
+  {
+    "path": "START_HERE_CODEX.md",
+    "bytes": 4030,
+    "sha256": "5f79f3b1e55d10e6d86296433071a68090946574e7f673363efe81bb2ae01e6c"
+  },
+  {
+    "path": "TEST_CASE_INDEX.json",
+    "bytes": 9147,
+    "sha256": "5ff224785edc405e99bf62312071202dde45f16b923416126331417baa6de7f6"
+  },
+  {
+    "path": "TEST_STRATEGY.md",
+    "bytes": 8611,
+    "sha256": "fbade1afd1bc0e810422e1f5b9ad3bfb274dacc2d02286a3021f2c0583a5ed31"
+  },
+  {
+    "path": "execution-plans/EP00-baseline-audit-preservation-and-truthful-test-inventory.md",
+    "bytes": 3490,
+    "sha256": "23a92d8af775c121b88c7bff1a8e6c75c0277908f3a78f8cb929e07ac149704c"
+  },
+  {
+    "path": "execution-plans/EP01-product-contract-architecture-decisions-and-runnable-ux-skeleton.md",
+    "bytes": 3400,
+    "sha256": "94a81ba2e2c71ba4fc495cbe4720b6ad8e42e1f114dafdd0dd727509823dd3c9"
+  },
+  {
+    "path": "execution-plans/EP02-native-two-phone-communication-feasibility-spike.md",
+    "bytes": 3893,
+    "sha256": "48ea0ba0e5d3ef8e199e0ed3b4fb5850cf508f809d427360da7b9ccb38972629"
+  },
+  {
+    "path": "execution-plans/EP03-shared-domain-model-operation-contracts-and-golden-arithmetic.md",
+    "bytes": 3696,
+    "sha256": "e9a2a840b181e0282685dea85cbce86e21bc26ed2ca4879c0e5f3894ee0cf311"
+  },
+  {
+    "path": "execution-plans/EP04-crash-safe-native-sqlite-ledger-and-independent-queues.md",
+    "bytes": 3777,
+    "sha256": "79cacb451b7cdef526e7d16d901c80f6ea181d9454750ef3ac1077ac1c26ba5c"
+  },
+  {
+    "path": "execution-plans/EP05-backend-persistence-native-authorization-and-safe-ingestion.md",
+    "bytes": 3938,
+    "sha256": "e07be09a8b486da4cb7f367701585588411ece66474a0412bb8db5220f9362dd"
+  },
+  {
+    "path": "execution-plans/EP06-owner-reusable-business-setup-and-lightweight-shift-scheduling.md",
+    "bytes": 3545,
+    "sha256": "f71fc78a851b439d19baca4a132aa552d24f6ce503c8a15d4288a25c16a3fcd8"
+  },
+  {
+    "path": "execution-plans/EP07-staff-enrollment-automatic-snapshots-and-departure-preflight.md",
+    "bytes": 3738,
+    "sha256": "e780a0f32d95a875526237203df4e75ab3996fbef4c675dc81877d5a2c8683fa"
+  },
+  {
+    "path": "execution-plans/EP08-departure-checklist-with-missing-item-handling.md",
+    "bytes": 3275,
+    "sha256": "d6cd4c96e9a4e1848a6ef7fd1f0e6a8e06c74d79ff860bd09701393690ac8874"
+  },
+  {
+    "path": "execution-plans/EP09-intuitive-opening-stock-counts-and-opening-seal.md",
+    "bytes": 3709,
+    "sha256": "5f92289c760b9c5d8fc40f08ebe363d17679b3e34f2aedd24bd380287eb25a13"
+  },
+  {
+    "path": "execution-plans/EP10-cashier-checkout-and-durable-order-creation.md",
+    "bytes": 3628,
+    "sha256": "ade130daa057c987ee5a2329fdfd388f081f38a34e8b3ba7a828f46c30292b8d"
+  },
+  {
+    "path": "execution-plans/EP11-reliable-prep-queue-and-bidirectional-local-synchronization.md",
+    "bytes": 3917,
+    "sha256": "42d557357aceba01a8c64436250dc0baaa97dddd367c9b5e1c4778249b0d7943"
+  },
+  {
+    "path": "execution-plans/EP12-operational-inventory-remakes-refunds-waste-and-restocks.md",
+    "bytes": 3806,
+    "sha256": "f25c9cde9f74a341f85cf843f6ae5df532aef81e3c20c2f2a8d07d7306cb809b"
+  },
+  {
+    "path": "execution-plans/EP13-independent-cloud-synchronization-media-retry-and-auth-recovery.md",
+    "bytes": 4015,
+    "sha256": "ed63360ed3619fd1e4fb3f7911d13acf7bb9b2a453905a7c0820709d9300483f"
+  },
+  {
+    "path": "execution-plans/EP14-owner-live-dashboard-with-honest-freshness-and-reconciliation.md",
+    "bytes": 3549,
+    "sha256": "4e7935f5d78c1b77b1816716867a94e17d4729014b529988bdf2aa6a01a74edb"
+  },
+  {
+    "path": "execution-plans/EP15-offline-local-closing-actual-counts-and-owner-review.md",
+    "bytes": 3880,
+    "sha256": "6f4c438e1c23b704c2a2fced425de59b3b0dbb228726160b3e6ca166f83ec424"
+  },
+  {
+    "path": "execution-plans/EP16-qr-recovery-export-offline-owner-import-and-duplicate-safe-handover.md",
+    "bytes": 4197,
+    "sha256": "93bfcc2e1791f382d05e3f85bfb7c3e39dc4e4a7b46a8455588fbff879d54d8c"
+  },
+  {
+    "path": "execution-plans/EP17-staff-usability-accessibility-and-end-to-end-workflow-polish.md",
+    "bytes": 3760,
+    "sha256": "2e7ddcece7d3ee95cd747aba484eaa07e3497e8789154a4f98365969c28218ef"
+  },
+  {
+    "path": "execution-plans/EP18-migration-safety-observability-ci-and-release-hardening.md",
+    "bytes": 4203,
+    "sha256": "5bcfb4e7cd4a6381dae46f0ddc134b3094f0d00aefb0dc3e224b818fe58f81f3"
+  },
+  {
+    "path": "execution-plans/EP19-physical-acceptance-full-shift-pilot-and-authorized-rollout.md",
+    "bytes": 4319,
+    "sha256": "5fc90596d999fee599e330b72889db509a79d4d5f28c7423b784527f0a66f37c"
+  },
+  {
+    "path": "fixtures/README.md",
+    "bytes": 2059,
+    "sha256": "2cb6d093d1c759c784fc7f4c5e9951c59525e7a1d6776f9c903c392e646efdbb"
+  },
+  {
+    "path": "fixtures/golden-shift.json",
+    "bytes": 5088,
+    "sha256": "fed2b6c42ca47eb0c19c6c1c54591c7aa5f5fd814fc4a187d4bbc28a48f27d01"
+  },
+  {
+    "path": "templates/AGENT_TASK_TEMPLATE.md",
+    "bytes": 659,
+    "sha256": "658638fb27d0380c30394b806b104f3bb7ab9457afa736788743e0ad2f9502b8"
+  },
+  {
+    "path": "templates/EVIDENCE_TEMPLATE.md",
+    "bytes": 1193,
+    "sha256": "8dcc73fddb912684f58ba33619af009ad38e4dc94771fba6507d8382f99e3c29"
+  }
+]
