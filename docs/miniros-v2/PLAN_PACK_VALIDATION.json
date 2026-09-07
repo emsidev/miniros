@@ -1,0 +1,28 @@
+{
+  "scope": "Plan artifact consistency and synthetic arithmetic only; no Miniros application tests executed.",
+  "execution_plans": 20,
+  "implementation_slices": 80,
+  "acceptance_tests": 132,
+  "requirement_mappings": 18,
+  "acyclic_dependencies": "PASS",
+  "test_id_uniqueness": "PASS",
+  "traceability_references": "PASS",
+  "combined_section_completeness": "PASS",
+  "synthetic_golden_arithmetic": "PASS",
+  "gross_sales_minor": 67000,
+  "refunds_minor": 15000,
+  "net_sales_minor": 52000,
+  "expected_cash_minor": 240000,
+  "expected_remaining_stock": {
+    "matcha": 976,
+    "milk": 9900,
+    "ube": 2880,
+    "cups": 93,
+    "lids": 94,
+    "straws": 94,
+    "cookie_portions": 5,
+    "ice_cream": 920,
+    "spoons": 19
+  },
+  "source_review": "Read-only; application implementation and all app validation remain to be executed by Codex/team."
+}

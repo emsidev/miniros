@@ -1,0 +1,213 @@
+{
+  "fixture_id": "miniros-v2-golden-001",
+  "notice": "Synthetic test data only. These prices and recipes are not the user's confirmed live Bettercup menu.",
+  "currency": "PHP",
+  "money_scale": 100,
+  "default_tax_minor": 0,
+  "discount_minor": 0,
+  "stock_note": "Quantities shown in base units for readability. Implementation converts grams/ml to configured fixed-precision integer atoms; pieces use scale 1.",
+  "items": {
+    "matcha": {
+      "unit": "g",
+      "atom_scale": 1000,
+      "opening": 1000
+    },
+    "milk": {
+      "unit": "ml",
+      "atom_scale": 1000,
+      "opening": 10000
+    },
+    "ube": {
+      "unit": "g",
+      "atom_scale": 1000,
+      "opening": 3000
+    },
+    "cups": {
+      "unit": "pc",
+      "atom_scale": 1,
+      "opening": 100
+    },
+    "lids": {
+      "unit": "pc",
+      "atom_scale": 1,
+      "opening": 100
+    },
+    "straws": {
+      "unit": "pc",
+      "atom_scale": 1,
+      "opening": 100
+    },
+    "cookie_portions": {
+      "unit": "pc",
+      "atom_scale": 1,
+      "opening": 6
+    },
+    "ice_cream": {
+      "unit": "g",
+      "atom_scale": 1000,
+      "opening": 1000
+    },
+    "spoons": {
+      "unit": "pc",
+      "atom_scale": 1,
+      "opening": 20
+    }
+  },
+  "products": {
+    "ube_matcha": {
+      "price_minor": 15000,
+      "recipe": {
+        "matcha": 4,
+        "milk": 150,
+        "ube": 30,
+        "cups": 1,
+        "lids": 1,
+        "straws": 1
+      }
+    },
+    "plain_matcha": {
+      "price_minor": 12000,
+      "recipe": {
+        "matcha": 4,
+        "milk": 150,
+        "cups": 1,
+        "lids": 1,
+        "straws": 1
+      }
+    },
+    "cookie_cup": {
+      "price_minor": 10000,
+      "recipe": {
+        "cookie_portions": 1,
+        "ice_cream": 80,
+        "cups": 1,
+        "spoons": 1
+      },
+      "note": "Cookie production occurred before the shift; do not consume raw dough ingredients again."
+    }
+  },
+  "opening_cash_minor": 200000,
+  "events": [
+    {
+      "id": "A",
+      "kind": "sale",
+      "product": "ube_matcha",
+      "quantity": 2,
+      "tender": "cash",
+      "amount_due_minor": 30000,
+      "tendered_minor": 50000,
+      "change_minor": 20000,
+      "prepared": true
+    },
+    {
+      "id": "B",
+      "kind": "sale",
+      "product": "plain_matcha",
+      "quantity": 1,
+      "tender": "manual_digital",
+      "amount_due_minor": 12000,
+      "tendered_minor": 12000,
+      "change_minor": 0,
+      "prepared": true
+    },
+    {
+      "id": "C",
+      "kind": "sale",
+      "product": "ube_matcha",
+      "quantity": 1,
+      "tender": "cash",
+      "amount_due_minor": 15000,
+      "tendered_minor": 15000,
+      "change_minor": 0,
+      "prepared": true
+    },
+    {
+      "id": "C-refund",
+      "kind": "refund",
+      "sale_id": "C",
+      "amount_minor": 15000,
+      "tender": "cash",
+      "return_stock": false,
+      "reason": "Prepared drink refunded; materials remain consumed."
+    },
+    {
+      "id": "D",
+      "kind": "complimentary",
+      "product": "plain_matcha",
+      "quantity": 1,
+      "revenue_minor": 0
+    },
+    {
+      "id": "E",
+      "kind": "remake",
+      "sale_id": "A",
+      "product": "ube_matcha",
+      "quantity": 1,
+      "revenue_minor": 0
+    },
+    {
+      "id": "F",
+      "kind": "waste",
+      "item": "milk",
+      "quantity": 200
+    },
+    {
+      "id": "G",
+      "kind": "restock",
+      "item": "milk",
+      "quantity": 1000
+    },
+    {
+      "id": "H",
+      "kind": "sale",
+      "product": "cookie_cup",
+      "quantity": 1,
+      "tender": "cash",
+      "amount_due_minor": 10000,
+      "tendered_minor": 10000,
+      "change_minor": 0,
+      "prepared": true
+    }
+  ],
+  "expected": {
+    "paid_order_count_before_refunds": 4,
+    "paid_item_quantity_before_refunds": 5,
+    "complimentary_item_quantity": 1,
+    "remade_item_quantity": 1,
+    "gross_sales_minor": 67000,
+    "refunds_minor": 15000,
+    "net_sales_minor": 52000,
+    "retained_cash_sales_before_refunds_minor": 55000,
+    "cash_refunds_minor": 15000,
+    "net_cash_sales_minor": 40000,
+    "net_manual_digital_minor": 12000,
+    "expected_closing_cash_minor": 240000,
+    "remaining_stock": {
+      "matcha": 976,
+      "milk": 9900,
+      "ube": 2880,
+      "cups": 93,
+      "lids": 94,
+      "straws": 94,
+      "cookie_portions": 5,
+      "ice_cream": 920,
+      "spoons": 19
+    },
+    "actual_count_examples": {
+      "cash_minor": 239000,
+      "cups": 92
+    },
+    "variance_examples": {
+      "cash_minor": -1000,
+      "cups": -1
+    },
+    "all_other_actual_stock_count_status": "unverified unless explicitly counted"
+  },
+  "additional_cases": [
+    "Second tenant with overlapping display order numbers but different IDs must remain isolated.",
+    "Milk input 3 x 1000 ml packs + 400 ml must normalize to 3400 ml.",
+    "Redo all event deliveries, QR imports and cloud batches with original IDs: expected output must not change.",
+    "Change payload under an existing ID: conflict, no additional effects.",
+    "Change current master prices/recipes after the snapshot: expected output must not change."
+  ]
+}
