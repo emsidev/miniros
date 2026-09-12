@@ -36,6 +36,20 @@
       "when": 1788589792107,
       "tag": "20260905062610_pos_discount_photos",
       "breakpoints": true
+    },
+    {
+      "idx": 5,
+      "version": "7",
+      "when": 1788791403544,
+      "tag": "20260907143003_native_v2_persistence",
+      "breakpoints": true
+    },
+    {
+      "idx": 6,
+      "version": "7",
+      "when": 1789213747009,
+      "tag": "20260912114907_bored_malcolm_colcord",
+      "breakpoints": true
     }
   ]
 }

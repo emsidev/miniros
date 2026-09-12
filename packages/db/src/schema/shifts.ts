@@ -43,6 +43,9 @@ export const shifts = pgTable(
     closedBy: uuid("closed_by").references(() => employees.id, {
       onDelete: "set null",
     }),
+    openingCashCents: bigint("opening_cash_cents", { mode: "number" })
+      .default(0)
+      .notNull(),
     notes: text("notes"),
     clientGeneratedId: uuid("client_generated_id"),
     createdAt: timestamp("created_at", { withTimezone: true })
@@ -54,6 +57,14 @@ export const shifts = pgTable(
     deletedAt: timestamp("deleted_at", { withTimezone: true }),
   },
   (table) => ({
+    v2BusinessIdKey: uniqueIndex("shifts_v2_business_id_key").on(
+      table.businessId,
+      table.id,
+    ),
+    nonnegativeOpeningCash: check(
+      "shifts_opening_cash_nonnegative",
+      sql`${table.openingCashCents} >= 0`,
+    ),
     businessIdx: index("shifts_business_id_idx").on(table.businessId),
     locationIdx: index("shifts_selling_location_id_idx").on(
       table.sellingLocationId,
@@ -92,6 +103,12 @@ export const shiftAssignments = pgTable(
       .notNull(),
   },
   (table) => ({
+    v2AssignmentScopeKey: uniqueIndex("shift_assignments_v2_scope_key").on(
+      table.businessId,
+      table.shiftId,
+      table.employeeId,
+      table.id,
+    ),
     shiftIdx: index("shift_assignments_shift_id_idx").on(table.shiftId),
     businessShiftEmployeeUnique: uniqueIndex(
       "shift_assignments_shift_employee_unique",

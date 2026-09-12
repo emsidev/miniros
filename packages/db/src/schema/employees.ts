@@ -43,6 +43,10 @@ export const employees = pgTable(
     deletedAt: timestamp("deleted_at", { withTimezone: true }),
   },
   (table) => ({
+    v2BusinessIdKey: uniqueIndex("employees_v2_business_id_key").on(
+      table.businessId,
+      table.id,
+    ),
     businessIdx: index("employees_business_id_idx").on(table.businessId),
     memberIdx: index("employees_member_id_idx").on(table.memberId),
     businessEmailUnique: uniqueIndex("employees_business_email_unique").on(

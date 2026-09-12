@@ -16,3 +16,4 @@ export * from "./promos";
 export * from "./enums";
 
 export * from "./offline-sessions";
+export * from "./v2";

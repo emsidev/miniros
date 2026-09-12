@@ -49,6 +49,10 @@ export const inventoryItems = pgTable(
     deletedAt: timestamp("deleted_at", { withTimezone: true }),
   },
   (table) => ({
+    businessIdKey: uniqueIndex("inventory_items_business_id_key").on(
+      table.businessId,
+      table.id,
+    ),
     businessIdx: index("inventory_items_business_id_idx").on(table.businessId),
     businessSkuUnique: uniqueIndex("inventory_items_business_sku_unique").on(
       table.businessId,
