@@ -1,7 +1,9 @@
 import Dexie, { type Table } from "dexie";
 import {
   emptyShiftProjection,
+  calculatePreparedSale,
   offlineEnvelopeSchema,
+  offlineOperationSchema,
   projectOfflineOperation,
   type LocalShiftProjection,
   type OfflineEnvelope,
@@ -138,6 +140,7 @@ export async function appendShiftAction(
   files: LocalProof[] = [],
   db = shiftStore(),
 ) {
+  operation = offlineOperationSchema.parse(operation);
   const action = await db.transaction(
     "rw",
     db.sessions,
@@ -156,10 +159,6 @@ export async function appendShiftAction(
         session.deviceId !== identity.deviceId
       )
         throw new Error("Open the prepared account before recording work.");
-      if (["recovery", "released", "closed"].includes(session.status))
-        throw new Error(
-          "This device requires owner reconciliation before more work can be recorded.",
-        );
       const existing = await db.shiftActions.get(actionId);
       if (existing) {
         if (
@@ -171,8 +170,12 @@ export async function appendShiftAction(
           );
         return existing;
       }
+      if (["recovery", "released", "closed"].includes(session.status))
+        throw new Error(
+          "This device requires owner reconciliation before more work can be recorded.",
+        );
       const envelope = offlineEnvelopeSchema.parse({
-        schemaVersion: 1,
+        schemaVersion: session.snapshot.schemaVersion,
         id: actionId,
         sessionId,
         snapshotId: session.snapshot.id,
@@ -233,10 +236,50 @@ export async function appendShiftAction(
         projection,
         nextSequence: session.nextSequence + 1,
       });
-      if (operation.type === "CREATE_SALE")
-        await db.drafts.delete(`pos:${sessionId}`);
+      if (operation.type === "CREATE_SALE") {
+        const key = `pos:${sessionId}`;
+        const previous = (await db.drafts.get(key))?.value as
+          Record<string, unknown> | undefined;
+        const saved = calculatePreparedSale(session.snapshot, operation);
+        const receipt = {
+          saleId: saved.saleId,
+          totalCents: saved.totalCents,
+          amountPaidCents: saved.amountPaidCents,
+          changeCents: saved.changeCents,
+          savedLocally: true,
+          pendingProofs: [],
+          payments: operation.payload.payments.map((payment) => ({
+            id: payment.id,
+            method: payment.paymentMethod,
+            amountCents: payment.amountCents,
+            reference: payment.referenceNumber ?? "",
+            proofFileId:
+              operation.proofs.find((p) => p.paymentId === payment.id)
+                ?.fileId ?? payment.id,
+            file:
+              files.find((file) => file.paymentId === payment.id)?.file ?? null,
+          })),
+        };
+        await db.drafts.put({
+          id: key,
+          value: {
+            ...previous,
+            cart: previous?.cart ?? {},
+            payments: previous?.payments ?? [],
+            saleRequestId: actionId,
+            receipt,
+            frozen: operation.payload,
+          },
+        });
+      }
       if (operation.type === "START_SHIFT")
         await db.drafts.delete(`counts:${sessionId}:start`);
+      if (operation.type === "SUBMIT_CLOSEOUT")
+        await db.drafts.delete(`counts:${sessionId}:close`);
+      if (operation.type === "CREATE_CASH_DEDUCTION")
+        await db.drafts.delete(`request:${sessionId}:cash`);
+      if (operation.type === "CREATE_INVENTORY_ADJUSTMENT")
+        await db.drafts.delete(`request:${sessionId}:inventory`);
       return row;
     },
   );
@@ -244,44 +287,31 @@ export async function appendShiftAction(
   return action;
 }
 
+/** Updates must not swap the shell while any local work is unfinished. */
 export async function guardLocalExit() {
-  const drafts = await shiftStore().drafts.toArray();
+  const db = shiftStore();
   if (
-    drafts.some((row) => {
-      const value = row.value as {
-        cart?: Record<string, number>;
-        receipt?: { pendingProofs: unknown[] };
-      };
-      return (
-        row.id.startsWith("pos:") &&
-        (value.receipt
-          ? value.receipt.pendingProofs.length > 0
-          : Object.keys(value.cart ?? {}).length > 0)
-      );
-    })
+    await db.sessions
+      .filter((s) => !["closed", "released"].includes(s.status))
+      .count()
   )
     throw new Error(
-      "Finish or clear your saved checkout before leaving this account.",
+      "Synchronize and close or release prepared shifts before updating.",
     );
-  const sessions = await shiftStore().sessions.toArray();
-  if (sessions.some((s) => !["closed", "released"].includes(s.status)))
-    throw new Error(
-      "Synchronize and close or release prepared shifts before signing out or switching business.",
-    );
-  if (await shiftStore().proofs.where("synced").equals(0).count())
-    throw new Error(
-      "Upload pending payment proofs before leaving this account.",
-    );
+  if (await db.proofs.where("synced").equals(0).count())
+    throw new Error("Upload pending payment proofs before updating.");
+  if (await db.drafts.count())
+    throw new Error("Resolve saved checkout drafts before updating.");
 }
+
+/** Test-fixture cleanup only. Account exit preserves journals and drafts. */
 export async function clearLocalAccount() {
+  if (process.env.NODE_ENV !== "test")
+    throw new Error("Local journals cannot be erased by account exit.");
   const db = shiftStore();
   await db.transaction(
     "rw",
-    db.sessions,
-    db.shiftActions,
-    db.proofs,
-    db.drafts,
-    db.meta,
+    [db.sessions, db.shiftActions, db.proofs, db.drafts, db.meta],
     async () => {
       await Promise.all([
         db.sessions.clear(),

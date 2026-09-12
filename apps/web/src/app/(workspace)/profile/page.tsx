@@ -1,4 +1,3 @@
-import { ThisDevice } from "@/features/offline/device-controls";
 import Link from "next/link";
 import { ArrowRight, Check, CircleUserRound, Minus } from "lucide-react";
 import { PageHeader } from "@/components/shared/layout";
@@ -101,7 +100,6 @@ export default async function ProfilePage() {
           An admin manages your permissions for this business.
         </p>
       </section>
-      <ThisDevice />
       <div className="border-t pt-5">
         <LogoutButton />
       </div>

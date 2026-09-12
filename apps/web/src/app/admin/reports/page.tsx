@@ -20,6 +20,7 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { formatMoney, formatPaymentMethod, formatQuantity } from "@/lib/format";
 import { listLocationProfitability } from "@/server/services/analytics";
+import { getShiftReportStatus } from "@/server/services/shift-report-status";
 import { getSalesReport } from "@/server/services/sales-reports";
 
 export const dynamic = "force-dynamic";
@@ -73,16 +74,17 @@ export default async function ReportsPage({
     from: dateQueryValue(params.from),
     to: dateQueryValue(params.to),
   };
-  const [locations, salesReport] = await Promise.all([
+  const [locations, salesReport, shiftStatus] = await Promise.all([
     listLocationProfitability(filters),
     getSalesReport(filters),
+    getShiftReportStatus(filters),
   ]);
 
   return (
     <div className="space-y-6">
       <PageHeader
-        title="Location profitability"
-        description="Did this location actually make money—and should we rent it again?"
+        title="Reports"
+        description="Sales, costs, differences, and profit by location."
       />
 
       <form className="grid gap-3 rounded-xl border bg-card p-4 sm:grid-cols-[1fr_1fr_auto] sm:items-end">
@@ -104,6 +106,116 @@ export default async function ReportsPage({
         </Button>
       </form>
 
+      <section
+        className="space-y-3"
+        aria-label="Shift results and upload status"
+      >
+        <SectionHeader
+          title="Shift results"
+          description="Final profit uses uploaded transactions and reviewed costs. Opening float is not revenue. Unsent device data is not visible here."
+        />
+        <div className="divide-y border-y">
+          {shiftStatus.map((shift) => (
+            <details key={shift.id} className="py-2">
+              <summary className="flex min-h-12 cursor-pointer flex-wrap items-center justify-between gap-3 py-3">
+                <span className="font-semibold">
+                  {shift.location} · {shift.date}
+                </span>
+                <span className="text-sm">
+                  {shift.profitCents === null
+                    ? "Result incomplete"
+                    : formatMoney(shift.profitCents) + " profit"}
+                  {shift.pendingReviews ? " · Review required" : ""}
+                  {shift.sessions.some((session) => session.status !== "closed")
+                    ? " · Awaiting device upload / closeout"
+                    : ""}
+                </span>
+              </summary>
+              <dl className="grid grid-cols-[1fr_auto] gap-x-4 gap-y-3 py-3 text-sm">
+                <dt>Net sales</dt>
+                <dd>
+                  {shift.salesCents === null
+                    ? "Not final"
+                    : formatMoney(shift.salesCents)}
+                </dd>
+                <dt>Product costs</dt>
+                <dd>
+                  {shift.productCostCents === null
+                    ? "Not final"
+                    : formatMoney(shift.productCostCents)}
+                </dd>
+                <dt>Rent + transport + wages + other costs</dt>
+                <dd>
+                  {shift.profitCents === null
+                    ? "Not final"
+                    : formatMoney(
+                        (shift.rentCents ?? 0) +
+                          (shift.transportCents ?? 0) +
+                          (shift.wagesCents ?? 0) +
+                          (shift.otherCostsCents ?? 0),
+                      )}
+                </dd>
+                <dt>Applicable expenses</dt>
+                <dd>
+                  {shift.expensesCents === null
+                    ? "Not final"
+                    : formatMoney(shift.expensesCents)}
+                </dd>
+                <dt>Expected / actual cash</dt>
+                <dd>
+                  {shift.actualCashCents === null
+                    ? "Not counted"
+                    : formatMoney(shift.expectedCashCents ?? 0) +
+                      " / " +
+                      formatMoney(shift.actualCashCents)}
+                </dd>
+                <dt>Cash difference</dt>
+                <dd>
+                  {shift.cashDifferenceCents === null
+                    ? "Not counted"
+                    : formatMoney(shift.cashDifferenceCents)}
+                </dd>
+              </dl>
+              <h3 className="pt-3 text-sm font-bold">
+                Stock differences · actual − expected
+              </h3>
+              <ul className="divide-y text-sm">
+                {shift.stockDifferences.map((item, index) => (
+                  <li key={index} className="flex justify-between gap-3 py-3">
+                    <span>{item.name}</span>
+                    <span>
+                      {formatQuantity(item.difference)} {item.unit}
+                    </span>
+                  </li>
+                ))}
+              </ul>
+              {!shift.stockDifferences.length ? (
+                <p className="py-3 text-sm text-muted-foreground">
+                  No closing stock counts uploaded.
+                </p>
+              ) : null}
+              {shift.sessions.map((session) => (
+                <p
+                  key={session.sequence + session.status}
+                  className="py-2 text-xs text-muted-foreground"
+                >
+                  Device: {session.status} · received through transaction #
+                  {session.sequence}
+                  {session.error ? " · " + session.error : ""}
+                </p>
+              ))}
+              <Button asChild variant="outline" className="my-3">
+                <Link href={`/admin/shifts/${shift.id}`}>View shift</Link>
+              </Button>
+            </details>
+          ))}
+        </div>
+        {!shiftStatus.length ? (
+          <p className="text-sm text-muted-foreground">
+            No shifts in this date range.
+          </p>
+        ) : null}
+      </section>
       <section className="space-y-3">
         <SectionHeader
           title="Sales snapshot"

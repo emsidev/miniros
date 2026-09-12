@@ -1,16 +1,14 @@
 "use client";
 
+import { ownerNavigation, ownerDestinationActive } from "./admin-sidebar";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 import {
   Boxes,
   CalendarDays,
-  ChartNoAxesCombined,
   CircleUserRound,
-  LayoutDashboard,
   PackageOpen,
   ShoppingCart,
-  UsersRound,
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 import type { BusinessFeatureFlags } from "@miniros/domain";
@@ -33,14 +31,6 @@ const operatorItems = [
   },
 ] as const;
 
-const adminItems = [
-  { href: "/admin/dashboard", label: "Dashboard", icon: LayoutDashboard },
-  { href: "/admin/shifts", label: "Shifts", icon: CalendarDays },
-  { href: "/admin/inventory", label: "Inventory", icon: Boxes },
-  { href: "/admin/reports", label: "Reports", icon: ChartNoAxesCombined },
-  { href: "/admin/employees", label: "Team", icon: UsersRound },
-];
-
 export function MobileBottomNav({
   variant = "operator",
   features,
@@ -56,7 +46,7 @@ export function MobileBottomNav({
   );
   const items =
     variant === "admin"
-      ? adminItems
+      ? ownerNavigation
       : productionOnly
         ? operatorItems.filter(
             (item) => item.href === "/production" || item.href === "/profile",
@@ -87,7 +77,10 @@ export function MobileBottomNav({
         }}
       >
         {items.map(({ href, label, icon: Icon }) => {
-          const active = pathname === href || pathname.startsWith(`${href}/`);
+          const active =
+            variant === "admin"
+              ? ownerDestinationActive(pathname, href)
+              : pathname === href || pathname.startsWith(`${href}/`);
           return (
             <li key={href}>
               <Link

@@ -126,6 +126,7 @@ export async function finalizeSale(
               costCents: products.costCents,
               requiresRecipeDeduction: products.requiresRecipeDeduction,
               producedInventoryItemId: productProductionOutputs.inventoryItemId,
+              stockInventoryItemId: products.stockInventoryItemId,
             })
             .from(products)
             .leftJoin(
@@ -178,12 +179,14 @@ export async function finalizeSale(
           discountCents,
           lineTotalCents: beforeDiscount - discountCents,
           beforeDiscount,
-          producedInventoryItemId: product.producedInventoryItemId,
+          producedInventoryItemId:
+            product.stockInventoryItemId ?? product.producedInventoryItemId,
           requiresRecipeDeduction:
             (prepared?.snapshot.features.recipesEnabled ??
               access.business.features.recipesEnabled) &&
             product.requiresRecipeDeduction &&
-            !product.producedInventoryItemId,
+            !product.producedInventoryItemId &&
+            !product.stockInventoryItemId,
         };
       });
       const subtotalCents = addCents(

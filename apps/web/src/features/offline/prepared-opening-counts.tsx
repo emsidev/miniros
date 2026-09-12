@@ -30,11 +30,16 @@ export function PreparedOpeningCounts({
     setError("");
     setDraft(undefined);
     void Promise.all([
-      requireOfflineShell(),
+      requireOfflineShell(session.snapshot.schemaVersion),
       loadOpeningDraft(session.id),
     ]).then(
       ([, saved]) => {
-        if (current) setDraft(saved);
+        if (current)
+          setDraft(
+            session.snapshot.schemaVersion === 1
+              ? { ...saved, cash: "0" }
+              : saved,
+          );
       },
       (failure) => {
         if (current)
@@ -48,15 +53,17 @@ export function PreparedOpeningCounts({
     return () => {
       current = false;
     };
-  }, [session.id, attempt]);
+  }, [session.id, session.snapshot.schemaVersion, attempt]);
   const persist = useCallback(
-    (next: OpeningDraft) => {
-      void saveOpeningDraft(session.id, next).then(
+    async (next: OpeningDraft) => {
+      await saveOpeningDraft(session.id, next).then(
         () => setSaveError(""),
-        () =>
-          setSaveError(
-            "Your latest entries couldn't be saved. Free device storage and retry before leaving.",
-          ),
+        () => {
+          const message =
+            "Your latest entries couldn't be saved. Free device storage and retry before leaving.";
+          setSaveError(message);
+          throw new Error(message);
+        },
       );
     },
     [session.id],
@@ -81,6 +88,12 @@ export function PreparedOpeningCounts({
     );
   return (
     <div className="space-y-5">
+      {session.snapshot.schemaVersion === 1 ? (
+        <p className="mx-auto max-w-3xl border-y py-3 text-sm text-muted-foreground">
+          Legacy shift: opening float remains zero. Its original journal version
+          is unchanged.
+        </p>
+      ) : null}
       {saveError ? (
         <p role="alert" className="mx-auto max-w-3xl text-sm text-destructive">
           {saveError}
@@ -88,6 +101,7 @@ export function PreparedOpeningCounts({
       ) : null}
       <ShiftCountWorkflow
         mode="start"
+        legacyFloat={session.snapshot.schemaVersion === 1}
         shiftId={session.snapshot.shiftId}
         items={session.snapshot.inventory.map((item) => ({
           ...item,
@@ -97,7 +111,7 @@ export function PreparedOpeningCounts({
           draft,
           onChange: persist,
           onSubmit: async (next) => {
-            await requireOfflineShell();
+            await requireOfflineShell(session.snapshot.schemaVersion);
             await saveOpeningDraft(session.id, next);
             await submitPreparedOpening(session, next);
             void synchronizePreparedShifts().catch(() => {});

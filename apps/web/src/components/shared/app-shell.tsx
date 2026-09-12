@@ -18,9 +18,11 @@ export function AppShell({
   businessFeatures,
   membershipRole,
   employeePermissions,
+  identityKey,
 }: {
   children: ReactNode;
   businessId: string;
+  identityKey?: string;
   businesses: readonly BusinessOption[];
   businessFeatures?: BusinessFeatureFlags;
   membershipRole?: MemberRole;
@@ -53,7 +55,7 @@ export function AppShell({
           className="h-11 w-11 shrink-0 px-2 shadow-none [&>svg:last-child]:hidden sm:[&>svg:last-child]:block sm:w-40 sm:px-3 [&_[data-slot=select-value]]:hidden sm:[&_[data-slot=select-value]]:flex"
         />
       }
-      route={{ pathname }}
+      route={{ pathname, identityKey }}
     >
       {children}
       <RealtimeRefresh businessId={businessId} />

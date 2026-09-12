@@ -4,6 +4,7 @@ import {
   sellingLocations,
   shiftAssignments,
   shifts,
+  v2Authorities,
 } from "@miniros/db/schema";
 import { and, asc, eq, isNull, inArray, sql } from "drizzle-orm";
 import {
@@ -33,7 +34,7 @@ export async function listScheduleShifts(): Promise<ScheduleShift[]> {
       actualStartAt: shifts.actualStartAt,
       scheduledStartAt: shifts.scheduledStartAt,
       assignmentStatus: shiftAssignments.status,
-      reserved: sql<boolean>`exists (select 1 from ${offlineShiftSessions} s where s.business_id = ${shifts.businessId} and s.shift_id = ${shifts.id} and s.status not in ('closed', 'released'))`,
+      reserved: sql<boolean>`exists (select 1 from ${offlineShiftSessions} s where s.business_id = ${shifts.businessId} and s.shift_id = ${shifts.id} and s.status not in ('closed', 'released')) OR exists (select 1 from ${v2Authorities} v where v.business_id = ${shifts.businessId} and v.shift_id = ${shifts.id})`,
     })
     .from(shifts)
     .innerJoin(

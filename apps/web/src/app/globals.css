@@ -6,6 +6,8 @@
 
 :root {
   color-scheme: light;
+  --mi-staff-nav-height: 4.5rem;
+  --mi-pos-panel-offset: 18rem;
   --background: var(--mi-color-canvas);
   --foreground: var(--mi-color-ink);
   --card: var(--mi-color-surface);
@@ -196,4 +198,27 @@ body {
 }
 .inventory-drawer :is(input, textarea, button, a, [tabindex]) {
   scroll-margin-block: 1rem;
+}
+/* Staff controls remain touch-safe without changing owner or native defaults. */
+.employee-workspace [data-slot="button"],
+.staff-order [data-slot="button"] {
+  min-height: var(--mi-space-12);
+}
+.employee-workspace [data-slot="input"],
+.staff-order [data-slot="input"] {
+  min-height: var(--mi-space-12);
+}
+.staff-order [data-slot="button"][data-size^="icon"] {
+  min-width: var(--mi-space-12);
+}
+[data-slot="sheet-close"] {
+  min-height: var(--mi-space-12);
+  min-width: var(--mi-space-12);
+}
+@media (prefers-reduced-motion: reduce) {
+  [data-slot="sheet-content"],
+  [data-slot="sheet-overlay"] {
+    animation: none !important;
+    transition: none !important;
+  }
 }

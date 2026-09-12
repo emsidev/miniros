@@ -1,6 +1,6 @@
-import { ApplicationProviders } from "@/features/offline/application-providers";
 import type { Metadata, Viewport } from "next";
 import { Outfit } from "next/font/google";
+import { ApplicationProviders } from "@/features/offline/application-providers";
 import { Toaster } from "@/components/ui/sonner";
 import "@miniros/ui/tokens.css";
 import "./globals.css";
@@ -12,11 +12,11 @@ export const metadata: Metadata = {
     default: "MINIROS",
     template: "%s · MINIROS",
   },
+  manifest: "/manifest.webmanifest",
+  appleWebApp: { capable: true, statusBarStyle: "default", title: "MINIROS" },
+  icons: { apple: "/icons/apple-touch-icon.png" },
   description:
     "Track profit, not just sales. Know if your booth is worth renting again.",
-  manifest: "/manifest.webmanifest",
-  appleWebApp: { capable: true, title: "MINIROS", statusBarStyle: "default" },
-  icons: { apple: "/icons/apple-touch-icon.png" },
 };
 
 export const viewport: Viewport = {

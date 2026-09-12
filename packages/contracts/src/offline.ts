@@ -1,6 +1,7 @@
 import { z } from "zod";
 import {
   startShiftSchema,
+  startShiftWithCashSchema,
   saleSchema,
   cashDeductionSchema,
   inventoryAdjustmentSchema,
@@ -11,7 +12,10 @@ export const OFFLINE_SCHEMA_VERSION = 1 as const;
 export const offlineOperationSchema = z
   .discriminatedUnion("type", [
     z
-      .object({ type: z.literal("START_SHIFT"), payload: startShiftSchema })
+      .object({
+        type: z.literal("START_SHIFT"),
+        payload: z.union([startShiftSchema, startShiftWithCashSchema]),
+      })
       .strict(),
     z
       .object({
@@ -107,7 +111,7 @@ export const offlineOperationSchema = z
   });
 export const offlineEnvelopeSchema = z
   .object({
-    schemaVersion: z.literal(OFFLINE_SCHEMA_VERSION),
+    schemaVersion: z.union([z.literal(OFFLINE_SCHEMA_VERSION), z.literal(2)]),
     id: z.string().uuid(),
     sessionId: z.string().uuid(),
     snapshotId: z.string().uuid(),
@@ -115,11 +119,22 @@ export const offlineEnvelopeSchema = z
     occurredAt: z.string().datetime(),
     operation: offlineOperationSchema,
   })
-  .strict();
+  .strict()
+  .superRefine((envelope, context) => {
+    if (envelope.operation.type !== "START_SHIFT") return;
+    const hasCash = "openingCashCents" in envelope.operation.payload;
+    if (hasCash !== (envelope.schemaVersion === 2))
+      context.addIssue({
+        code: z.ZodIssueCode.custom,
+        path: ["operation", "payload", "openingCashCents"],
+        message:
+          "New PWA openings require cash; legacy envelopes retain their original shape.",
+      });
+  });
 export type OfflineEnvelope = z.infer<typeof offlineEnvelopeSchema>;
 export type OfflineOperation = z.infer<typeof offlineOperationSchema>;
 export type PreparedSnapshot = {
-  schemaVersion: 1;
+  schemaVersion: 1 | 2;
   id: string;
   preparedAt: string;
   businessId: string;
@@ -144,8 +159,10 @@ export type PreparedSnapshot = {
     costCents: number;
     requiresRecipeDeduction: boolean;
     producedInventoryItemId: string | null;
+    stockInventoryItemId?: string | null;
   }[];
   inventory: {
+    categoryName?: string | null;
     id: string;
     name: string;
     unit: string;

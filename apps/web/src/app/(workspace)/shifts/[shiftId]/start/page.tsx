@@ -1,8 +1,16 @@
-import { reservedShiftDevice } from "@/server/services/offline-prepare";
+import Link from "next/link";
 import { redirect } from "next/navigation";
+import { ArrowLeft } from "lucide-react";
 
-import { ShiftContext } from "@/components/employee/shift-context";
-import { getAssignedShift } from "@/server/services/operator";
+import { EmptyState } from "@/components/shared/feedback";
+import { PageHeader } from "@/components/shared/layout";
+import { Button } from "@/components/ui/button";
+import { formatDate } from "@/lib/format";
+import { getStartShiftWorkspace } from "@/server/services/operator-workspaces";
+import {
+  isProductionOnlyEmployee,
+  requireActiveBusiness,
+} from "@/server/services/access";
 import { PrepareShift } from "@/features/offline/prepare-shift";
 
 export const dynamic = "force-dynamic";
@@ -12,16 +20,35 @@ export default async function StartShiftPage({
 }: {
   params: Promise<{ shiftId: string }>;
 }) {
+  const { employee } = await requireActiveBusiness();
+  if (isProductionOnlyEmployee(employee)) redirect("/production");
   const { shiftId } = await params;
-  const shift = await getAssignedShift(shiftId);
-  if (!shift.permissions.canUsePos) redirect(`/shifts/${shiftId}`);
-  const reserved = await reservedShiftDevice(shiftId);
-  if (!reserved && shift.status !== "scheduled") redirect(`/shifts/${shiftId}`);
+  const workspace = await getStartShiftWorkspace(shiftId);
 
   return (
     <div className="space-y-6">
-      <ShiftContext shift={shift} title="Start shift" />
-      <PrepareShift shiftId={shiftId} />
+      <Button asChild variant="ghost" className="-ml-2">
+        <Link href={`/shifts/${shiftId}`}>
+          <ArrowLeft aria-hidden="true" /> Back to shift
+        </Link>
+      </Button>
+      <PageHeader
+        title="Start shift"
+        description={`${workspace.shift.locationName} · ${formatDate(workspace.shift.shiftDate)}`}
+      />
+      {workspace.items.length === 0 ? (
+        <EmptyState
+          title="No inventory items to count"
+          description="Ask an admin to add tracked inventory items before this shift starts."
+          action={
+            <Button asChild variant="outline">
+              <Link href="/shifts">View my shifts</Link>
+            </Button>
+          }
+        />
+      ) : (
+        <PrepareShift shiftId={shiftId} />
+      )}
     </div>
   );
 }

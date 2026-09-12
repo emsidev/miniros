@@ -17,7 +17,11 @@ import {
 } from "@miniros/contracts";
 import { and, eq } from "drizzle-orm";
 import { AccessError, requireActiveBusiness } from "./access";
-import { lockShift, type PreparedOperationContext } from "./offline-context";
+import {
+  assertNoV2Authority,
+  lockShift,
+  type PreparedOperationContext,
+} from "./offline-context";
 import { installationId, storageInstallationId } from "./offline-prepare";
 import { startAssignedShift } from "./shift-start";
 import { finalizeSale } from "./sales-operations";
@@ -102,6 +106,11 @@ export async function synchronizeOfflineAction(
             "closed" | "active" | "closing" | "prepared",
         };
     }
+    await assertNoV2Authority(
+      tx,
+      access.business.id,
+      envelope.operation.payload.shiftId,
+    );
     const [occupiedSequence] = await tx
       .select({ clientActionId: offlineSyncActions.clientActionId })
       .from(offlineSyncActions)
@@ -145,6 +154,8 @@ export async function synchronizeOfflineAction(
           "The device clock or action order changed. Ask the owner to reconcile the recorded times.",
       };
     const snapshot = session.snapshot as PreparedSnapshot;
+    if (envelope.schemaVersion !== snapshot.schemaVersion)
+      throw new AccessError("Use the original prepared contract version.");
     const prepared: PreparedOperationContext = {
       tx,
       sessionId: session.id,

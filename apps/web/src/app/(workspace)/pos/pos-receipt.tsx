@@ -32,21 +32,14 @@ export function PosReceipt({
           <CheckCircle2 className="size-6" aria-hidden="true" />
         </span>
         <div>
-          <h2 className="text-xl font-extrabold">
-            {receipt.savedLocally ? "Saved on this device" : "Sale completed"}
-          </h2>
+          <h2 className="text-xl font-extrabold">Sale completed</h2>
           <p className="text-sm text-muted-foreground">
-            Sale {receipt.saleId.slice(0, 8)}
+            Sale {receipt.saleId.slice(0, 8)} ·{" "}
+            {receipt.savedLocally ? "Saved on this device" : "Uploaded"}
           </p>
         </div>
       </div>
 
-      {receipt.savedLocally ? (
-        <p role="status" className="text-sm text-muted-foreground">
-          Receipt and attached proofs are saved locally. See Sync status for
-          server confirmation.
-        </p>
-      ) : null}
       <dl className="grid grid-cols-3 gap-2 rounded-[var(--mi-radius-lg)] bg-muted p-4">
         {[
           ["Total", receipt.totalCents],
@@ -107,8 +100,8 @@ export function PosReceipt({
         </Alert>
       ) : null}
 
-      {!receipt.savedLocally &&
-      !pending &&
+      {!pending &&
+      !receipt.savedLocally &&
       (receipt.discountPhoto?.file ||
         receipt.payments.some((payment) => payment.file)) ? (
         <p
@@ -116,10 +109,15 @@ export function PosReceipt({
           role="status"
         >
           <CheckCircle2 className="size-4" aria-hidden="true" />
-          Proofs uploaded.
+          Attachments uploaded.
         </p>
       ) : null}
 
+      {receipt.savedLocally ? (
+        <p className="text-sm text-muted-foreground">
+          Attachments upload separately. You can keep selling.
+        </p>
+      ) : null}
       <Button
         type="button"
         size="lg"

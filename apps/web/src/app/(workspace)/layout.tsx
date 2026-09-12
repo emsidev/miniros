@@ -10,13 +10,15 @@ export default async function WorkspaceLayout({
   children,
 }: Readonly<{ children: React.ReactNode }>) {
   try {
-    const { business, employee, membership } = await requireActiveBusiness();
+    const { business, employee, membership, user } =
+      await requireActiveBusiness();
     if (!employee) redirect("/businesses");
     const businesses = await listBusinesses();
 
     return (
       <AppShell
         businessId={business.id}
+        identityKey={`${business.id}:${user.id}`}
         businesses={businesses}
         businessFeatures={business.features}
         membershipRole={membership.role}

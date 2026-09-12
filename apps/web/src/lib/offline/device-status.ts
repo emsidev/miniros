@@ -10,8 +10,13 @@ export type DeviceShift = {
   pendingChanges: number;
   pendingProofs: number;
   proofError?: string;
+  legacyAttachments?: number;
 };
-export type DeviceSnapshot = { shifts: DeviceShift[]; locked: boolean };
+export type DeviceSnapshot = {
+  shifts: DeviceShift[];
+  locked: boolean;
+  olderAttachments?: number;
+};
 export type SyncState =
   "attention" | "offline" | "syncing" | "pending" | "ready" | "empty";
 
@@ -19,31 +24,71 @@ export type SyncState =
 export async function readDeviceSnapshot(
   db = shiftStore(),
 ): Promise<DeviceSnapshot> {
-  return db.transaction("r", db.meta, db.sessions, db.proofs, async () => {
-    if (!(await cachedIdentity(db))) {
-      return { shifts: [], locked: (await db.sessions.count()) > 0 };
-    }
-    const sessions = await visibleSessions(db);
-    const shifts = await Promise.all(
-      sessions.map(async (session) => {
-        const proofs = await db.proofs
-          .where("sessionId")
-          .equals(session.id)
-          .filter((proof) => proof.synced === 0)
-          .toArray();
+  return db.transaction(
+    "r",
+    db.meta,
+    db.sessions,
+    db.proofs,
+    db.drafts,
+    async () => {
+      if (!(await cachedIdentity(db))) {
         return {
-          session,
-          pendingChanges: Math.max(
-            0,
-            session.nextSequence - 1 - session.acknowledgedSequence,
-          ),
-          pendingProofs: proofs.length,
-          proofError: proofs.find((proof) => proof.error)?.error,
+          shifts: [],
+          locked:
+            (await db.sessions.count()) > 0 ||
+            (await db.drafts
+              .filter((row) => row.id.startsWith("attachment:"))
+              .count()) > 0,
         };
-      }),
-    );
-    return { shifts, locked: false };
-  });
+      }
+      const sessions = await visibleSessions(db);
+      const shifts = await Promise.all(
+        sessions.map(async (session) => {
+          const proofs = await db.proofs
+            .where("sessionId")
+            .equals(session.id)
+            .filter((proof) => proof.synced === 0)
+            .toArray();
+          const identity = await cachedIdentity(db);
+          const legacy = await db.drafts
+            .filter(
+              (row) =>
+                row.id.startsWith(
+                  `attachment:${identity!.businessId}:${identity!.userId}:`,
+                ) &&
+                (row.value as { shiftId: string }).shiftId ===
+                  session.snapshot.shiftId,
+            )
+            .toArray();
+          return {
+            session,
+            legacyAttachments: legacy.length,
+            pendingChanges: Math.max(
+              0,
+              session.nextSequence - 1 - session.acknowledgedSequence,
+            ),
+            pendingProofs: proofs.length + legacy.length,
+            proofError: proofs.find((proof) => proof.error)?.error,
+          };
+        }),
+      );
+      const identity = (await cachedIdentity(db))!;
+      const olderAttachments = await db.drafts
+        .filter(
+          (row) =>
+            row.id.startsWith(
+              `attachment:${identity.businessId}:${identity.userId}:`,
+            ) &&
+            !sessions.some(
+              (session) =>
+                session.snapshot.shiftId ===
+                (row.value as { shiftId: string }).shiftId,
+            ),
+        )
+        .count();
+      return { shifts, locked: false, olderAttachments };
+    },
+  );
 }
 
 export function needsReview({ session }: DeviceShift) {
@@ -78,7 +123,9 @@ export function syncStatus(
   if (shifts.some((row) => row.session.syncCode === "SYNCING"))
     return { state: "syncing", label: "Syncing…" };
   const changes = shifts.reduce((count, row) => count + row.pendingChanges, 0);
-  const proofs = shifts.reduce((count, row) => count + row.pendingProofs, 0);
+  const proofs =
+    shifts.reduce((count, row) => count + row.pendingProofs, 0) +
+    (snapshot.olderAttachments ?? 0);
   if (changes)
     return {
       state: "pending",

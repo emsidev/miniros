@@ -1,4 +1,6 @@
 import Link from "next/link";
+import { PreparedEntry } from "@/features/offline/prepared-entry";
+import { isLegacyOnlineShift } from "@/server/services/legacy-online-shift";
 import { z } from "zod";
 import { getShiftSaleHistory } from "@/server/services/shift-sale-history";
 import { formatMoney, formatPaymentMethod } from "@/lib/format";
@@ -12,6 +14,8 @@ export default async function SaleHistoryPage({
   searchParams: Promise<{ cursor?: string }>;
 }) {
   const { shiftId } = await params;
+  if (!(await isLegacyOnlineShift(shiftId)))
+    return <PreparedEntry shiftId={shiftId} task="sales" />;
   const { cursor } = await searchParams;
   const history = await getShiftSaleHistory(
     z.string().uuid().parse(shiftId),
@@ -27,10 +31,7 @@ export default async function SaleHistoryPage({
       </Link>
       <h1 className="text-2xl font-extrabold">Sales and receipts</h1>
       <p className="text-sm text-muted-foreground">
-        These sales are saved on the server.{" "}
-        <a className="underline" href="/offline">
-          Open this device’s saved and pending sales.
-        </a>
+        These sales and payment records have been received by MINIROS.
       </p>
       {history.sales.length ? (
         history.sales.map((sale) => (

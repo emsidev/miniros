@@ -20,7 +20,7 @@ import {
   appendShiftAction,
   visibleSessions,
 } from "./store";
-import { synchronizePreparedShifts } from "./sync";
+import { synchronizePreparedShifts, synchronizeEvidence } from "./sync";
 beforeEach(async () => {
   await shiftStore().open();
 });
@@ -28,7 +28,7 @@ afterEach(async () => {
   vi.unstubAllGlobals();
   await shiftStore().delete();
 });
-it("EP00-T03 observes failed proof A stalling pending financial sale B without losing local records", async () => {
+it("EP00-T03 uploads financial sale B despite failed proof A without losing local records", async () => {
   const db = shiftStore();
   const session = preparedFixture();
   const identity = {
@@ -81,35 +81,63 @@ it("EP00-T03 observes failed proof A stalling pending financial sale B without l
   await db.shiftActions.update(openId, { status: "synced" });
   await db.shiftActions.update(saleAId, { status: "synced" });
   const calls: string[] = [];
+  let finishProof!: () => void;
+  let markProofStarted!: () => void;
+  const proofStarted = new Promise<void>((resolve) => {
+    markProofStarted = resolve;
+  });
   vi.stubGlobal("navigator", { onLine: true });
   vi.stubGlobal(
     "fetch",
-    vi.fn(async (url: string) => {
+    vi.fn(async (url: string, init?: RequestInit) => {
       calls.push(url);
       if (url === "/api/offline/status")
         return Response.json({ ...identity, sessions: [] });
       if (url === "/api/offline/proof")
-        return Response.json(
-          { error: "Injected proof failure", code: "RETRY" },
-          { status: 503 },
-        );
-      throw new Error("Unexpected financial request");
+        return new Promise<Response>((resolve) => {
+          finishProof = () =>
+            resolve(
+              Response.json(
+                { error: "Injected proof failure", code: "RETRY" },
+                { status: 503 },
+              ),
+            );
+          markProofStarted();
+        });
+      if (url === "/api/offline/sync")
+        return Response.json({
+          ok: true,
+          sequence: JSON.parse(String(init?.body)).sequence,
+          sessionStatus: "active",
+          result: {},
+        });
+      throw new Error("Unexpected request");
     }),
   );
   await synchronizePreparedShifts();
-  expect(calls).toEqual(["/api/offline/status", "/api/offline/proof"]);
+  const evidence = synchronizeEvidence();
+  await proofStarted;
+  // A third financial action must complete while the first photo is still hung.
+  const saleCId = uuid();
+  await appendShiftAction(session.id, sale(session), saleCId, [], db);
+  await synchronizePreparedShifts();
+  expect(await db.shiftActions.get(saleCId)).toMatchObject({
+    status: "synced",
+  });
+  finishProof();
+  await evidence;
+  expect(calls).toContain("/api/offline/sync");
   expect(await db.shiftActions.get(saleBId)).toMatchObject({
-    status: "pending",
+    status: "synced",
   });
   expect(await db.proofs.get(fileId)).toMatchObject({
     synced: 0,
     error: "Injected proof failure",
   });
   expect(await db.sessions.get(session.id)).toMatchObject({
-    syncCode: "RETRY",
-    projection: { saleCount: 2, salesCents: 40000 },
+    projection: { saleCount: 3, salesCents: 60000 },
   });
-  expect(await db.shiftActions.count()).toBe(3);
+  expect(await db.shiftActions.count()).toBe(4);
 });
 it("EP00-T04 disposable two-tenant records remain isolated and retained", async () => {
   const db = shiftStore();

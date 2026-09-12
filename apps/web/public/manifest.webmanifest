@@ -1,8 +1,8 @@
 {
   "name": "MINIROS",
   "short_name": "MINIROS",
-  "description": "Track profit, not just sales. Know if your booth is worth renting again.",
-  "start_url": "/",
+  "description": "Open, sell, and close a shift. Prepared staff work stays available offline.",
+  "start_url": "/offline",
   "display": "standalone",
   "background_color": "#F5F5F5",
   "theme_color": "#111318",

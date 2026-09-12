@@ -1,3 +1,5 @@
+import { numericExpressionToNumber } from "@/lib/numeric-expression";
+import { validateCash } from "@/components/employee/count-model";
 import { countsPayload } from "@/components/employee/count-model";
 import {
   appendShiftAction,
@@ -10,12 +12,16 @@ import {
 export type OpeningDraft = {
   counts: Record<string, string>;
   notes: string;
+  cash?: string;
+  query?: string;
+  category?: string;
+  uncounted?: boolean;
   step: number;
   actionId: string;
   openingEventId: string;
 };
 
-async function requireLocalSession(sessionId: string, db: ShiftStore) {
+export async function requireLocalSession(sessionId: string, db: ShiftStore) {
   const [identity, session] = await Promise.all([
     cachedIdentity(db),
     db.sessions.get(sessionId),
@@ -43,7 +49,11 @@ export async function loadOpeningDraft(
     const draft: OpeningDraft = {
       counts: saved?.counts ?? {},
       notes: saved?.notes ?? "",
-      step: saved?.step === 1 ? 1 : 0,
+      step: Math.min(2, Math.max(0, saved?.step ?? 0)),
+      cash: saved?.cash ?? "",
+      query: saved?.query ?? "",
+      category: saved?.category ?? "all",
+      uncounted: saved?.uncounted ?? false,
       actionId: saved?.actionId ?? crypto.randomUUID(),
       openingEventId: saved?.openingEventId ?? crypto.randomUUID(),
     };
@@ -70,6 +80,11 @@ export async function submitPreparedOpening(
   draft: OpeningDraft,
   db = shiftStore(),
 ) {
+  if (
+    session.snapshot.schemaVersion === 2 &&
+    validateCash(draft.cash ?? "").length
+  )
+    throw new Error("Enter the opening cash float, including zero.");
   const items = session.snapshot.inventory.map((item) => ({
     ...item,
     initialQuantity: "",
@@ -82,6 +97,13 @@ export async function submitPreparedOpening(
         shiftId: session.snapshot.shiftId,
         inventoryLocationId: session.snapshot.inventoryLocationId,
         openingEventId: draft.openingEventId,
+        ...(session.snapshot.schemaVersion === 2
+          ? {
+              openingCashCents: Math.round(
+                numericExpressionToNumber(draft.cash ?? "") * 100,
+              ),
+            }
+          : {}),
         counts: countsPayload(items, draft.counts).map((count) => ({
           ...count,
           quantity: Number(count.quantity),

@@ -14,7 +14,7 @@ import { actionError } from "./helpers";
 const centsSchema = z.number().int().nonnegative().max(Number.MAX_SAFE_INTEGER);
 
 const productWriteObject = z.object({
-  categoryId: z.string().uuid(),
+  categoryId: z.union([z.string().uuid(), z.literal("")]).default(""),
   name: z.string().trim().min(2).max(120),
   sku: z.string().trim().max(80).nullable().optional().default(null),
   description: z.string().trim().max(1_000).nullable().optional().default(null),
@@ -24,7 +24,10 @@ const productWriteObject = z.object({
   status: z.enum(["active", "inactive"]).default("active"),
   isSellable: z.boolean().default(true),
   requiresRecipeDeduction: z.boolean().optional().default(false),
-  inventoryMode: z.enum(["none", "recipe", "produced"]).default("none"),
+  inventoryMode: z
+    .enum(["none", "recipe", "produced", "stock"])
+    .default("stock"),
+  stockInventoryItemId: z.string().uuid().nullable().optional().default(null),
   outputInventoryItemId: z.string().uuid().nullable().optional().default(null),
   imageUrl: z
     .string()

@@ -15,7 +15,6 @@ const operationalTables = [
   "cash_deductions",
   "inventory_adjustments",
   "shift_closeouts",
-  "offline_sync_actions",
 ] as const;
 
 export function RealtimeRefresh({ businessId }: { businessId: string }) {

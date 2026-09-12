@@ -1,5 +1,6 @@
 "use client";
 import Link from "next/link";
+import { enableMySellingAccessAction } from "@/server/actions/self-selling";
 import { useRouter } from "next/navigation";
 import {
   useEffect,
@@ -63,7 +64,9 @@ const inputClass =
 
 export function PlanningForm({
   locations,
-  employees,
+  employees: initialEmployees,
+  canSellMyself,
+  selfEmployeeId,
   shift,
   initialDate,
   initialLocationId,
@@ -75,6 +78,8 @@ export function PlanningForm({
   returnTo?: string;
 }) {
   const router = useRouter();
+  const [employees, setEmployees] = useState(initialEmployees);
+  const [myEmployeeId, setMyEmployeeId] = useState(selfEmployeeId);
   const backTo = safeShiftReturn(returnTo);
   const initialLocation =
     locations.find(
@@ -92,6 +97,21 @@ export function PlanningForm({
     "single",
   );
   const [singleDate, setSingleDate] = useState(shift?.shiftDate ?? initialDate);
+  const timeValue = (date: string | null | undefined, fallback: string) =>
+    date
+      ? new Intl.DateTimeFormat("en-GB", {
+          timeZone: "Asia/Manila",
+          hour: "2-digit",
+          minute: "2-digit",
+          hourCycle: "h23",
+        }).format(new Date(date))
+      : fallback;
+  const [openingTime, setOpeningTime] = useState(
+    timeValue(shift?.scheduledStartAt, "09:00"),
+  );
+  const [closingTime, setClosingTime] = useState(
+    timeValue(shift?.scheduledEndAt, "18:00"),
+  );
   const [range, setRange] = useState<DateRange>();
   const [specificDates, setSpecificDates] = useState<Date[]>([]);
   const [team, setTeam] = useState<TeamMember[]>(
@@ -308,6 +328,8 @@ export function PlanningForm({
     requestId.current ??= crypto.randomUUID();
     const shared = {
       sellingLocationId: locationId,
+      openingTime,
+      closingTime,
       title,
       assignments: assignmentValues,
       costs: costValues,
@@ -689,6 +711,40 @@ export function PlanningForm({
                     )}
                   </div>
                 )}
+                <div className="grid grid-cols-2 gap-3">
+                  <div className="space-y-2">
+                    <Label htmlFor="field-openingTime">Opening time</Label>
+                    <Input
+                      id="field-openingTime"
+                      type="time"
+                      required
+                      value={openingTime}
+                      onChange={(event) => {
+                        setOpeningTime(event.target.value);
+                        changed();
+                      }}
+                      className="h-12"
+                    />
+                  </div>
+                  <div className="space-y-2">
+                    <Label htmlFor="field-closingTime">Closing time</Label>
+                    <Input
+                      id="field-closingTime"
+                      type="time"
+                      required
+                      value={closingTime}
+                      onChange={(event) => {
+                        setClosingTime(event.target.value);
+                        changed();
+                      }}
+                      className="h-12"
+                    />
+                    <FieldError
+                      field="closingTime"
+                      errors={feedback.fieldErrors}
+                    />
+                  </div>
+                </div>
                 <FieldError field="shiftDates" errors={feedback.fieldErrors} />
                 <p className="text-sm font-semibold" aria-live="polite">
                   {selectedDates.length}{" "}
@@ -714,6 +770,50 @@ export function PlanningForm({
           )}
           {(isEditing || step === 1) && (
             <>
+              {canSellMyself ? (
+                <Button
+                  type="button"
+                  variant="outline"
+                  disabled={
+                    pending ||
+                    Boolean(
+                      myEmployeeId &&
+                      team.some((member) => member.employeeId === myEmployeeId),
+                    )
+                  }
+                  onClick={() =>
+                    startTransition(async () => {
+                      const result = await enableMySellingAccessAction();
+                      if (!result.ok) {
+                        setFeedback({ error: result.error });
+                        return;
+                      }
+                      setEmployees((current) => [
+                        ...current.filter(
+                          (employee) => employee.id !== result.data.id,
+                        ),
+                        result.data,
+                      ]);
+                      setMyEmployeeId(result.data.id);
+                      setTeam((current) => [
+                        ...current.filter(
+                          (member) => member.employeeId !== result.data.id,
+                        ),
+                        {
+                          employeeId: result.data.id,
+                          roleOnShift: "operator",
+                          salary: (
+                            result.data.defaultShiftRateCents / 100
+                          ).toFixed(2),
+                        },
+                      ]);
+                      changed();
+                    })
+                  }
+                >
+                  Sell myself
+                </Button>
+              ) : null}
               <TeamEditor
                 employees={employees}
                 team={team}
@@ -742,7 +842,7 @@ export function PlanningForm({
                   {title.trim() || location?.name}
                 </h3>
                 <p className="text-sm text-muted-foreground">
-                  {location?.name}
+                  {location?.name} · {openingTime}–{closingTime}
                 </p>
                 <div className="mt-3 flex max-h-44 flex-wrap gap-2 overflow-y-auto">
                   {selectedDates.map((date) => (

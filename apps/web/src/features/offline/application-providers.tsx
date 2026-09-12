@@ -8,7 +8,7 @@ export function ApplicationProviders({ children }: { children: ReactNode }) {
   const pathname = usePathname();
   if (
     process.env.NODE_ENV === "development" &&
-    pathname === "/dev/workflow-skeleton"
+    ["/dev/workflow-skeleton", "/dev/staff-preview"].includes(pathname)
   )
     return <>{children}</>;
   return (

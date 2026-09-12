@@ -17,7 +17,7 @@ import {
 import type { PreparedShift, PreparedSnapshot } from "@miniros/contracts";
 import { and, eq, inArray, isNull, notInArray } from "drizzle-orm";
 import { AccessError, requireActiveBusiness } from "./access";
-import { lockShift } from "./offline-context";
+import { assertNoV2Authority, lockShift } from "./offline-context";
 import { insertAuditLog, requireEmployee } from "./operational-helpers";
 
 export async function storageInstallationId() {
@@ -62,7 +62,10 @@ export function publicSession(
   };
 }
 
-export async function prepareOfflineShift(shiftId: string) {
+export async function prepareOfflineShift(
+  shiftId: string,
+  contractVersion: 1 | 2 = 1,
+) {
   const access = await requireActiveBusiness({
     employeePermission: "pos",
     assignedShiftId: shiftId,
@@ -73,6 +76,7 @@ export async function prepareOfflineShift(shiftId: string) {
   return requireDatabase().transaction(
     async (tx) => {
       const shift = await lockShift(tx, access.business.id, shiftId);
+      await assertNoV2Authority(tx, access.business.id, shiftId);
       const [existing] = await tx
         .select()
         .from(offlineShiftSessions)
@@ -123,6 +127,7 @@ export async function prepareOfflineShift(shiftId: string) {
               requiresRecipeDeduction: products.requiresRecipeDeduction,
               categoryName: productCategories.name,
               producedInventoryItemId: productProductionOutputs.inventoryItemId,
+              stockInventoryItemId: products.stockInventoryItemId,
             })
             .from(products)
             .leftJoin(
@@ -215,16 +220,23 @@ export async function prepareOfflineShift(shiftId: string) {
           "Offline shifts need between 1 and 500 active inventory items for opening and closing counts.",
         );
       for (const product of catalog) {
-        const required = product.producedInventoryItemId
-          ? [{ inventoryItemId: product.producedInventoryItemId }]
-          : access.business.features.recipesEnabled &&
-              product.requiresRecipeDeduction
-            ? recipes.filter((row) => row.productId === product.id)
-            : [];
+        const required =
+          (product.stockInventoryItemId ?? product.producedInventoryItemId)
+            ? [
+                {
+                  inventoryItemId: (product.stockInventoryItemId ??
+                    product.producedInventoryItemId)!,
+                },
+              ]
+            : access.business.features.recipesEnabled &&
+                product.requiresRecipeDeduction
+              ? recipes.filter((row) => row.productId === product.id)
+              : [];
         if (
           access.business.features.recipesEnabled &&
           product.requiresRecipeDeduction &&
           !product.producedInventoryItemId &&
+          !product.stockInventoryItemId &&
           !required.length
         )
           throw new AccessError(
@@ -257,7 +269,7 @@ export async function prepareOfflineShift(shiftId: string) {
           .filter((row) => row.costType === type)
           .reduce((sum, row) => sum + row.amountCents, 0);
       const snapshot: PreparedSnapshot = {
-        schemaVersion: 1,
+        schemaVersion: contractVersion,
         storageInstallationId: storageId,
         id: randomUUID(),
         preparedAt: now.toISOString(),
@@ -271,7 +283,16 @@ export async function prepareOfflineShift(shiftId: string) {
         inventoryLocationId: storedLocation?.id ?? randomUUID(),
         features: access.business.features,
         products: catalog,
-        inventory,
+        inventory:
+          contractVersion === 2
+            ? inventory.map((item) => ({
+                ...item,
+                categoryName:
+                  catalog.find(
+                    (product) => product.stockInventoryItemId === item.id,
+                  )?.categoryName ?? "Other stock",
+              }))
+            : inventory,
         recipes,
         promos: access.business.features.promosEnabled
           ? promos

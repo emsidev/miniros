@@ -3,7 +3,28 @@ import { developmentSkeletonEnabled } from "@/lib/development-skeleton";
 import { updateSession } from "@/lib/supabase/middleware";
 
 export async function middleware(request: NextRequest) {
-  if (request.nextUrl.pathname === "/dev/workflow-skeleton") {
+  // Public staff shell contains no account data. Identity-scoped IndexedDB boots it.
+  if (
+    [
+      "/offline",
+      "/sw.js",
+      "/pwa-assets.json",
+      "/manifest.webmanifest",
+      "/install",
+      "/sync",
+    ].includes(request.nextUrl.pathname)
+  ) {
+    return NextResponse.next();
+  }
+  // Native routes verify Bearer identity with getUser; web cookie refresh is unrelated.
+  if (request.nextUrl.pathname.startsWith("/api/native/v2/")) {
+    return NextResponse.next();
+  }
+  if (
+    ["/dev/workflow-skeleton", "/dev/staff-preview"].includes(
+      request.nextUrl.pathname,
+    )
+  ) {
     return developmentSkeletonEnabled(
       process.env.NODE_ENV,
       process.env.MINIROS_V2_SKELETON,
@@ -11,17 +32,7 @@ export async function middleware(request: NextRequest) {
       ? NextResponse.next()
       : new NextResponse(null, { status: 404 });
   }
-  if (
-    [
-      "/offline",
-      "/install",
-      "/sync",
-      "/help",
-      "/sw.js",
-      "/pwa-assets.json",
-      "/manifest.webmanifest",
-    ].includes(request.nextUrl.pathname)
-  ) {
+  if (request.nextUrl.pathname === "/help") {
     return (await import("next/server")).NextResponse.next();
   }
   return updateSession(request);

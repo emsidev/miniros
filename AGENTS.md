@@ -63,3 +63,5 @@ Use `docs/miniros-v2/MASTER_PLAN.md`, `PRODUCT_AND_ARCHITECTURE.md`,
 for v2 work. Follow the user's staged scope over the pack's execute-all default.
 Owner scheduling never requires per-shift stock/product allocation; staff counts
 actual opening stock. Preserve legacy journals and require independent evidence.
+
+After editing UI files, run a Rams quick_review on them and fix what it flags. Before committing, run review_files for a score.

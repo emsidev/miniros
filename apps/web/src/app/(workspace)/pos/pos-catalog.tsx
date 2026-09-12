@@ -1,4 +1,4 @@
-import { Search, X } from "lucide-react";
+import { Search } from "lucide-react";
 
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
@@ -13,10 +13,8 @@ export function PosCatalog({
   search,
   category,
   cart,
-  mobileSearchOpen,
   onSearchChange,
   onCategoryChange,
-  onToggleMobileSearch,
   onAdd,
   getAvailability,
 }: {
@@ -34,33 +32,16 @@ export function PosCatalog({
 }) {
   return (
     <section aria-labelledby="catalog-title" className="min-w-0">
-      <div className="mb-4 flex items-center gap-3">
+      <div className="mb-4 flex flex-col items-start gap-3 sm:flex-row sm:items-center">
         <div className="min-w-0 flex-1">
           <h1 id="catalog-title" className="text-xl font-extrabold sm:text-2xl">
-            Sell
+            Products
           </h1>
           <p className="text-sm text-muted-foreground">
             Tap a product to add it to the current order.
           </p>
         </div>
-        <Button
-          type="button"
-          size="icon"
-          variant="outline"
-          onClick={onToggleMobileSearch}
-          className="lg:hidden"
-          aria-label={
-            mobileSearchOpen ? "Close product search" : "Search products"
-          }
-          aria-expanded={mobileSearchOpen}
-        >
-          {mobileSearchOpen ? (
-            <X aria-hidden="true" />
-          ) : (
-            <Search aria-hidden="true" />
-          )}
-        </Button>
-        <div className="relative hidden w-full max-w-sm lg:block">
+        <div className="relative w-full max-w-sm">
           <Search
             aria-hidden="true"
             className="absolute top-1/2 left-3 size-4 -translate-y-1/2 text-muted-foreground"
@@ -69,26 +50,11 @@ export function PosCatalog({
             value={search}
             onChange={(event) => onSearchChange(event.target.value)}
             placeholder="Search products"
-            className="pl-9"
-          />
-        </div>
-      </div>
-
-      {mobileSearchOpen ? (
-        <div className="relative mb-3 lg:hidden">
-          <Search
-            aria-hidden="true"
-            className="absolute top-1/2 left-3 size-4 -translate-y-1/2 text-muted-foreground"
-          />
-          <Input
-            autoFocus
-            value={search}
-            onChange={(event) => onSearchChange(event.target.value)}
-            placeholder="Search products"
+            aria-label="Search products"
             className="h-12 pl-9"
           />
         </div>
-      ) : null}
+      </div>
 
       <div
         className="-mx-4 mb-4 flex gap-2 overflow-x-auto px-4 pb-1 sm:-mx-6 sm:px-6 lg:mx-0 lg:px-0"
@@ -101,7 +67,7 @@ export function PosCatalog({
             size="sm"
             variant={category === value ? "default" : "outline"}
             className={cn(
-              "shrink-0 rounded-full",
+              "shrink-0 min-h-12 rounded-lg",
               category === value &&
                 "bg-[var(--mi-color-accent)] text-[var(--mi-color-ink)] hover:bg-[var(--mi-color-accent-hover)]",
             )}

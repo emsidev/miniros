@@ -15,8 +15,19 @@ import {
   calculatePreparedSale,
   offlineOperationSchema,
 } from "@miniros/contracts";
-import { appendShiftAction, shiftStore } from "@/lib/offline/store";
-import { synchronizePreparedShifts } from "@/lib/offline/sync";
+import {
+  handOffLegacyEvidence,
+  retryLegacyEvidence,
+} from "@/lib/offline/legacy-evidence";
+import { formatDate, formatMoney } from "@/lib/format";
+import { Button } from "@/components/ui/button";
+import { cachedIdentity } from "@/lib/offline/store";
+import { loadCheckoutDraft, migrateLegacyCheckouts } from "@/lib/pos-drafts";
+import { appendShiftAction, shiftStore, ShiftStore } from "@/lib/offline/store";
+import {
+  synchronizePreparedShifts,
+  refreshOfflineIdentity,
+} from "@/lib/offline/sync";
 import { useRouter } from "next/navigation";
 import { calculatePosAvailableQuantity } from "@miniros/domain";
 
@@ -68,10 +79,11 @@ function useDesktopCheckout() {
 
 export function PosForm({
   shiftId,
+  developmentPreview = false,
   offlineSessionId,
   draftOwnerKey,
   locationName,
-  shiftSummary,
+  shiftDate,
   inventoryBalances,
   products,
   promosEnabled,
@@ -79,10 +91,11 @@ export function PosForm({
   onBack,
 }: {
   shiftId: string;
+  developmentPreview?: boolean;
   offlineSessionId?: string;
   draftOwnerKey?: string;
   locationName: string;
-  shiftSummary: { saleCount: number; itemCount: number; salesCents: number };
+  shiftDate?: string;
   inventoryBalances: readonly {
     inventoryItemId: string;
     quantity: string;
@@ -92,13 +105,23 @@ export function PosForm({
   promos: readonly PosPromo[];
   onBack?: () => void;
 }) {
+  const preview = process.env.NODE_ENV === "development" && developmentPreview;
+  const checkoutDb = useMemo(
+    () => (preview ? new ShiftStore("miniros-staff-preview") : shiftStore()),
+    [preview],
+  );
   const router = useRouter();
   const isDesktop = useDesktopCheckout();
+  const orderPanelRef = useRef<HTMLElement>(null);
+  const [orderPanelHeight, setOrderPanelHeight] = useState<number>();
   const [isPending, startTransition] = useTransition();
   const [search, setSearch] = useState("");
   const [category, setCategory] = useState("all");
   const [mobileSearchOpen, setMobileSearchOpen] = useState(false);
   const [orderOpen, setOrderOpen] = useState(false);
+  const [orderStep, setOrderStep] = useState<"order" | "payment">("order");
+  const [draftSaved, setDraftSaved] = useState(false);
+  const submitting = useRef(false);
   const [cart, dispatchCart] = useReducer(posCartReducer, {});
   const [discount, setDiscount] = useState("0");
   const [promoId, setPromoId] = useState("none");
@@ -123,8 +146,25 @@ export function PosForm({
   const frozenRequest = useRef<unknown>(undefined);
   useEffect(() => {
     let active = true;
-    shiftStore()
-      .drafts.get(draftKey)
+    (async () => {
+      if (preview) return checkoutDb.drafts.get(draftKey);
+      if (!offlineSessionId) await migrateLegacyCheckouts();
+      const identity = offlineSessionId
+        ? await cachedIdentity()
+        : await refreshOfflineIdentity();
+      if (
+        !offlineSessionId &&
+        `${identity?.businessId}:${identity?.userId}` !== draftOwnerKey
+      )
+        throw new Error("This checkout belongs to another account.");
+      return offlineSessionId && identity
+        ? loadCheckoutDraft(
+            offlineSessionId,
+            `${identity.businessId}:${identity.userId}`,
+            shiftId,
+          )
+        : checkoutDb.drafts.get(draftKey);
+    })()
       .then((row) => {
         if (!active) return;
         const draft = row?.value as
@@ -138,10 +178,18 @@ export function PosForm({
               inventoryEventId: string;
               receipt?: SaleReceipt;
               frozen?: unknown;
+              search?: string;
+              category?: string;
+              orderStep?: "order" | "payment";
+              orderOpen?: boolean;
             }
           | undefined;
         if (draft) {
           dispatchCart({ type: "restore", cart: draft.cart });
+          setSearch(draft.search ?? "");
+          setCategory(draft.category ?? "all");
+          setOrderStep(draft.orderStep ?? "order");
+          setOrderOpen(draft.orderOpen ?? false);
           setDiscount(draft.discount);
           setPromoId(draft.promoId);
           if (draft.discountPhoto) setDiscountPhoto(draft.discountPhoto);
@@ -162,9 +210,11 @@ export function PosForm({
     return () => {
       active = false;
     };
-  }, [draftKey]);
+  }, [draftKey, draftOwnerKey, offlineSessionId, shiftId, preview, checkoutDb]);
   useEffect(() => {
-    if (!draftReady) return;
+    if (!draftReady || submitting.current) return;
+    let current = true;
+    setDraftSaved(false);
     const value = {
       cart,
       discount,
@@ -175,17 +225,32 @@ export function PosForm({
       inventoryEventId,
       receipt,
       frozen: frozenRequest.current,
+      search,
+      category,
+      orderStep,
+      orderOpen,
     };
     const write =
       Object.keys(cart).length || receipt
-        ? shiftStore().drafts.put({ id: draftKey, value })
-        : shiftStore().drafts.delete(draftKey);
-    Promise.resolve(write).catch(() =>
-      setError(
-        "The checkout could not be saved on this device. Free storage before continuing.",
-      ),
-    );
+        ? checkoutDb.drafts.put({ id: draftKey, value })
+        : checkoutDb.drafts.delete(draftKey);
+    Promise.resolve(write)
+      .then(() => {
+        if (current) setDraftSaved(true);
+      })
+      .catch(() =>
+        setError(
+          "The checkout could not be saved on this device. Free storage before continuing.",
+        ),
+      );
+    return () => {
+      current = false;
+    };
   }, [
+    search,
+    category,
+    orderStep,
+    orderOpen,
     cart,
     discount,
     promoId,
@@ -196,6 +261,7 @@ export function PosForm({
     receipt,
     draftReady,
     draftKey,
+    checkoutDb,
   ]);
 
   const categories = useMemo(
@@ -354,17 +420,31 @@ export function PosForm({
     );
   }
 
-  function resetSale() {
+  async function resetSale() {
     if (frozenRequest.current && !receipt) {
       setError("Retry this checkout before starting another sale.");
       return;
     }
     if (receipt?.pendingProofs.length || receipt?.pendingDiscountProof) {
-      setProofError("Upload the saved proofs before starting another sale.");
-      return;
+      try {
+        await handOffLegacyEvidence(receipt, shiftId, draftKey);
+        void retryLegacyEvidence();
+      } catch (failure) {
+        setProofError(
+          failure instanceof Error
+            ? failure.message
+            : "Attachments could not be saved.",
+        );
+        return;
+      }
     }
     frozenRequest.current = undefined;
-    void shiftStore().drafts.delete(draftKey);
+    try {
+      await checkoutDb.drafts.delete(draftKey);
+    } catch {
+      setError("New sale could not be saved. Free device storage and retry.");
+      return;
+    }
     dispatchCart({ type: "reset" });
     setDiscount("0");
     setPromoId("none");
@@ -377,6 +457,7 @@ export function PosForm({
     setStockNotice(undefined);
     setProofError(undefined);
     setOrderOpen(false);
+    setOrderStep("order");
   }
 
   async function uploadProof(payment: SubmittedPayment) {
@@ -449,7 +530,11 @@ export function PosForm({
 
   function handleSubmit(event: FormEvent<HTMLFormElement>) {
     event.preventDefault();
-    if (isPending || !draftReady) return;
+    if (preview) {
+      setError("Preview only. No sale is committed or uploaded.");
+      return;
+    }
+    if (submitting.current || isPending || !draftReady) return;
     setError(undefined);
     if (stockError && !frozenRequest.current) {
       setError(stockError);
@@ -469,176 +554,201 @@ export function PosForm({
     }
 
     const saleId = saleRequestId;
+    submitting.current = true;
     startTransition(async () => {
-      const request = frozenRequest.current ?? {
-        saleId,
-        shiftId,
-        inventoryEventId,
-        ...(checkout.selectedPromo?.requiresPhoto
-          ? {
-              discount: {
-                promoId: checkout.selectedPromo.id,
-                proofFileId: discountPhoto.fileId,
-              },
-            }
-          : {}),
-        items: checkout.cartItems.map((line) => ({
-          id: crypto.randomUUID(),
-          productId: line.id,
-          quantity: line.quantity,
-          discountCents: line.lineDiscountCents,
-        })),
-        payments: paymentRows.map((payment) => ({
-          id: payment.id,
-          paymentMethod: payment.method,
-          amountCents: payment.amountCents,
-          referenceNumber: payment.reference || null,
-        })),
-      };
-      // A saved request may outlive the promo's availability. Its photo obligation
-      // must survive retries even when refreshed catalog props no longer include it.
-      const requiresDiscountPhoto = Boolean(
-        (request as { discount?: unknown }).discount,
-      );
-      frozenRequest.current = request;
-      let result;
       try {
-        await shiftStore().drafts.put({
-          id: draftKey,
-          value: {
-            cart,
-            discount,
-            promoId,
-            discountPhoto,
-            payments,
-            saleRequestId,
-            inventoryEventId,
-            frozen: request,
-          },
-        });
-        if (offlineSessionId) {
-          const proofs = paymentRows
-            .filter((payment) => payment.file && payment.method !== "cash")
-            .map((payment) => ({
-              fileId: payment.proofFileId,
-              paymentId: payment.id,
-              name: payment.file!.name,
-              mimeType: payment.file!.type,
-              size: payment.file!.size,
-            }));
-          const operation = offlineOperationSchema.parse({
-            type: "CREATE_SALE",
-            payload: request,
-            proofs,
-            ...(requiresDiscountPhoto && discountPhoto.file
-              ? {
-                  discountProof: {
-                    fileId: discountPhoto.fileId,
-                    name: discountPhoto.file.name,
-                    mimeType: discountPhoto.file.type,
-                    size: discountPhoto.file.size,
-                  },
-                }
-              : {}),
-          });
-          if (operation.type !== "CREATE_SALE")
-            throw new Error("Invalid sale operation.");
-          const session = await shiftStore().sessions.get(offlineSessionId);
-          if (!session) throw new Error("Prepared shift is missing.");
-          await appendShiftAction(offlineSessionId, operation, saleId, [
-            ...paymentRows
-              .filter((p) => p.file && p.method !== "cash")
-              .map((p) => ({
-                id: p.proofFileId,
-                sessionId: offlineSessionId,
-                paymentId: p.id,
-                file: p.file!,
-                synced: 0,
-              })),
-            ...(requiresDiscountPhoto && discountPhoto.file
-              ? [
-                  {
-                    id: discountPhoto.fileId,
-                    sessionId: offlineSessionId,
-                    saleId,
-                    file: discountPhoto.file,
-                    synced: 0,
-                  },
-                ]
-              : []),
-          ]);
-          result = actionSuccess(
-            calculatePreparedSale(session.snapshot, operation),
-          );
-        } else result = await finalizeSaleAction(request);
-      } catch (failure) {
-        if (offlineSessionId) frozenRequest.current = undefined;
-        setError(
-          failure instanceof Error
-            ? failure.message
-            : "Sale could not be saved. Retry with this checkout.",
+        const request = frozenRequest.current ?? {
+          saleId,
+          shiftId,
+          inventoryEventId,
+          ...(checkout.selectedPromo?.requiresPhoto
+            ? {
+                discount: {
+                  promoId: checkout.selectedPromo.id,
+                  proofFileId: discountPhoto.fileId,
+                },
+              }
+            : {}),
+          items: checkout.cartItems.map((line) => ({
+            id: crypto.randomUUID(),
+            productId: line.id,
+            quantity: line.quantity,
+            discountCents: line.lineDiscountCents,
+          })),
+          payments: paymentRows.map((payment) => ({
+            id: payment.id,
+            paymentMethod: payment.method,
+            amountCents: payment.amountCents,
+            referenceNumber: payment.reference || null,
+          })),
+        };
+        // A saved request may outlive the promo's availability. Its photo obligation
+        // must survive retries even when refreshed catalog props no longer include it.
+        const requiresDiscountPhoto = Boolean(
+          (request as { discount?: unknown }).discount,
         );
-        return;
-      }
-
-      if (!result.ok) {
-        frozenRequest.current = undefined;
-        setError(result.error);
-        return;
-      }
-
-      const proofUploads = paymentRows.filter(
-        (payment) => payment.method !== "cash" && payment.file,
-      );
-      setReceipt({
-        saleId,
-        totalCents: result.data.totalCents,
-        amountPaidCents: result.data.amountPaidCents,
-        changeCents: result.data.changeCents,
-        payments: paymentRows,
-        pendingProofs: offlineSessionId ? [] : proofUploads,
-        savedLocally: Boolean(offlineSessionId),
-        discountName:
-          checkout.selectedPromo?.name ??
-          (requiresDiscountPhoto ? "Promo" : undefined),
-        discountPhoto: requiresDiscountPhoto ? discountPhoto : undefined,
-        pendingDiscountProof:
-          !offlineSessionId && Boolean(requiresDiscountPhoto),
-      });
-      setOrderOpen(true);
-
-      if (offlineSessionId) {
-        void synchronizePreparedShifts();
-        return;
-      }
-      const failedProofs: SubmittedPayment[] = [];
-      let latestProofError: string | undefined;
-      let pendingDiscountProof = false;
-      if (requiresDiscountPhoto) {
-        const result = await uploadDiscountPhoto(saleId, discountPhoto);
-        pendingDiscountProof = result !== true;
-        if (result !== true) latestProofError = result;
-      }
-      for (const payment of paymentRows) {
-        const proofResult = await uploadProof(payment);
-        if (proofResult !== true) {
-          failedProofs.push(payment);
-          latestProofError = proofResult;
+        frozenRequest.current = request;
+        let result;
+        try {
+          await checkoutDb.drafts.put({
+            id: draftKey,
+            value: {
+              cart,
+              discount,
+              promoId,
+              discountPhoto,
+              payments,
+              saleRequestId,
+              inventoryEventId,
+              frozen: request,
+            },
+          });
+          if (offlineSessionId) {
+            const proofs = paymentRows
+              .filter((payment) => payment.file && payment.method !== "cash")
+              .map((payment) => ({
+                fileId: payment.proofFileId,
+                paymentId: payment.id,
+                name: payment.file!.name,
+                mimeType: payment.file!.type,
+                size: payment.file!.size,
+              }));
+            const operation = offlineOperationSchema.parse({
+              type: "CREATE_SALE",
+              payload: request,
+              proofs,
+              ...(requiresDiscountPhoto && discountPhoto.file
+                ? {
+                    discountProof: {
+                      fileId: discountPhoto.fileId,
+                      name: discountPhoto.file.name,
+                      mimeType: discountPhoto.file.type,
+                      size: discountPhoto.file.size,
+                    },
+                  }
+                : {}),
+            });
+            if (operation.type !== "CREATE_SALE")
+              throw new Error("Invalid sale operation.");
+            const session = await checkoutDb.sessions.get(offlineSessionId);
+            if (!session) throw new Error("Prepared shift is missing.");
+            await appendShiftAction(offlineSessionId, operation, saleId, [
+              ...paymentRows
+                .filter((p) => p.file && p.method !== "cash")
+                .map((p) => ({
+                  id: p.proofFileId,
+                  sessionId: offlineSessionId,
+                  paymentId: p.id,
+                  file: p.file!,
+                  synced: 0,
+                })),
+              ...(requiresDiscountPhoto && discountPhoto.file
+                ? [
+                    {
+                      id: discountPhoto.fileId,
+                      sessionId: offlineSessionId,
+                      saleId,
+                      file: discountPhoto.file,
+                      synced: 0,
+                    },
+                  ]
+                : []),
+            ]);
+            result = actionSuccess(
+              calculatePreparedSale(session.snapshot, operation),
+            );
+          } else result = await finalizeSaleAction(request);
+        } catch (failure) {
+          if (offlineSessionId) frozenRequest.current = undefined;
+          setError(
+            failure instanceof Error
+              ? failure.message
+              : "Sale could not be saved. Retry with this checkout.",
+          );
+          return;
         }
+
+        if (!result.ok) {
+          frozenRequest.current = undefined;
+          setError(result.error);
+          return;
+        }
+
+        const proofUploads = paymentRows.filter(
+          (payment) => payment.method !== "cash" && payment.file,
+        );
+        const savedReceipt: SaleReceipt = {
+          saleId,
+          totalCents: result.data.totalCents,
+          amountPaidCents: result.data.amountPaidCents,
+          changeCents: result.data.changeCents,
+          payments: paymentRows,
+          pendingProofs: offlineSessionId ? [] : proofUploads,
+          savedLocally: Boolean(offlineSessionId),
+          discountName:
+            checkout.selectedPromo?.name ??
+            (requiresDiscountPhoto ? "Promo" : undefined),
+          discountPhoto: requiresDiscountPhoto ? discountPhoto : undefined,
+          pendingDiscountProof:
+            !offlineSessionId && Boolean(requiresDiscountPhoto),
+        };
+        if (!offlineSessionId) {
+          try {
+            await handOffLegacyEvidence(savedReceipt, shiftId, draftKey, false);
+          } catch {
+            setError(
+              "Sale reached MINIROS, but the local receipt could not be saved. Keep this checkout and retry the same request.",
+            );
+            return;
+          }
+        }
+        setReceipt({
+          ...savedReceipt,
+          pendingProofs: [],
+          pendingDiscountProof: false,
+        });
+        setOrderOpen(true);
+
+        if (offlineSessionId) {
+          void synchronizePreparedShifts();
+          return;
+        }
+        void synchronizePreparedShifts();
+        router.refresh();
+      } finally {
+        submitting.current = false;
       }
-      setReceipt((current) =>
-        current
-          ? { ...current, pendingProofs: failedProofs, pendingDiscountProof }
-          : current,
-      );
-      setProofError(
-        failedProofs.length > 0 || pendingDiscountProof
-          ? `Sale completed, but a proof still needs attention: ${latestProofError}`
-          : undefined,
-      );
-      router.refresh();
     });
   }
+
+  useEffect(() => {
+    if (!isDesktop || !draftReady) return;
+    let frame = 0;
+    const measure = () => {
+      cancelAnimationFrame(frame);
+      frame = requestAnimationFrame(() => {
+        const panel = orderPanelRef.current;
+        if (panel) {
+          setOrderPanelHeight(
+            Math.max(
+              180,
+              Math.floor(
+                window.innerHeight - panel.getBoundingClientRect().top - 16,
+              ),
+            ),
+          );
+        }
+      });
+    };
+    measure();
+    window.addEventListener("resize", measure);
+    window.addEventListener("scroll", measure, { passive: true });
+    return () => {
+      cancelAnimationFrame(frame);
+      window.removeEventListener("resize", measure);
+      window.removeEventListener("scroll", measure);
+    };
+  }, [isDesktop, draftReady]);
 
   if (!draftReady)
     return (
@@ -650,6 +760,9 @@ export function PosForm({
   const order = (
     <PosOrder
       checkout={checkout}
+      step={isDesktop ? "both" : orderStep}
+      contained={isDesktop}
+      onStep={setOrderStep}
       cart={cart}
       payments={payments}
       promosEnabled={promosEnabled}
@@ -690,14 +803,10 @@ export function PosForm({
       <PosHeader
         shiftId={shiftId}
         locationName={locationName}
-        saleCount={shiftSummary.saleCount}
-        itemCount={shiftSummary.itemCount}
-        salesCents={shiftSummary.salesCents}
-        cartCount={cartCount}
-        onOpenCart={() => setOrderOpen(true)}
+        shiftDate={shiftDate}
         onBack={onBack}
       />
-      <div className="mx-auto grid w-full max-w-[1440px] gap-8 px-4 py-5 pb-28 sm:px-6 lg:grid-cols-[minmax(0,1fr)_390px] lg:px-8 lg:py-8 lg:pb-8">
+      <div className="mx-auto grid w-full max-w-6xl gap-8 px-4 py-5 pb-28 sm:px-6 lg:grid-cols-[minmax(0,1fr)_390px] lg:px-8 lg:py-8 lg:pb-8">
         <PosCatalog
           products={filteredProducts}
           categories={categories}
@@ -714,8 +823,10 @@ export function PosForm({
 
         {isDesktop ? (
           <aside
+            ref={orderPanelRef}
             aria-label="Current order"
-            className="sticky top-8 max-h-[calc(100vh-4rem)] overflow-y-auto rounded-[var(--mi-radius-xl)] bg-card p-5 shadow-[var(--mi-shadow-overlay)]"
+            style={{ height: orderPanelHeight }}
+            className="sticky top-32 min-h-0 overflow-y-auto border bg-card p-5"
           >
             {order}
           </aside>
@@ -723,8 +834,21 @@ export function PosForm({
           <Sheet open={orderOpen} onOpenChange={setOrderOpen}>
             <SheetContent
               side="bottom"
-              className="max-h-[calc(100dvh-5rem)] gap-0 rounded-t-[var(--mi-radius-xl)] p-0"
+              className={
+                orderStep === "payment" || receipt
+                  ? "data-[side=bottom]:top-0 data-[side=bottom]:h-dvh max-h-dvh gap-0 rounded-none p-0"
+                  : "max-h-[85dvh] gap-0 rounded-t-xl p-0"
+              }
             >
+              {orderStep === "payment" || receipt ? (
+                <div className="min-h-16 border-b px-4 py-3 pr-16">
+                  <p className="text-sm font-semibold">{locationName}</p>
+                  <p className="text-xs text-muted-foreground">
+                    {shiftDate ? formatDate(shiftDate) : "Current shift"} ·{" "}
+                    {receipt ? "Receipt" : "Selling"}
+                  </p>
+                </div>
+              ) : null}
               <SheetHeader className="sr-only">
                 <SheetTitle>Current order</SheetTitle>
                 <SheetDescription>
@@ -738,6 +862,27 @@ export function PosForm({
           </Sheet>
         )}
       </div>
+      {!isDesktop && !orderOpen ? (
+        <div className="fixed inset-x-0 bottom-[calc(var(--mi-staff-nav-height)+env(safe-area-inset-bottom))] z-30 border-t bg-card px-4 py-3 shadow-sm md:bottom-[env(safe-area-inset-bottom)]">
+          <div className="mx-auto flex max-w-3xl items-center gap-4">
+            <div className="min-w-0 flex-1">
+              <p className="text-sm">{cartCount} items</p>
+              <strong className="text-xl tabular-nums">
+                {formatMoney(checkout.totalCents)}
+              </strong>
+            </div>
+            <Button size="lg" onClick={() => setOrderOpen(true)}>
+              {receipt ? "View receipt" : "View order"}
+            </Button>
+          </div>
+          <p
+            role="status"
+            className="mx-auto mt-1 max-w-3xl text-xs text-muted-foreground"
+          >
+            {draftSaved ? "Saved on this device" : "Saving order…"}
+          </p>
+        </div>
+      ) : null}
     </div>
   );
 }

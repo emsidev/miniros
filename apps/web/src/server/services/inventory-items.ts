@@ -9,6 +9,7 @@ import {
   inventoryItems,
   productRecipeItems,
   productProductionOutputs,
+  products,
   shiftInventoryCounts,
 } from "@miniros/db/schema";
 import { and, asc, eq, isNull, ne } from "drizzle-orm";
@@ -219,6 +220,26 @@ export async function updateInventoryItem(
       throw new AccessError("Inventory item not found.");
     }
 
+    const [stockProduct] = await tx
+      .select({ id: products.id })
+      .from(products)
+      .where(
+        and(
+          eq(products.businessId, access.business.id),
+          eq(products.stockInventoryItemId, inventoryItemId),
+          isNull(products.deletedAt),
+        ),
+      )
+      .limit(1);
+    if (
+      stockProduct &&
+      (!input.trackStock ||
+        input.status !== "active" ||
+        input.unit !== existing.unit)
+    )
+      throw new AccessError(
+        "Unlink the simple-stock product before changing its stock settings or unit.",
+      );
     if (
       input.itemType !== existing.itemType ||
       input.trackStock !== existing.trackStock ||
@@ -469,6 +490,21 @@ export async function softDeleteInventoryItem(inventoryItemId: string) {
       );
     }
 
+    const [stockProduct] = await tx
+      .select({ id: products.id })
+      .from(products)
+      .where(
+        and(
+          eq(products.businessId, access.business.id),
+          eq(products.stockInventoryItemId, inventoryItemId),
+          isNull(products.deletedAt),
+        ),
+      )
+      .limit(1);
+    if (stockProduct)
+      throw new AccessError(
+        "Unlink the simple-stock product before deleting its stock item.",
+      );
     const deletedAt = new Date();
     await tx
       .update(inventoryItems)

@@ -3,6 +3,7 @@ import { normalizeSku, selectAvailableAutomaticSku } from "@miniros/domain";
 import { requireDatabase } from "@miniros/db";
 import {
   auditLogs,
+  businesses,
   inventoryItems,
   productCategories,
   productRecipeItems,
@@ -28,10 +29,63 @@ export type ProductWriteInput = {
   status: "active" | "inactive";
   isSellable: boolean;
   requiresRecipeDeduction: boolean;
-  inventoryMode: "none" | "recipe" | "produced";
+  inventoryMode: "none" | "recipe" | "produced" | "stock";
+  stockInventoryItemId?: string | null;
   outputInventoryItemId: string | null;
   imageUrl: string | null;
 };
+
+async function replaceStockLink(
+  tx: DatabaseTransaction,
+  businessId: string,
+  productId: string,
+  input: ProductWriteInput,
+  currentId?: string | null,
+) {
+  let itemId: string | null = null;
+  if (input.inventoryMode === "stock") {
+    itemId = input.stockInventoryItemId ?? currentId ?? null;
+    if (itemId) {
+      const [item] = await tx
+        .select()
+        .from(inventoryItems)
+        .where(
+          and(
+            eq(inventoryItems.id, itemId),
+            eq(inventoryItems.businessId, businessId),
+            eq(inventoryItems.status, "active"),
+            eq(inventoryItems.trackStock, true),
+            isNull(inventoryItems.deletedAt),
+          ),
+        )
+        .limit(1);
+      if (!item)
+        throw new AccessError(
+          "Choose an active tracked stock item in this business.",
+        );
+    } else {
+      itemId = randomUUID();
+      await tx.insert(inventoryItems).values({
+        id: itemId,
+        businessId,
+        name: input.name.trim(),
+        sku: "STK-" + itemId,
+        itemType: "finished_good",
+        unit: "pcs",
+        defaultUnitCostCents: input.manualCostCents,
+        trackStock: true,
+        status: "active",
+      });
+    }
+  }
+  await tx
+    .update(products)
+    .set({ stockInventoryItemId: itemId })
+    .where(
+      and(eq(products.id, productId), eq(products.businessId, businessId)),
+    );
+  return itemId;
+}
 
 function nullableText(value: string | null) {
   const normalized = value?.trim();
@@ -86,11 +140,14 @@ function productDto(
   output: { id: string; name: string; unit: string } | null = null,
   costing?: ProductCostBreakdown,
 ) {
-  const inventoryMode: ProductWriteInput["inventoryMode"] = output
-    ? "produced"
-    : row.requiresRecipeDeduction
-      ? "recipe"
-      : "none";
+  const inventoryMode: ProductWriteInput["inventoryMode"] =
+    row.stockInventoryItemId
+      ? "stock"
+      : output
+        ? "produced"
+        : row.requiresRecipeDeduction
+          ? "recipe"
+          : "none";
   return {
     id: row.id,
     categoryId: row.categoryId,
@@ -113,6 +170,7 @@ function productDto(
     isSellable: row.isSellable,
     requiresRecipeDeduction: row.requiresRecipeDeduction,
     inventoryMode,
+    stockInventoryItemId: row.stockInventoryItemId,
     outputInventoryItemId: output?.id ?? null,
     outputInventoryItemName: output?.name ?? null,
     outputInventoryItemUnit: output?.unit ?? null,
@@ -319,6 +377,41 @@ export async function createProduct(input: ProductWriteInput) {
   const database = requireDatabase();
 
   return database.transaction(async (tx) => {
+    if (!input.categoryId) {
+      await tx
+        .select({ id: businesses.id })
+        .from(businesses)
+        .where(eq(businesses.id, access.business.id))
+        .for("update");
+      const [general] = await tx
+        .select({ id: productCategories.id })
+        .from(productCategories)
+        .where(
+          and(
+            eq(productCategories.businessId, access.business.id),
+            eq(productCategories.name, "General"),
+          ),
+        )
+        .limit(1);
+      const categoryId = general?.id ?? randomUUID();
+      if (!general)
+        await tx.insert(productCategories).values({
+          id: categoryId,
+          businessId: access.business.id,
+          name: "General",
+        });
+      else
+        await tx
+          .update(productCategories)
+          .set({ deletedAt: null })
+          .where(
+            and(
+              eq(productCategories.id, general.id),
+              eq(productCategories.businessId, access.business.id),
+            ),
+          );
+      input = { ...input, categoryId };
+    }
     let categoryName: string | null = null;
     if (input.categoryId) {
       const [category] = await tx
@@ -342,7 +435,11 @@ export async function createProduct(input: ProductWriteInput) {
     const requestedSku = normalizedSku(input.sku);
     const [matchingSku] = requestedSku
       ? await tx
-          .select({ id: products.id, status: products.status })
+          .select({
+            id: products.id,
+            status: products.status,
+            stockInventoryItemId: products.stockInventoryItemId,
+          })
           .from(products)
           .where(
             and(
@@ -414,6 +511,13 @@ export async function createProduct(input: ProductWriteInput) {
       productionEnabled: access.business.features.productionEnabled,
     });
 
+    created.stockInventoryItemId = await replaceStockLink(
+      tx,
+      access.business.id,
+      created.id,
+      input,
+      restorable?.stockInventoryItemId,
+    );
     await tx.insert(auditLogs).values({
       id: randomUUID(),
       businessId: access.business.id,
@@ -528,11 +632,14 @@ export async function updateProduct(
       summaries.get(productId),
       access.business.features.recipesEnabled,
     );
+    if (!input.categoryId)
+      input = { ...input, categoryId: existing.categoryId ?? "" };
     const proposedCosting = buildProductCostBreakdown(
       {
         ...existing,
         manualCostCents: input.manualCostCents,
         costOverrideCents: input.costOverrideCents,
+        stockInventoryItemId: input.inventoryMode === "stock" ? "stock" : null,
       },
       summaries.get(productId),
       access.business.features.recipesEnabled,
@@ -574,6 +681,13 @@ export async function updateProduct(
     if (!updated) {
       throw new Error("Product update did not return a row.");
     }
+    updated.stockInventoryItemId = await replaceStockLink(
+      tx,
+      access.business.id,
+      updated.id,
+      input,
+      existing.stockInventoryItemId,
+    );
     const updatedCosting = buildProductCostBreakdown(
       updated,
       summaries.get(productId),

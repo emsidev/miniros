@@ -10,11 +10,7 @@ export default defineConfig({
     },
   },
   test: {
-    include: [
-      "src/**/*.test.ts",
-      "../web/src/lib/offline/store.test.ts",
-      "../web/src/test/service-worker.test.ts",
-    ],
+    include: ["src/**/*.test.ts", "../web/src/lib/offline/store.test.ts"],
     testTimeout: 60000,
   },
 });

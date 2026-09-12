@@ -93,6 +93,8 @@ import {
 import { synchronizeOfflineAction } from "@/server/services/offline-sync";
 import { attachDiscountProof } from "@/server/services/discount-proofs";
 import { createPromo } from "@/server/services/promos";
+import { createProduct } from "@/server/services/products";
+import { getShiftReportStatus } from "@/server/services/shift-report-status";
 import { finalizeSale } from "@/server/services/sales-operations";
 import {
   reviewCashDeduction,
@@ -131,6 +133,8 @@ beforeAll(async () => {
     "20260905022223_shift_draft_privacy",
     "20260905040950_offline_shift_sessions",
     "20260905062610_pos_discount_photos",
+    "20260907143003_native_v2_persistence",
+    "20260912114907_bored_malcolm_colcord",
   ]) {
     await pg.exec(
       readFileSync(
@@ -494,7 +498,7 @@ describe("offline shift PostgreSQL reconciliation", () => {
       await synchronizeOfflineAction(start);
       if (sold.operation.type !== "CREATE_SALE") throw new Error();
       await expect(finalizeSale(sold.operation.payload)).rejects.toThrow(
-        "prepared device",
+        "legacy offline work",
       );
       await synchronizeOfflineAction(sold);
       const changed = structuredClone(sold);
@@ -1411,4 +1415,142 @@ describe("photo-required promos", () => {
       }
     },
   );
+});
+describe("connected stock PWA v2", () => {
+  it("uploads the complete cash-float fixture once and shows owner cash/stock/profit results", async () => {
+    const { prepared, s, local, append } = await fixture();
+    try {
+      s.schemaVersion = 2;
+      s.features.recipesEnabled = false;
+      s.features.promosEnabled = false;
+      s.features.approvalsEnabled = false;
+      s.products[0]!.stockInventoryItemId = s.inventory[0]!.id;
+      s.products[0]!.requiresRecipeDeduction = false;
+      s.products[0]!.costCents = 4000;
+      s.costs = {
+        rentCents: 10000,
+        transportCents: 2000,
+        salaryCents: 5000,
+        otherCents: 0,
+      };
+      await db
+        .update(tables.products)
+        .set({
+          stockInventoryItemId: s.inventory[0]!.id,
+          costCents: 4000,
+          requiresRecipeDeduction: false,
+        })
+        .where(eq(tables.products.id, s.products[0]!.id));
+      await db
+        .update(tables.offlineShiftSessions)
+        .set({ snapshot: s })
+        .where(eq(tables.offlineShiftSessions.id, prepared.id));
+      await local.sessions.update(prepared.id, { snapshot: s });
+      const start = opening(prepared);
+      if (start.type !== "START_SHIFT") throw new Error();
+      const started = await append({
+        ...start,
+        payload: { ...start.payload, openingCashCents: 50000 },
+      });
+      expect((await synchronizeOfflineAction(started)).ok).toBe(true);
+      for (const [qty, method] of [
+        [3, "cash"],
+        [1, "gcash"],
+      ] as const) {
+        const sold = sale(prepared, qty);
+        if (sold.type !== "CREATE_SALE") throw new Error();
+        sold.payload.payments[0]!.paymentMethod = method;
+        sold.payload.payments[0]!.amountCents = qty * 10000;
+        sold.payload.payments[0]!.referenceNumber =
+          method === "gcash" ? "FIXTURE" : null;
+        const envelope = await append(sold);
+        expect((await synchronizeOfflineAction(envelope)).ok).toBe(true);
+        expect((await synchronizeOfflineAction(envelope)).ok).toBe(true);
+      }
+      expect(
+        (
+          await synchronizeOfflineAction(
+            await append({
+              type: "CREATE_CASH_DEDUCTION",
+              payload: {
+                deductionId: uuid(),
+                shiftId: s.shiftId,
+                label: "Cash expense",
+                amountCents: 3000,
+                reason: "Fixture",
+              },
+            }),
+          )
+        ).ok,
+      ).toBe(true);
+      const closed = await append(closeout(prepared, 77000, 6));
+      const result = await synchronizeOfflineAction(closed);
+      expect(result).toMatchObject({
+        ok: true,
+        sessionStatus: "closed",
+        result: {
+          expectedCashCents: 77000,
+          actualCashCents: 77000,
+          cashDifferenceCents: 0,
+          profitCents: 4000,
+        },
+      });
+      expect(await synchronizeOfflineAction(closed)).toEqual(result);
+      const report = (await getShiftReportStatus()).find(
+        (row) => row.id === s.shiftId,
+      )!;
+      expect(report).toMatchObject({
+        salesCents: 40000,
+        productCostCents: 16000,
+        cashDifferenceCents: 0,
+        profitCents: 4000,
+        pendingReviews: 0,
+      });
+      expect(report.stockDifferences[0]).toMatchObject({
+        difference: "0.000",
+        actual: "6.000",
+      });
+    } finally {
+      await local.delete();
+    }
+  });
+  it("creates a simple stock product without Production, restoring the default category instead of duplicating it", async () => {
+    const { s, local } = await fixture();
+    try {
+      s.features.recipesEnabled = false;
+      const created = await createProduct({
+        name: "Simple tea",
+        priceCents: 10000,
+        manualCostCents: 4000,
+        categoryId: "",
+        sku: null,
+        description: null,
+        costOverrideCents: null,
+        status: "active",
+        isSellable: true,
+        requiresRecipeDeduction: false,
+        inventoryMode: "stock",
+        outputInventoryItemId: null,
+        imageUrl: null,
+      });
+      expect(created.inventoryMode).toBe("stock");
+      expect(created.costCents).toBe(4000);
+      expect(created.stockInventoryItemId).toBeTruthy();
+      const [stock] = await db
+        .select()
+        .from(tables.inventoryItems)
+        .where(eq(tables.inventoryItems.id, created.stockInventoryItemId!));
+      expect(stock).toMatchObject({
+        businessId: s.businessId,
+        unit: "pcs",
+        trackStock: true,
+        status: "active",
+      });
+      await expect(softDeleteInventoryItem(stock!.id)).rejects.toThrow(
+        "Unlink",
+      );
+    } finally {
+      await local.delete();
+    }
+  });
 });

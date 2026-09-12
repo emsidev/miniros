@@ -43,6 +43,14 @@ export function isValidShiftDate(value: string) {
 export const shiftDetailsShape = {
   sellingLocationId: z.string().uuid("Choose a selling location."),
   title: z.string().trim().max(120).default(""),
+  openingTime: z
+    .string()
+    .regex(/^([01]\d|2[0-3]):[0-5]\d$/, "Choose a valid opening time.")
+    .default("09:00"),
+  closingTime: z
+    .string()
+    .regex(/^([01]\d|2[0-3]):[0-5]\d$/, "Choose a valid closing time.")
+    .default("18:00"),
   assignments: assignmentsSchema,
   costs: z
     .array(plannedCostSchema)
@@ -54,12 +62,24 @@ type PlanningValues = {
   assignments: z.infer<typeof assignmentSchema>[];
   costs: z.infer<typeof plannedCostSchema>[];
   intent: "draft" | "publish";
+  openingTime?: string;
+  closingTime?: string;
 };
 
 export function validatePlanning(
   values: PlanningValues,
   context: z.RefinementCtx,
 ) {
+  if (
+    values.openingTime &&
+    values.closingTime &&
+    values.closingTime <= values.openingTime
+  )
+    context.addIssue({
+      code: "custom",
+      path: ["closingTime"],
+      message: "Closing time must be after opening time on the shift date.",
+    });
   const ids = new Set<string>();
   values.assignments.forEach((assignment, index) => {
     if (ids.has(assignment.employeeId))
@@ -195,8 +215,14 @@ export const bulkShiftSchema = z
 
 export type ShiftAssignmentInput = z.infer<typeof assignmentSchema>;
 export type PlannedCostInput = z.infer<typeof plannedCostSchema>;
-export type ShiftCreateInput = z.infer<typeof createShiftSchema>;
-export type ShiftUpdateInput = z.infer<typeof updateShiftSchema>;
+export type ShiftCreateInput = Omit<
+  z.infer<typeof createShiftSchema>,
+  "openingTime" | "closingTime"
+> & { openingTime?: string; closingTime?: string };
+export type ShiftUpdateInput = Omit<
+  z.infer<typeof updateShiftSchema>,
+  "openingTime" | "closingTime"
+> & { openingTime?: string; closingTime?: string };
 export type BulkShiftInput = z.infer<typeof bulkShiftSchema>;
 
 export function planningTotals(

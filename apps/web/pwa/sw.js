@@ -2,7 +2,7 @@
 const VERSION = "miniros-__BUILD_ID__";
 const SHELL = "/offline";
 const OFFLINE_PATH =
-  /^\/(offline|sync|install|help|pos|inventory|shifts|schedule)(\/|$)/;
+  /^\/(offline|sync|install|help|more|profile|pos|inventory|shifts|schedule)(\/|$)/;
 self.addEventListener("install", (event) => {
   event.waitUntil(
     (async () => {
@@ -44,7 +44,12 @@ self.addEventListener("message", (event) => {
           [SHELL, ...assets].map((path) => cache.match(path)),
         );
         event.ports[0]?.postMessage({
-          ready: Boolean(manifest) && stored.every(Boolean),
+          ready:
+            Boolean(manifest) &&
+            Array.isArray(assets) &&
+            assets.length > 0 &&
+            stored.every(Boolean),
+          contractVersion: 2,
           version: VERSION,
         });
       })(),
@@ -54,7 +59,11 @@ self.addEventListener("fetch", (event) => {
   const url = new URL(event.request.url);
   if (event.request.method !== "GET" || url.origin !== self.location.origin)
     return;
-  if (url.pathname.startsWith("/_next/static/")) {
+  if (
+    url.pathname.startsWith("/_next/static/") ||
+    url.pathname.startsWith("/icons/") ||
+    url.pathname === "/manifest.webmanifest"
+  ) {
     event.respondWith(
       (async () =>
         (await caches.match(event.request)) ?? fetch(event.request))(),

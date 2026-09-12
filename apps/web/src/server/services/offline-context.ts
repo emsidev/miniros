@@ -1,5 +1,9 @@
 import { requireDatabase } from "@miniros/db";
-import { offlineShiftSessions, shifts } from "@miniros/db/schema";
+import {
+  offlineShiftSessions,
+  shifts,
+  v2Authorities,
+} from "@miniros/db/schema";
 import type { PreparedSnapshot } from "@miniros/contracts";
 import { and, eq, notInArray } from "drizzle-orm";
 import { AccessError } from "./access-error";
@@ -28,12 +32,35 @@ export async function lockShift(
   return shift;
 }
 
+/** Call while holding the shift row lock. A v2 journal is never reinterpreted by v1. */
+export async function assertNoV2Authority(
+  tx: OperationalTransaction,
+  businessId: string,
+  shiftId: string,
+) {
+  const [authority] = await tx
+    .select({ id: v2Authorities.id })
+    .from(v2Authorities)
+    .where(
+      and(
+        eq(v2Authorities.businessId, businessId),
+        eq(v2Authorities.shiftId, shiftId),
+      ),
+    )
+    .limit(1);
+  if (authority)
+    throw new AccessError(
+      "This shift belongs to a native v2 journal. Continue on its authorized device.",
+    );
+}
+
 export async function assertUnreservedShift(
   tx: OperationalTransaction,
   businessId: string,
   shiftId: string,
 ) {
   await lockShift(tx, businessId, shiftId);
+  await assertNoV2Authority(tx, businessId, shiftId);
   const [session] = await tx
     .select({ id: offlineShiftSessions.id })
     .from(offlineShiftSessions)
@@ -47,7 +74,7 @@ export async function assertUnreservedShift(
     .limit(1);
   if (session)
     throw new AccessError(
-      "This shift belongs to a prepared device. Open its offline workspace to continue, or ask the owner to reconcile the device.",
+      "This shift contains legacy offline work that must be reconciled before it can continue.",
     );
 }
 
@@ -78,6 +105,7 @@ export async function assertProofDevice(
   userId: string,
 ) {
   await lockShift(tx, businessId, shiftId);
+  await assertNoV2Authority(tx, businessId, shiftId);
   const [session] = await tx
     .select()
     .from(offlineShiftSessions)
@@ -103,25 +131,4 @@ export async function assertProofDevice(
       "Upload this proof from the original prepared device after owner recovery is resolved.",
     );
   return session;
-}
-
-export async function assertDeviceCanLeave(userId: string) {
-  const { installationId } = await import("./offline-prepare");
-  const deviceId = await installationId();
-  if (!deviceId) return;
-  const [session] = await requireDatabase()
-    .select({ id: offlineShiftSessions.id })
-    .from(offlineShiftSessions)
-    .where(
-      and(
-        eq(offlineShiftSessions.userId, userId),
-        eq(offlineShiftSessions.deviceId, deviceId),
-        notInArray(offlineShiftSessions.status, ["closed", "released"]),
-      ),
-    )
-    .limit(1);
-  if (session)
-    throw new AccessError(
-      "Finish and synchronize this device’s prepared shifts before signing out or switching business.",
-    );
 }

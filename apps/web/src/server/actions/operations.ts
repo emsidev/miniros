@@ -2,7 +2,7 @@
 
 import {
   actionSuccess,
-  startShiftSchema,
+  startShiftWithCashSchema,
   saleSchema,
   productionSchema,
   cashDeductionSchema,
@@ -94,7 +94,12 @@ const adminPaths = [
 ] as const;
 
 export async function startAssignedShiftAction(input: unknown) {
-  return execute(startShiftSchema, input, startAssignedShift, operatorPaths);
+  return execute(
+    startShiftWithCashSchema,
+    input,
+    startAssignedShift,
+    operatorPaths,
+  );
 }
 export async function joinShiftAction(input: unknown) {
   const result = await execute(uuidSchema, input, joinShift, [
