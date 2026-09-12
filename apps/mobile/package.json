@@ -8,7 +8,14 @@
     "build": "expo export --platform web",
     "lint": "eslint . --ext .ts,.tsx,.js",
     "typecheck": "tsc --noEmit -p tsconfig.json",
-    "test": "echo No mobile tests yet"
+    "test": "vitest run",
+    "test:ep02": "vitest run tests/ep02-review",
+    "build:web": "expo export --platform web",
+    "native:prebuild": "EXPO_PUBLIC_MINIROS_EP02_SPIKE=1 expo prebuild --no-install",
+    "native:android": "node ../../scripts/native/build.mjs android",
+    "native:ios": "node ../../scripts/native/build.mjs ios",
+    "native:check:android": "node ../../scripts/native/build.mjs android --check",
+    "native:check:ios": "node ../../scripts/native/build.mjs ios --check"
   },
   "dependencies": {
     "@babel/runtime": "7.29.7",
@@ -17,14 +24,19 @@
     "@miniros/domain": "workspace:*",
     "@miniros/ui": "workspace:*",
     "expo": "~57.0.20",
+    "expo-crypto": "~57.0.2",
+    "expo-modules-core": "~57.0.16",
+    "expo-sqlite": "~57.0.2",
     "expo-status-bar": "~57.0.1",
     "react": "19.2.3",
     "react-dom": "19.2.3",
     "react-native": "0.86.3",
+    "react-native-safe-area-context": "~5.7.0",
     "react-native-web": "~0.21.0"
   },
   "devDependencies": {
-    "@types/react": "19.2.17"
+    "@types/react": "19.2.17",
+    "vitest": "4.1.11"
   },
   "engines": {
     "node": "^22.13.0 || ^24.3.0 || >=26.0.0"

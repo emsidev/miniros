@@ -1,0 +1,13 @@
+
+> @miniros/mobile@0.1.0 test:ep02 /Users/emsi/Documents/ChatGPT/MINIROS/miniros/apps/mobile
+> vitest run tests/ep02-review
+
+
+ RUN  v4.1.11 /Users/emsi/Documents/ChatGPT/MINIROS/miniros/apps/mobile
+
+
+ Test Files  3 passed (3)
+      Tests  69 passed (69)
+   Start at  22:00:08
+   Duration  386ms (transform 114ms, setup 0ms, import 157ms, tests 325ms, environment 0ms)
+

@@ -1,0 +1,4 @@
+
+> @miniros/mobile@0.1.0 lint /Users/emsi/Documents/ChatGPT/MINIROS/miniros/apps/mobile
+> eslint . --ext .ts,.tsx,.js
+

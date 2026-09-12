@@ -1,0 +1,5 @@
+{
+  "platforms": ["apple", "android"],
+  "apple": { "modules": ["MinirosPeerModule"] },
+  "android": { "modules": ["expo.modules.minirospeer.MinirosPeerModule"] }
+}

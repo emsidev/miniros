@@ -1,0 +1,16 @@
+
+> @miniros/mobile@0.1.0 native:check:ios /Users/emsi/Documents/ChatGPT/MINIROS/miniros/apps/mobile
+> node ../../scripts/native/build.mjs ios --check
+
+{
+  "platform": "ios",
+  "result": "BLOCKED",
+  "missing": [
+    "full Xcode and an active Xcode developer directory",
+    "CocoaPods"
+  ],
+  "physicalEvidence": false
+}
+/Users/emsi/Documents/ChatGPT/MINIROS/miniros/apps/mobile:
+ ERR_PNPM_RECURSIVE_RUN_FIRST_FAIL  @miniros/mobile@0.1.0 native:check:ios: `node ../../scripts/native/build.mjs ios --check`
+Exit status 2
