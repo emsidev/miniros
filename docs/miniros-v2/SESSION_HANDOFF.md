@@ -1,128 +1,74 @@
-# Session handoff — EP00 / EP01 complete
+# Session handoff — EP02 through EP05 local implementation complete
 
-Date: 7 September 2026. Repository: emsidev/miniros development checkout at
-`/Users/emsi/Documents/ChatGPT/MINIROS/miniros`. Branch: `dev`.
+Date: 7 September 2026. Authorized scope was clarified by the user as **EP02, then EP03–EP05**. Work stops after EP05. EP06+ and rollout remain unauthorized.
 
-## Checkpoints and preservation
+## Checkout and preservation
 
-- Starting commit: `edbba0e4fd86459a40a372b5c4abf83558fc7d43` (clean nested checkout).
-- Preserved reference: local `codex/ep00-ep01-baseline` points to that starting commit.
-- EP00 accepted checkpoint: `657a6c28eeeeeac2bc119fa7c5ab1d90cdfe93b6`.
-- EP01 accepted implementation/evidence checkpoint: `66af5263e864b1ef181620d59cd1941e9b0997d7`.
-- This handoff and the final status pointer are recorded in a subsequent documentation
-  commit; use `git log -1 --oneline` for that checkpoint. No source changes after EP01.
+Application root: `/Users/emsi/Documents/ChatGPT/MINIROS/miniros`, branch `dev`, baseline/current HEAD `0056f316cf811f10f943d56c4c987b1642844938`. All changes from this run remain uncommitted. The parent wrapper at `/Users/emsi/Documents/ChatGPT/MINIROS` remains `main`, HEAD `54cb95a3031c1041da423bdbb5a0b14cba915ac5`.
 
-The parent workspace's untracked design/ was preserved. No data reset, production
-migration, push or deployment. No dependency/lockfile/schema changes. Legacy Dexie
-journals and existing routes remain intact. Compiler cache restored. Task servers and
-isolated browsers stopped; no background worker or worktree remains active.
+Preserved the preexisting AGENTS.md Rams instruction and the parent checkout's four untracked shift-design PNGs. No branch switch, reset, clean, stash, Miniros remote lookup/sync, push, deployment or production data mutation occurred. Only the generated tracked web compiler cache was restored to its clean starting bytes after validation. Legacy journals and original golden fixture were not rewritten. Temporary test SQLite files were removed by their own tests; the task PostgreSQL cluster and synthetic data remain under `/tmp/miniros-ep05-postgres` for reproduction.
 
-## Completed scope
+Historical EP00/EP01 checkpoints remain documented in EXECUTION_STATUS.md: original `edbba0e4fd86459a40a372b5c4abf83558fc7d43`, EP00 `657a6c28eeeeeac2bc119fa7c5ab1d90cdfe93b6`, EP01 `66af5263e864b1ef181620d59cd1941e9b0997d7`. This run did not amend those commits.
 
-EP00 finished and received independent G0 acceptance before EP01 began. Baseline
-commands, skips/placeholders, reuse mapping, two-tenant fixtures, pre-write target
-guards and preservation procedure are in BASELINE_AUDIT.md / EP00_EVIDENCE.md.
-INC-001 is confirmed only in isolated coordinator reproduction: failed proof A blocks
-sale B upload; three actions and both local sales remain retained. No data loss claim.
+## Completed implementation and accepted evidence
 
-EP01 adopts product/state/authority decisions, a conceptual v2 event boundary and
-independently tested transition graph. Minimal owner schedule and staff supply/count/
-sell/prep/close walkthrough is runnable only in opted-in development. It is synthetic
-memory UI, **not working booth operations**. All ten stage acceptance IDs map to
-EP00_EVIDENCE.md / EP01_EVIDENCE.md and TEST_CASE_INDEX.json. Detailed architecture
-and legacy contract mapping: ARCHITECTURE_DECISIONS.md / WORKFLOW_CONTRACTS.md.
+| Stage | Result                                                                                                                                                                                        | Evidence                                                                               |
+| ----- | --------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | -------------------------------------------------------------------------------------- |
+| EP02  | Authenticated scoped native peer spike, replaceable transport, durable SQLite before ACK, bounded catch-up/failure harness; native source and portable tests accepted                         | EP02_EVIDENCE.md, EP02_NATIVE_REPORT.md, EP02_REVIEW_REPORT.md, EP02_DEVICE_RUNBOOK.md |
+| EP03  | Versioned immutable snapshots/envelopes, exact money/atoms/recipes, 12 pure journal operations, independent golden/property/legacy contracts; U gate accepted                                 | EP03_EVIDENCE.md, EP03_CONTRACTS.md, EP03_REDUCER_REPORT.md, EP03_REVIEW_REPORT.md     |
+| EP04  | Real SQLite atomic journal/projection/tenders/drafts/queues/receipts/media, additive migrations, readback, identity isolation and process-kill recovery; I gate accepted                      | EP04_EVIDENCE.md, EP04_PERSISTENCE_REPORT.md, EP04_REVIEW_REPORT.md                    |
+| EP05  | Additive Drizzle/PostgreSQL persistence, native Bearer Auth adapter, signed grants/ingestion/prep, original receipts, quarantine and audited owner recovery; local I/security review accepted | EP05_EVIDENCE.md, EP05_BACKEND_REPORT.md, EP05_REVIEW_REPORT.md                        |
 
-Owner schedules only date/times, venue/address and staff. Catalog/checklist readiness
-is automatic in the adopted contract; staff resolves supplies and enters actual
-opening counts. No owner per-shift stock/product allocation was introduced.
+The root golden integration saves/closes all 19 operations while cloud remains at sequence zero, reopens SQLite, then delivers every operation with a response-loss retry. Both final projections match the independent fixture: net sales 52,000 and expected cash 240,000 minor units, with all nine stock balances exact. Cloud pending becomes zero while peer pending stays 19 and four attachment jobs remain independent. Central inventory receives no opening debit.
 
-## Exact final validation
+Independent review found a P1 dual-protocol reservation race: a waiting legacy REPEATABLE READ transaction could miss a newly inserted native authority. New authority creation now updates the locked shift row, forcing the stale legacy waiter to fail with 40001. Both race directions assert different real PostgreSQL PIDs and actual lock waits. No second authority/session remains. The baseline data-access test also caught client creation outside lib/supabase; the stateless factory now lives in that directory and exposes only Auth. Both fixes are independently accepted.
 
-| Check                                                                                                                                         | Result                                                                                               |
-| --------------------------------------------------------------------------------------------------------------------------------------------- | ---------------------------------------------------------------------------------------------------- |
-| `corepack pnpm install --frozen-lockfile` (EP00)                                                                                              | Passed, unchanged lockfile                                                                           |
-| `corepack pnpm typecheck --force`                                                                                                             | 11/11 fresh tasks passed                                                                             |
-| `corepack pnpm lint --force`                                                                                                                  | 11/11 fresh tasks passed                                                                             |
-| `env -u SHIFT_TEST_DATABASE_URL -u MINIROS_PREVIEW_URL corepack pnpm test --force`                                                            | domain53, contracts106, web155 passed /12 PG skipped, workflow41 passed /4 HTTP skipped; no failures |
-| `corepack pnpm --filter @miniros/web exec vitest run src/features/offline/application-providers.test.ts src/lib/development-skeleton.test.ts` | 2 passed after test lint correction                                                                  |
-| `node scripts/acceptance/ep01-browser.mjs` with documented isolated runner environment                                                        | 35 browser assertions passed; no API requests/page errors; 360/768/1280px no overflow                |
-| `MINIROS_V2_SKELETON=1 corepack pnpm --filter @miniros/web build`                                                                             | Passed;122 PWA assets; web only                                                                      |
-| `env -u SHIFT_TEST_DATABASE_URL MINIROS_PREVIEW_URL=http://localhost:3100 corepack pnpm e2e` against local production build                   | 45 passed,0 skipped                                                                                  |
-| production `/dev/workflow-skeleton` with flag1                                                                                                | HTTP404 verified                                                                                     |
-| `git diff --check`                                                                                                                            | Passed                                                                                               |
+## Final validation
 
-Root task counts include echo-only mobile/api/agent/site/db/sdk scripts and token
-consistency; those are explicitly non-evidence. Test invocations overlap; do not sum
-as unique workflow coverage. Raw logs remain ignored local artifacts; committed
-`evidence/LOG_CHECKSUMS.txt` verifies them. Exact browser runner setup is in EP01_EVIDENCE.
+All final checks ran from the application root using Node 24.19.0, pnpm 10.2.1, SQLite 3.53.3 and task-owned PostgreSQL 18.0.
 
-Independent reviewer accepted G0 then EP01-T01–T05. Review fixes: initialize tracker,
-remove generated cache delta, and replace production-derived graph test oracle with
-an independent expected graph. Lead also corrected early skeleton stock/supply/input
-semantics. Browser harness issues were fixed/replaced, not hidden as application passes.
+| Check                                                                                    | Final result                                                                                                                                 |
+| ---------------------------------------------------------------------------------------- | -------------------------------------------------------------------------------------------------------------------------------------------- |
+| `corepack pnpm install --frozen-lockfile`                                                | Passed; no lockfile resolution/download change                                                                                               |
+| `env DATABASE_URL= corepack pnpm typecheck --force`                                      | 11/11 fresh tasks passed                                                                                                                     |
+| `env DATABASE_URL= corepack pnpm lint --force`                                           | 11/11 fresh tasks passed                                                                                                                     |
+| Full root tests with the guarded PostgreSQL URL and local production preview             | **627 tests passed, zero failed/skipped**: domain 110, contracts 143, mobile 123, web 206, workflow/HTTP 45                                  |
+| Native-focused backend/reviewer/golden/data-access suite                                 | 40 passed across seven files; overlaps root totals                                                                                           |
+| Web production build using fake loopback public env, no database, new-authority flag off | Passed; 128 PWA static assets, private pages excluded                                                                                        |
+| Local production HTTP checks                                                             | Six native POST routes reject missing Bearer even with malformed web cookies (403/no-store); development route 404 even with skeleton flag 1 |
+| Native prebuild/autolinking/JS bundles                                                   | Passed for EP02 source; **not native binaries**                                                                                              |
+| Native compiler/device preflights                                                        | BLOCKED, exit 2; reasons below                                                                                                               |
+| `git diff --check` and protected-file comparison                                         | Passed                                                                                                                                       |
 
-## Agents actually used
-
-- Lead/integrator: inherited session settings, no override (exact model/effort identifier
-  not exposed). Sole writer for contracts, guards/integration, evidence and browser tests.
-- repository_audit: `gpt-5.6-terra`, `medium`; read-only repository/domain/traceability audits.
-- test_audit: `gpt-5.6-terra`, `medium`; read-only baseline test audit, then scoped UI implementation.
-- reviewer: separate read-only agent, inherited lead settings, no override; independent checks.
-
-Maximum three concurrent subagents. No pending file ownership or unfinished agent work.
-
-## Blockers and next task
-
-**The next development batch is unblocked, but has NOT started.** EP02 feasibility and
-EP03 portable domain work depend on accepted EP01, now satisfied. This staged run stops
-here. Begin a separately authorized batch by reading full EP02 and EP03 plans and
-assigning disjoint scopes from this checkpoint; do not infer release authorization.
-
-EP02 native transport conclusions require Android and iPhone devices (both mixed role
-combinations), build/signing/permissions and real radio/reconnect evidence. No native
-transport/library or crypto scheme is selected as proven. Multi-connection PostgreSQL
-needs the dedicated guarded disposable endpoint. Hosted auth/RLS/Storage/Realtime,
-SQLite crash tests, owner camera/offline storage, full-shift pilot and owner release
-approval remain later gates. INC-001 remains open for EP13, not patched by this skeleton.
-
-To inspect the completed walkthrough only:
+The full test command was:
 
 ```sh
-MINIROS_V2_SKELETON=1 corepack pnpm --filter @miniros/web dev --port 3101
+env DATABASE_URL= \
+  NEXT_PUBLIC_SUPABASE_URL=http://127.0.0.1:54321 \
+  NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY=synthetic-local-public-key \
+  SHIFT_TEST_DATABASE_URL=postgres://127.0.0.1:55432/miniros_ep00_disposable \
+  MINIROS_PREVIEW_URL=http://127.0.0.1:3100 \
+  corepack pnpm test --force
 ```
 
-Open `http://localhost:3101/dev/workflow-skeleton`. Reload discards fixture memory.
-Do not start a production build concurrently with that dev server. No deployment,
-production migration or deletion of legacy records is authorized.
+The production build/start used the same explicit fake public env and empty DATABASE_URL, plus `MINIROS_V2_SKELETON=1` and `MINIROS_NATIVE_V2_NEW_SHIFTS_ENABLED=0`. Final build ID is recorded in `evidence/ep05-production-http.json`. The production server and task-owned PostgreSQL server were stopped after checks. No test/agent process is required to continue this task.
 
-## Changed files
+Raw logs are retained under `docs/miniros-v2/evidence/ep02-*` through `ep05-*`, including the initial architecture-boundary failure, corrected final results, migration application and server shutdown. `evidence/LOG_CHECKSUMS.txt` records log hashes; `evidence/EP02_EP05_SOURCE_CHECKSUMS.sha256` identifies final owned source/document bytes. Echo-only db/sdk/api/agent/site test tasks remain non-evidence; the 627 count includes only the five substantive test suites. Independent and focused invocations overlap and are not additional unique tests.
 
-- `AGENTS.md`
-- `apps/web/src/app/dev/workflow-skeleton/page.tsx`
-- `apps/web/src/app/dev/workflow-skeleton/skeleton.tsx`
-- `apps/web/src/app/layout.tsx`
-- `apps/web/src/features/offline/application-providers.test.ts`
-- `apps/web/src/features/offline/application-providers.tsx`
-- `apps/web/src/lib/development-skeleton.test.ts`
-- `apps/web/src/lib/development-skeleton.ts`
-- `apps/web/src/lib/offline/sync.test.ts`
-- `apps/web/src/middleware.ts`
-- `apps/web/src/server/services/admin-shift-workflows.db.test.ts`
-- `apps/web/src/server/services/schedule.db.test.ts`
-- `apps/web/src/test/isolation-guard.test.ts`
-- `apps/web/src/test/isolation-guard.ts`
-- `docs/miniros-v2/ARCHITECTURE_DECISIONS.md`
-- `docs/miniros-v2/BASELINE_AUDIT.md`
-- `docs/miniros-v2/EP00_EVIDENCE.md`
-- `docs/miniros-v2/EP01_EVIDENCE.md`
-- `docs/miniros-v2/EXECUTION_STATUS.md`
-- `docs/miniros-v2/INCIDENT_LOG.md`
-- `docs/miniros-v2/REQUIREMENTS_TRACEABILITY.md`
-- `docs/miniros-v2/TEST_CASE_INDEX.json`
-- `docs/miniros-v2/WORKFLOW_CONTRACTS.md`
-- `docs/miniros-v2/evidence/LOG_CHECKSUMS.txt`
-- `packages/contracts/src/index.ts`
-- `packages/contracts/src/staff-workflow.ts`
-- `packages/contracts/tests/staff-workflow.test.ts`
-- `scripts/acceptance/ep01-browser.mjs`
-- `docs/miniros-v2/SESSION_HANDOFF.md` (this final handoff)
+## Ownership, design skills and compatibility
+
+The lead owned contracts, dependency manifests/lockfile, SQLite migrations, Drizzle schema/SQL/metadata, legacy integration guards, the full golden integration test and status/handoff. Three actual subagents were reused: `native_connectivity` (EP02, EP03 reducer, EP04 persistence), `backend` (EP05 service), and `independent_review` (failure/security tests and separate reports). No model override or extra agent was created. All scopes are complete and frozen.
+
+Applied Impeccable native/Operate guidance and Emil Kowalski design engineering to the diagnostic screen, retaining Miniros tokens and safe-area/accessibility behavior. The requested frontend taste skill explicitly excludes native operations UI; that boundary was respected. Rams quick review and score review ran after UI edits (95/100, no critical findings); the two detailed hierarchy/spacing issues were fixed and independently verified. Rams verify_fixes did not recognize the source fixes, so no Rams all-clear or native visual acceptance is claimed. No native screenshot was fabricated from a web view.
+
+Migration and safe rollback instructions are in EP04_EP05_MIGRATIONS.md. PostgreSQL adds `20260907143003_native_v2_persistence.sql`; no prior migration changed. SQLite adds versions 1/2 in an isolated file. Do not drop/reset retained evidence on errors. New native authority creation defaults off behind `MINIROS_NATIVE_V2_NEW_SHIFTS_ENABLED=1`; existing original receipts and replay continue with the flag off. A rollback must preserve the legacy/v2 reservation guards while any v2 authority exists; an unpatched pre-EP05 server is unsafe for those reservations.
+
+## Remaining gates and next authorized action
+
+- **EP02/G1:** no Java runtime/JDK, Android SDK/adb, full Xcode or CocoaPods; phones/signing are unavailable. Native binaries and Android/Android, iPhone/iPhone, and both mixed-role physical tests remain BLOCKED. Nearby is provisional. Follow EP02_DEVICE_RUNBOOK.md when the environment is ready.
+- **EP04 physical G2:** desktop SQLite and real SIGKILL are I evidence. Installed native cold-start/autosave, device storage exhaustion, suspension, flash/power and backup behavior remain BLOCKED D.
+- **EP05 hosted S:** synthetic in-process getUser and local PostgreSQL Auth/Storage models do not prove hosted Auth, Data API, RLS/views, Storage, Realtime or revocation propagation. Explicit staging authorization/credentials are needed; no hosted work was attempted.
+- Native enrollment/protected private keys and automatic preparation are EP07 work. Complete POS/prep transport, encrypted financial mirroring, QR scanning/UI, production migration and pilot are not implemented/accepted here. EP04's cashier financial peer queue is disconnected from EP02's synthetic transport.
+- Legacy INC-001 proof upload stalls later financial upload remains recorded for EP13; additive v2 queues do not retroactively fix the legacy coordinator.
+
+**Stop after EP05.** Resume only a separately authorized stage or the blocked native/device/staging checks. To reproduce local PostgreSQL tests, restart only the retained task-owned cluster with the commands in EP05_BACKEND_PREPARATION.md; its 17 migrations are already applied, so do not reset it or reapply the migration blindly.

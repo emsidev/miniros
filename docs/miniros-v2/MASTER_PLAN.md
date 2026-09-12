@@ -1,3 +1,5 @@
+> Release scope update — 2026-09-12: the native-first sequence below is superseded for the connected staff PWA release by [PWA_OVERHAUL.md](../PWA_OVERHAUL.md). Native implementation, evidence and authority guards remain preserved. This is not a deletion or reversal of native work.
+
 # Miniros v2 — complete implementation and execution plan
 
 **Prepared:** 7 September 2026. **Repository:** `emsidev/miniros`. **Reference baseline:** `d073cbbc0f78bf2e9142a663a70009c60158c8a1`.
@@ -30,41 +32,41 @@ Do not launch all plans at once. Execute the dependency graph below; use paralle
 
 A useful progression is:
 
-| Wave | Plans | Parallelism boundary |
-|---|---|---|
-| A — Understand and contract | EP00, then EP01 | Read-only audits may run together; the lead fixes one contract. |
-| B — Prove foundations | EP02 and EP03; then EP04 and EP05 | Native transport and pure domain work can be independent. Storage and server implementations share an already-fixed contract. |
-| C — Owner and readiness | EP06 → EP07 → EP08 → EP09 | Owner setup can progress alongside storage once backend contracts exist. Enrollment waits for required interfaces. |
-| D — Local booth loop | EP10 → EP11 and EP12 | Prep and stock-exception work can run in disjoint modules after checkout is stable. |
+| Wave                        | Plans                                             | Parallelism boundary                                                                                                                     |
+| --------------------------- | ------------------------------------------------- | ---------------------------------------------------------------------------------------------------------------------------------------- |
+| A — Understand and contract | EP00, then EP01                                   | Read-only audits may run together; the lead fixes one contract.                                                                          |
+| B — Prove foundations       | EP02 and EP03; then EP04 and EP05                 | Native transport and pure domain work can be independent. Storage and server implementations share an already-fixed contract.            |
+| C — Owner and readiness     | EP06 → EP07 → EP08 → EP09                         | Owner setup can progress alongside storage once backend contracts exist. Enrollment waits for required interfaces.                       |
+| D — Local booth loop        | EP10 → EP11 and EP12                              | Prep and stock-exception work can run in disjoint modules after checkout is stable.                                                      |
 | E — Visibility and closeout | EP13 and EP15 in parallel; EP13 → EP14; then EP16 | Local closing must work before cloud completion. Dashboard and closing are separable; recovery depends on ingestion and close manifests. |
-| F — Validate and release | EP17 and EP18 → EP19 | UI polish and release hardening can run separately; all required gates precede rollout. |
+| F — Validate and release    | EP17 and EP18 → EP19                              | UI polish and release hardening can run separately; all required gates precede rollout.                                                  |
 
 A physical EP02 gate may be pending while portable domain/storage/UI work is developed behind adapters/flags. That does not authorize claiming the transport works, selecting an untested production runtime, or releasing a two-phone app. Code-complete, automated-verified, device-verified and release-accepted are different statuses.
 
 ## Execution-plan index
 
-| ID | Work package | Implementation dependencies | Lead role |
-|---|---|---|---|
-| EP00 | Baseline audit, preservation, and truthful test inventory | None | Lead |
-| EP01 | Product contract, architecture decisions, and runnable UX skeleton | EP00 | Lead |
-| EP02 | Native two-phone communication feasibility spike | EP01 | Mobile/connectivity agent |
-| EP03 | Shared domain model, operation contracts, and golden arithmetic | EP01 | Domain/data agent |
-| EP04 | Crash-safe native SQLite ledger and independent queues | EP03 | Mobile persistence agent |
-| EP05 | Backend persistence, native authorization, and safe ingestion | EP03 | Owner/backend agent |
-| EP06 | Owner reusable business setup and lightweight shift scheduling | EP03, EP05 | Owner web agent |
-| EP07 | Staff enrollment, automatic snapshots, and departure preflight | EP02, EP04, EP05, EP06 | Mobile enrollment agent |
-| EP08 | Departure checklist with missing-item handling | EP07 | Mobile workflow agent |
-| EP09 | Intuitive opening-stock counts and opening seal | EP08, EP03 | Mobile inventory agent |
-| EP10 | Cashier checkout and durable order creation | EP09, EP04 | Mobile cashier agent |
-| EP11 | Reliable prep queue and bidirectional local synchronization | EP10, EP02 | Mobile/connectivity agent |
-| EP12 | Operational inventory, remakes, refunds, waste and restocks | EP10, EP03 | Domain/mobile inventory agent |
-| EP13 | Independent cloud synchronization, media retry and auth recovery | EP05, EP07, EP10, EP11, EP12 | Backend/mobile sync agent |
-| EP14 | Owner live dashboard with honest freshness and reconciliation | EP06, EP13 | Owner web agent |
-| EP15 | Offline local closing, actual counts and owner review | EP11, EP12 | Mobile closeout/domain agent |
-| EP16 | QR recovery export, offline owner import and duplicate-safe handover | EP05, EP07, EP13, EP15 | Mobile/owner recovery agent |
-| EP17 | Staff usability, accessibility and end-to-end workflow polish | EP08, EP09, EP10, EP11, EP12, EP14, EP15, EP16 | UX/mobile/owner agents with disjoint screens |
-| EP18 | Migration safety, observability, CI and release hardening | EP13, EP14, EP15, EP16 | Lead/backend/release agent |
-| EP19 | Physical acceptance, full-shift pilot and authorized rollout | EP17, EP18 | Lead |
+| ID   | Work package                                                         | Implementation dependencies                    | Lead role                                    |
+| ---- | -------------------------------------------------------------------- | ---------------------------------------------- | -------------------------------------------- |
+| EP00 | Baseline audit, preservation, and truthful test inventory            | None                                           | Lead                                         |
+| EP01 | Product contract, architecture decisions, and runnable UX skeleton   | EP00                                           | Lead                                         |
+| EP02 | Native two-phone communication feasibility spike                     | EP01                                           | Mobile/connectivity agent                    |
+| EP03 | Shared domain model, operation contracts, and golden arithmetic      | EP01                                           | Domain/data agent                            |
+| EP04 | Crash-safe native SQLite ledger and independent queues               | EP03                                           | Mobile persistence agent                     |
+| EP05 | Backend persistence, native authorization, and safe ingestion        | EP03                                           | Owner/backend agent                          |
+| EP06 | Owner reusable business setup and lightweight shift scheduling       | EP03, EP05                                     | Owner web agent                              |
+| EP07 | Staff enrollment, automatic snapshots, and departure preflight       | EP02, EP04, EP05, EP06                         | Mobile enrollment agent                      |
+| EP08 | Departure checklist with missing-item handling                       | EP07                                           | Mobile workflow agent                        |
+| EP09 | Intuitive opening-stock counts and opening seal                      | EP08, EP03                                     | Mobile inventory agent                       |
+| EP10 | Cashier checkout and durable order creation                          | EP09, EP04                                     | Mobile cashier agent                         |
+| EP11 | Reliable prep queue and bidirectional local synchronization          | EP10, EP02                                     | Mobile/connectivity agent                    |
+| EP12 | Operational inventory, remakes, refunds, waste and restocks          | EP10, EP03                                     | Domain/mobile inventory agent                |
+| EP13 | Independent cloud synchronization, media retry and auth recovery     | EP05, EP07, EP10, EP11, EP12                   | Backend/mobile sync agent                    |
+| EP14 | Owner live dashboard with honest freshness and reconciliation        | EP06, EP13                                     | Owner web agent                              |
+| EP15 | Offline local closing, actual counts and owner review                | EP11, EP12                                     | Mobile closeout/domain agent                 |
+| EP16 | QR recovery export, offline owner import and duplicate-safe handover | EP05, EP07, EP13, EP15                         | Mobile/owner recovery agent                  |
+| EP17 | Staff usability, accessibility and end-to-end workflow polish        | EP08, EP09, EP10, EP11, EP12, EP14, EP15, EP16 | UX/mobile/owner agents with disjoint screens |
+| EP18 | Migration safety, observability, CI and release hardening            | EP13, EP14, EP15, EP16                         | Lead/backend/release agent                   |
+| EP19 | Physical acceptance, full-shift pilot and authorized rollout         | EP17, EP18                                     | Lead                                         |
 
 ## Definition of completed implementation
 

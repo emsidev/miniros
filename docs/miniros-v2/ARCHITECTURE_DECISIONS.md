@@ -98,3 +98,44 @@ opening/synchronizing legacy journals. Reload discards walkthrough state explici
 No migrations, database or API calls, new dependency or production workflow switch.
 Existing brand tokens/colors/type/spacing are reused. Rollback removes dev route and
 concept contract consumers; legacy readers/writers and schemaVersion:1 remain intact.
+
+## ADR-10 — EP03–EP05 additive implementation boundary
+
+The user authorized EP02 followed by EP03–EP05 in the current local checkout. Shared
+v2 contracts use safe integer minor units and stock atoms, SHA-256 canonical bodies,
+immutable snapshots and cashier-only contiguous journals. Server-authenticated
+Ed25519 signatures cover the UTF-8 digest text. A digest alone grants no authority.
+Native enrollment and protected private-key lifecycle remain EP07 work; current
+SQLite repository authority/signature validation is a mandatory injected adapter.
+
+Actual SQLite commits local journal/projection/tenders and two delivery references
+atomically; peer and cloud receipts plus attachment jobs advance independently.
+The financial peer outbox is scoped to the cashier repository and is not connected
+to EP02's synthetic transport. No plaintext financial mirror is exposed to prep,
+and no encrypted mirror/key lifecycle is claimed implemented. EP11/16 must complete
+and independently verify that boundary before financial replication to prep.
+
+Backend persistence extends the existing Next server through isolated native routes.
+Raw v2 tables deny Data API access, including service_role, and are absent from
+Realtime. Live Bearer getUser validation replaces cookie refresh only for the exact
+native route prefix; legacy web CSRF and cookie handling stay unchanged. Both v1 and
+v2 claim paths share the shift row lock. New native claims also update that row so
+a waiting legacy REPEATABLE READ transaction cannot use a stale reservation view.
+A rollback must retain those compatibility guards while any v2 authority exists.
+
+The grant acceptance window is at most 24 hours using server receive time; neither
+device timestamps nor scheduled closing time extend it. Expired/revoked new work is
+retained in an authorized-scope incident. Current authorized identity and original
+installation/signature proof can retrieve an already committed receipt after expiry.
+Online-token loss alone does not erase or block authorized local persistence. Owner
+recovery records an audited decision and retains original signatures and ordering;
+it does not waive expired/revoked grants. Dedicated owner adjudication and EP16's
+QR/package workflow remain future work. Stock-adjustment capability is excluded
+until a verified owner-approval adapter exists.
+
+New authority creation is default-off behind
+`MINIROS_NATIVE_V2_NEW_SHIFTS_ENABLED=1`; existing receipt retrieval and replay remain
+available when it is off. The registration API provides the persistence boundary;
+it does not introduce an owner package-building workflow or replace EP07's automatic
+staff preparation. No production rollout, complete POS, native runtime approval or
+physical/hosted acceptance follows from these portable integration results.
