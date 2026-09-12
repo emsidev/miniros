@@ -1,0 +1,16 @@
+
+> @miniros/e2e@0.1.0 test /Users/emsi/Documents/ChatGPT/MINIROS/miniros/apps/e2e
+> vitest run
+
+(!) Your Vite config uses features that are unsupported by `configLoader: 'native'`, which is planned to become the default in a future major version of Vite:
+  - ESM syntax in a file loaded as CommonJS (vitest.config.ts:1:1). Use a `.mjs` extension or set `"type": "module"` in the closest package.json
+Set `VITE_CONFIG_NATIVE_IGNORE_WARNING=true` to suppress this warning.
+
+ RUN  v4.1.11 /Users/emsi/Documents/ChatGPT/MINIROS/miniros/apps/e2e
+
+
+ Test Files  3 passed | 1 skipped (4)
+      Tests  41 passed | 4 skipped (45)
+   Start at  22:34:28
+   Duration  2.16s (transform 307ms, setup 0ms, import 685ms, tests 1.70s, environment 0ms)
+

@@ -1,0 +1,8 @@
+
+> @miniros/web@0.1.0 typecheck /Users/emsi/Documents/ChatGPT/MINIROS/miniros/apps/web
+> tsc --noEmit -p tsconfig.json
+
+src/test/native-v2-review/ingestion-review.test.ts(53,106): error TS2345: Argument of type 'string' is not assignable to parameter of type '`${string}-${string}-${string}-${string}-${string}`'.
+/Users/emsi/Documents/ChatGPT/MINIROS/miniros/apps/web:
+ ERR_PNPM_RECURSIVE_RUN_FIRST_FAIL  @miniros/web@0.1.0 typecheck: `tsc --noEmit -p tsconfig.json`
+Exit status 2

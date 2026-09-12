@@ -30,6 +30,7 @@ const boundaryImplementations = new Set([
   "apps/web/src/lib/supabase/middleware.ts",
   "apps/web/src/lib/supabase/server.ts",
   "apps/web/src/lib/supabase/storage-admin.ts",
+  "apps/web/src/lib/supabase/native.ts",
 ]);
 const thisTest = "apps/web/src/lib/supabase/data-access-boundary.test.ts";
 

@@ -1,0 +1,92 @@
+
+> @miniros/web@0.1.0 build /Users/emsi/Documents/ChatGPT/MINIROS/miniros/apps/web
+> next build && node scripts/build-pwa.mjs
+
+   ▲ Next.js 15.5.25
+   - Environments: .env.local
+   - Experiments (use with caution):
+     · serverActions
+     · optimizePackageImports
+
+   Creating an optimized production build ...
+ ✓ Compiled successfully in 6.2s
+   Linting and checking validity of types ...
+   Collecting page data ...
+   Generating static pages (0/23) ...
+   Generating static pages (5/23) 
+   Generating static pages (11/23) 
+   Generating static pages (17/23) 
+ ✓ Generating static pages (23/23)
+   Finalizing page optimization ...
+   Collecting build traces ...
+
+Route (app)                                 Size  First Load JS
+┌ ƒ /                                    1.02 kB         189 kB
+├ ○ /_not-found                            180 B         103 kB
+├ ƒ /admin                                 180 B         103 kB
+├ ƒ /admin/approvals                     4.22 kB         212 kB
+├ ƒ /admin/dashboard                        4 kB         201 kB
+├ ƒ /admin/devices                       9.85 kB         141 kB
+├ ƒ /admin/employees                     2.84 kB         217 kB
+├ ƒ /admin/inventory                       656 B         116 kB
+├ ƒ /admin/inventory/items               6.37 kB         197 kB
+├ ƒ /admin/inventory/recipes             8.47 kB         223 kB
+├ ƒ /admin/inventory/stock               5.73 kB         170 kB
+├ ƒ /admin/locations                     2.68 kB         238 kB
+├ ƒ /admin/production                     4.1 kB         202 kB
+├ ƒ /admin/products                      4.08 kB         218 kB
+├ ƒ /admin/products/categories            3.9 kB         216 kB
+├ ƒ /admin/promos                        5.55 kB         217 kB
+├ ƒ /admin/reports                       4.32 kB         202 kB
+├ ƒ /admin/settings                      4.86 kB         204 kB
+├ ƒ /admin/shifts                        6.08 kB         177 kB
+├ ƒ /admin/shifts/[shiftId]              1.02 kB         236 kB
+├ ƒ /admin/shifts/[shiftId]/edit           205 B         179 kB
+├ ƒ /admin/shifts/new                      194 B         179 kB
+├ ƒ /api/native/v2/grants                  180 B         103 kB
+├ ƒ /api/native/v2/grants/revoke           180 B         103 kB
+├ ƒ /api/native/v2/ingest                  180 B         103 kB
+├ ƒ /api/native/v2/prep                    180 B         103 kB
+├ ƒ /api/native/v2/recovery                180 B         103 kB
+├ ƒ /api/native/v2/snapshots               180 B         103 kB
+├ ƒ /api/offline/prepare                   180 B         103 kB
+├ ƒ /api/offline/proof                     180 B         103 kB
+├ ƒ /api/offline/recovery                  180 B         103 kB
+├ ƒ /api/offline/status                    180 B         103 kB
+├ ƒ /api/offline/sync                      180 B         103 kB
+├ ƒ /auth/callback                         180 B         103 kB
+├ ƒ /businesses                          6.49 kB         204 kB
+├ ƒ /businesses/[businessId]/switch      3.19 kB         201 kB
+├ ○ /dev/workflow-skeleton               5.36 kB         130 kB
+├ ○ /help                                  180 B         103 kB
+├ ƒ /install                               180 B         103 kB
+├ ƒ /inventory                           7.62 kB         185 kB
+├ ƒ /login                                 140 B         191 kB
+├ ○ /offline                             12.3 kB         262 kB
+├ ƒ /pos                                 1.68 kB         280 kB
+├ ○ /privacy                               173 B         106 kB
+├ ƒ /production                          7.26 kB         215 kB
+├ ƒ /profile                             3.39 kB         257 kB
+├ ƒ /register                              141 B         191 kB
+├ ƒ /reset-password                      4.16 kB         190 kB
+├ ○ /reset-password/update               4.27 kB         190 kB
+├ ƒ /schedule                             8.1 kB         134 kB
+├ ƒ /shifts                                 4 kB         201 kB
+├ ƒ /shifts/[shiftId]                    4.34 kB         202 kB
+├ ƒ /shifts/[shiftId]/close              6.79 kB         222 kB
+├ ƒ /shifts/[shiftId]/sales                166 B         106 kB
+├ ƒ /shifts/[shiftId]/start              8.37 kB         176 kB
+├ ƒ /sync                                  180 B         103 kB
+└ ○ /terms                                 173 B         106 kB
++ First Load JS shared by all             103 kB
+  ├ chunks/1542-91d061d4887f264c.js      46.6 kB
+  ├ chunks/c9abffda-eb133a710b2a315b.js  54.2 kB
+  └ other shared chunks (total)          1.96 kB
+
+
+ƒ Middleware                             98.7 kB
+
+○  (Static)   prerendered as static content
+ƒ  (Dynamic)  server-rendered on demand
+
+PWA 3rkYP2y0ZM4_qx9lvG2t8: 128 static assets; private pages excluded.

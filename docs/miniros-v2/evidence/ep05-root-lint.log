@@ -1,0 +1,76 @@
+
+> miniros@0.1.0 lint /Users/emsi/Documents/ChatGPT/MINIROS/miniros
+> turbo run lint --force
+
+• turbo 2.10.12
+
+   • Packages in scope: @miniros/agent, @miniros/api, @miniros/config, @miniros/contracts, @miniros/db, @miniros/domain, @miniros/e2e, @miniros/mobile, @miniros/sdk, @miniros/site, @miniros/ui, @miniros/web
+   • Running lint in 12 packages
+   • Remote caching disabled
+
+@miniros/ui:lint: cache bypass, force executing f9dfc82ddd4a0340
+@miniros/domain:lint: cache bypass, force executing 6c3315baacc2ce74
+@miniros/db:lint: cache bypass, force executing 228e776aac1900c9
+@miniros/db:lint: 
+@miniros/db:lint: > @miniros/db@0.1.0 lint /Users/emsi/Documents/ChatGPT/MINIROS/miniros/packages/db
+@miniros/db:lint: > eslint src --ext .ts
+@miniros/db:lint: 
+@miniros/domain:lint: 
+@miniros/domain:lint: > @miniros/domain@0.1.0 lint /Users/emsi/Documents/ChatGPT/MINIROS/miniros/packages/domain
+@miniros/domain:lint: > eslint src --ext .ts
+@miniros/domain:lint: 
+@miniros/ui:lint: 
+@miniros/ui:lint: > @miniros/ui@0.1.0 lint /Users/emsi/Documents/ChatGPT/MINIROS/miniros/packages/ui
+@miniros/ui:lint: > eslint src --ext .ts
+@miniros/ui:lint: 
+@miniros/site:lint: cache bypass, force executing fb4108a7c63da74d
+@miniros/contracts:lint: cache bypass, force executing 94ac23cface19dfe
+@miniros/site:lint: 
+@miniros/site:lint: > @miniros/site@0.1.0 lint /Users/emsi/Documents/ChatGPT/MINIROS/miniros/apps/site
+@miniros/site:lint: > eslint . --ext .js,.mjs,.cjs,.ts
+@miniros/site:lint: 
+@miniros/contracts:lint: 
+@miniros/contracts:lint: > @miniros/contracts@0.1.0 lint /Users/emsi/Documents/ChatGPT/MINIROS/miniros/packages/contracts
+@miniros/contracts:lint: > eslint src --ext .ts
+@miniros/contracts:lint: 
+@miniros/mobile:lint: cache bypass, force executing cd798ab64d06c686
+@miniros/api:lint: cache bypass, force executing c1d3124a7d433e2e
+@miniros/e2e:lint: cache bypass, force executing 139e881f2aac660c
+@miniros/sdk:lint: cache bypass, force executing 9d016303b2a561d3
+@miniros/api:lint: 
+@miniros/api:lint: > @miniros/api@0.1.0 lint /Users/emsi/Documents/ChatGPT/MINIROS/miniros/apps/api
+@miniros/api:lint: > eslint src --ext .ts
+@miniros/api:lint: 
+@miniros/sdk:lint: 
+@miniros/sdk:lint: > @miniros/sdk@0.1.0 lint /Users/emsi/Documents/ChatGPT/MINIROS/miniros/packages/sdk
+@miniros/sdk:lint: > eslint src --ext .ts
+@miniros/sdk:lint: 
+@miniros/e2e:lint: 
+@miniros/e2e:lint: > @miniros/e2e@0.1.0 lint /Users/emsi/Documents/ChatGPT/MINIROS/miniros/apps/e2e
+@miniros/e2e:lint: > eslint src --ext .ts
+@miniros/e2e:lint: 
+@miniros/mobile:lint: 
+@miniros/mobile:lint: > @miniros/mobile@0.1.0 lint /Users/emsi/Documents/ChatGPT/MINIROS/miniros/apps/mobile
+@miniros/mobile:lint: > eslint . --ext .ts,.tsx,.js
+@miniros/mobile:lint: 
+@miniros/agent:lint: cache bypass, force executing ca3ffd3ecfc6a4be
+@miniros/web:lint: cache bypass, force executing b36ca13597040eb9
+@miniros/agent:lint: 
+@miniros/agent:lint: > @miniros/agent@0.1.0 lint /Users/emsi/Documents/ChatGPT/MINIROS/miniros/apps/agent
+@miniros/agent:lint: > eslint src --ext .ts
+@miniros/agent:lint: 
+@miniros/web:lint: 
+@miniros/web:lint: > @miniros/web@0.1.0 lint /Users/emsi/Documents/ChatGPT/MINIROS/miniros/apps/web
+@miniros/web:lint: > next lint
+@miniros/web:lint: 
+@miniros/web:lint: `next lint` is deprecated and will be removed in Next.js 16.
+@miniros/web:lint: For new projects, use create-next-app to choose your preferred linter.
+@miniros/web:lint: For existing projects, migrate to the ESLint CLI:
+@miniros/web:lint: npx @next/codemod@canary next-lint-to-eslint-cli .
+@miniros/web:lint: 
+@miniros/web:lint: ✔ No ESLint warnings or errors
+
+ Tasks:    11 successful, 11 total
+Cached:    0 cached, 11 total
+  Time:    7.289s 
+

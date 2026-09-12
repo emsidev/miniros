@@ -1,0 +1,46 @@
+{
+  "source": "local production build; fake loopback public env; no hosted calls",
+  "buildId": "3rkYP2y0ZM4_qx9lvG2t8",
+  "checks": [
+    {
+      "path": "ingest",
+      "status": 403,
+      "code": "AUTH",
+      "cacheControl": "no-store"
+    },
+    {
+      "path": "prep",
+      "status": 403,
+      "code": "AUTH",
+      "cacheControl": "no-store"
+    },
+    {
+      "path": "snapshots",
+      "status": 403,
+      "code": "AUTH",
+      "cacheControl": "no-store"
+    },
+    {
+      "path": "grants",
+      "status": 403,
+      "code": "AUTH",
+      "cacheControl": "no-store"
+    },
+    {
+      "path": "grants/revoke",
+      "status": 403,
+      "code": "AUTH",
+      "cacheControl": "no-store"
+    },
+    {
+      "path": "recovery",
+      "status": 403,
+      "code": "AUTH",
+      "cacheControl": "no-store"
+    },
+    {
+      "path": "/dev/workflow-skeleton",
+      "status": 404
+    }
+  ]
+}
