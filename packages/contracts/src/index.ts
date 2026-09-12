@@ -8,3 +8,4 @@ export * from "./offline";
 export * from "./offline-calculations";
 export * from "./proofs";
 export * from "./staff-workflow";
+export * from "./v2";
