@@ -136,6 +136,8 @@ export async function createShiftsInTransaction(
       sellingLocationId: location.id,
       title: input.title || location.name,
       shiftDate,
+      scheduledStartAt: new Date(`${shiftDate}T${input.openingTime}:00+08:00`),
+      scheduledEndAt: new Date(`${shiftDate}T${input.closingTime}:00+08:00`),
       status: publishing ? ("scheduled" as const) : ("draft" as const),
       clientGeneratedId: shiftIds[index]!,
     })),
@@ -283,6 +285,12 @@ export async function updateShiftInTransaction(
       title: input.title || location.name,
       sellingLocationId: location.id,
       shiftDate: input.shiftDate,
+      scheduledStartAt: new Date(
+        `${input.shiftDate}T${input.openingTime}:00+08:00`,
+      ),
+      scheduledEndAt: new Date(
+        `${input.shiftDate}T${input.closingTime}:00+08:00`,
+      ),
       status,
       updatedAt: new Date(
         Math.max(Date.now(), existing.updatedAt.getTime() + 1),

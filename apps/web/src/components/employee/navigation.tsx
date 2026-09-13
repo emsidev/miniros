@@ -2,13 +2,7 @@
 
 import Link from "next/link";
 import { usePathname, useSearchParams } from "next/navigation";
-import {
-  Boxes,
-  CalendarDays,
-  CircleUserRound,
-  PackageOpen,
-  ShoppingCart,
-} from "lucide-react";
+import { Ellipsis, CalendarDays, ShoppingCart } from "lucide-react";
 import type { BusinessFeatureFlags } from "@miniros/domain";
 import { shiftWorkspaceHref } from "./shift-presentation";
 import { useNavigationShift } from "./navigation-context";
@@ -19,16 +13,13 @@ export type EmployeePermissions = {
   canLogProduction: boolean;
 };
 const items = [
-  { href: "/shifts", label: "Shifts", icon: CalendarDays },
+  { href: "/shifts", label: "Shift", icon: CalendarDays },
   { href: "/pos", label: "Sell", icon: ShoppingCart },
-  { href: "/production", label: "Production", icon: PackageOpen },
-  { href: "/inventory", label: "Inventory", icon: Boxes },
-  { href: "/profile", label: "Profile", icon: CircleUserRound },
+  { href: "/more", label: "More", icon: Ellipsis },
 ];
 
 export function EmployeeNavigation({
   permissions,
-  features,
   desktop = false,
   pathnameOverride,
   shiftOverride,
@@ -51,13 +42,8 @@ export function EmployeeNavigation({
   const productionOnly =
     permissions?.canLogProduction && !permissions.canUsePos;
   const visibleItems = items.filter((item) => {
-    if (productionOnly)
-      return item.href === "/production" || item.href === "/profile";
+    if (productionOnly) return item.href === "/more";
     if (item.href === "/pos") return permissions?.canUsePos;
-    if (item.href === "/production")
-      return (
-        permissions?.canLogProduction && features?.productionEnabled !== false
-      );
     return true;
   });
   return (
@@ -80,14 +66,20 @@ export function EmployeeNavigation({
       >
         {visibleItems.map(({ href, label, icon: Icon }) => {
           const active =
+            (href === "/more" &&
+              ["/profile", "/help", "/sync", "/install"].includes(pathname)) ||
+            (href === "/shifts" && pathname === "/inventory") ||
             pathname === href ||
             pathname.startsWith(`${href}/`) ||
             (href === "/shifts" && pathname === "/schedule");
-          const destination = shiftWorkspaceHref(
-            href,
-            selectedShift,
-            requestedShiftId,
-          );
+          const destination =
+            href === "/shifts" && selectedShift
+              ? `/shifts/${selectedShift.id}`
+              : href === "/pos" &&
+                  selectedShift &&
+                  selectedShift.status !== "active"
+                ? `/shifts/${selectedShift.id}`
+                : shiftWorkspaceHref(href, selectedShift, requestedShiftId);
           return (
             <li key={href}>
               <Link
@@ -108,7 +100,7 @@ export function EmployeeNavigation({
                 }}
                 aria-current={active ? "page" : undefined}
                 className={cn(
-                  "flex min-h-12 items-center justify-center gap-1 rounded-md px-1 text-xs font-semibold transition-colors hover:bg-muted focus-visible:outline-2 focus-visible:outline-offset-2",
+                  "flex min-h-12 items-center justify-center gap-1 rounded-md px-1 text-sm font-semibold transition-colors hover:bg-muted focus-visible:outline-2 focus-visible:outline-offset-2",
                   desktop ? "flex-row gap-2 text-sm" : "flex-col",
                   active
                     ? "bg-accent text-accent-foreground"

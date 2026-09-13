@@ -6,6 +6,7 @@ import {
   sales,
   shiftAssignments,
   shiftCosts,
+  shifts,
 } from "@miniros/db/schema";
 import {
   addCents,
@@ -184,8 +185,16 @@ export async function aggregateCloseoutFinancials(
     approvedDeductionsCents,
   });
 
+  const [opening] = await tx
+    .select({ cash: shifts.openingCashCents })
+    .from(shifts)
+    .where(and(eq(shifts.businessId, businessId), eq(shifts.id, shiftId)))
+    .limit(1);
   return {
     summary,
-    expectedCashCents: subtractCents(cashSalesCents, approvedDeductionsCents),
+    expectedCashCents: subtractCents(
+      addCents(opening?.cash ?? 0, cashSalesCents),
+      approvedDeductionsCents,
+    ),
   };
 }

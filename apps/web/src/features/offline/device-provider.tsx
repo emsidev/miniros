@@ -39,7 +39,11 @@ export function DeviceProvider({ children }: { children: ReactNode }) {
       if (!stopped) setError("");
       try {
         // Never reveal a cached account online before checking the current session.
-        if (navigator.onLine && (await shiftStore().sessions.count())) {
+        if (
+          navigator.onLine &&
+          ((await shiftStore().sessions.count()) ||
+            (await shiftStore().drafts.count()))
+        ) {
           try {
             await refreshOfflineIdentity();
           } catch (failure) {

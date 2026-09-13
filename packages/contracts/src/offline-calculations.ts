@@ -15,6 +15,7 @@ export type LocalShiftProjection = {
   salesCents: number;
   productCostCents: number;
   cashCents: number;
+  openingCashCents?: number;
   deductionsCents: number;
 };
 export const emptyShiftProjection = (): LocalShiftProjection => ({
@@ -96,7 +97,8 @@ export function calculatePreparedSale(
         requiresRecipeDeduction:
           snapshot.features.recipesEnabled &&
           product.requiresRecipeDeduction &&
-          !product.producedInventoryItemId,
+          !product.producedInventoryItemId &&
+          !product.stockInventoryItemId,
       };
     }),
     snapshot.recipes,
@@ -107,9 +109,8 @@ export function calculatePreparedSale(
       (deltas[d.inventoryItemId] ?? 0) + normalizeQuantity(d.quantityDelta),
     );
   for (const line of items) {
-    const id = snapshot.products.find(
-      (p) => p.id === line.productId,
-    )!.producedInventoryItemId;
+    const product = snapshot.products.find((p) => p.id === line.productId)!;
+    const id = product.stockInventoryItemId ?? product.producedInventoryItemId;
     if (id)
       deltas[id] = normalizeQuantity(
         (deltas[id] ?? 0) - normalizeQuantity(line.quantity),
@@ -144,6 +145,11 @@ export function projectOfflineOperation(
     if (operation.payload.inventoryLocationId !== snapshot.inventoryLocationId)
       throw new Error("Opening inventory does not match the prepared shift.");
     next.state = "active";
+    if (snapshot.schemaVersion === 2) {
+      if (!("openingCashCents" in operation.payload))
+        throw new Error("Enter the opening cash float.");
+      next.openingCashCents = operation.payload.openingCashCents;
+    }
   } else if (previous.state !== "active")
     throw new Error(
       "Open this shift before recording work. A submitted closeout cannot accept more sales.",
@@ -202,7 +208,10 @@ export function projectOfflineOperation(
     throw new Error("This inventory item was not prepared.");
   if (operation.type === "CREATE_INVENTORY_ADJUSTMENT") {
     const delta = normalizeQuantity(operation.payload.quantityDelta);
-    if (delta < 0) {
+    if (
+      delta < 0 ||
+      (snapshot.schemaVersion === 2 && !snapshot.features.approvalsEnabled)
+    ) {
       const id = operation.payload.inventoryItemId;
       const balance = normalizeQuantity(
         normalizeQuantity(next.balances[id] ?? 0) + delta,
@@ -212,6 +221,6 @@ export function projectOfflineOperation(
       next.balances[id] = String(balance);
     }
   }
-  // Positive requests never manufacture available stock; reviews are online.
+  // Legacy and approval-dependent positive requests wait for owner review.
   return next;
 }

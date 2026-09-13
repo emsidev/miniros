@@ -1,3 +1,4 @@
+import { assertDisposableDatabase } from "@/test/isolation-guard";
 import { randomUUID } from "node:crypto";
 import { afterAll, describe, expect, it, vi } from "vitest";
 import type { Database } from "@miniros/db";
@@ -49,6 +50,7 @@ vi.mock("@/lib/supabase/server", () => ({
 // Opt in explicitly. Fixtures use random identities; normal cases roll back all
 // writes, and the concurrency case deletes its isolated fixture in finally.
 const connection = process.env.SHIFT_TEST_DATABASE_URL;
+if (connection) assertDisposableDatabase(connection);
 const database = connection ? createDatabase(connection) : null;
 afterAll(async () => {
   if (connection) await createPostgresClient(connection).end();

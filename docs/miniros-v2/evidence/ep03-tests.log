@@ -1,0 +1,15 @@
+Scope: 2 of 13 workspace projects
+packages/domain test$ vitest run
+packages/domain test:  RUN  v4.1.11 /Users/emsi/Documents/ChatGPT/MINIROS/miniros/packages/domain
+packages/domain test:  Test Files  12 passed (12)
+packages/domain test:       Tests  110 passed (110)
+packages/domain test:    Start at  22:32:57
+packages/domain test:    Duration  2.03s (transform 919ms, setup 0ms, import 2.01s, tests 1.77s, environment 1ms)
+packages/domain test: Done
+packages/contracts test$ vitest run
+packages/contracts test:  RUN  v4.1.11 /Users/emsi/Documents/ChatGPT/MINIROS/miniros/packages/contracts
+packages/contracts test:  Test Files  3 passed (3)
+packages/contracts test:       Tests  143 passed (143)
+packages/contracts test:    Start at  22:33:00
+packages/contracts test:    Duration  268ms (transform 143ms, setup 0ms, import 202ms, tests 48ms, environment 0ms)
+packages/contracts test: Done

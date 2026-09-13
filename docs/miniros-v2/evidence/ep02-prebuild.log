@@ -1,0 +1,10 @@
+
+> @miniros/mobile@0.1.0 native:prebuild /Users/emsi/Documents/ChatGPT/MINIROS/miniros/apps/mobile
+> EXPO_PUBLIC_MINIROS_EP02_SPIKE=1 expo prebuild --no-install
+
+- Creating native directories (./ios and ./android)
+✔ Created native directories
+- Updating package.json
+✔ Updated package.json | no changes
+- Running prebuild
+✔ Finished prebuild

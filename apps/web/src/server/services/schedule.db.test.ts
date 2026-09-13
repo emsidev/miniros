@@ -1,3 +1,4 @@
+import { assertDisposableDatabase } from "@/test/isolation-guard";
 import { randomUUID } from "node:crypto";
 import { readFileSync } from "node:fs";
 import { resolve } from "node:path";
@@ -44,6 +45,7 @@ import {
   updateShiftInTransaction,
 } from "./admin-shift-workflows";
 const connection = process.env.SHIFT_TEST_DATABASE_URL;
+if (connection) assertDisposableDatabase(connection);
 const pg = connection ? null : new PGlite();
 const database: Database = connection
   ? createDatabase(connection)
@@ -79,6 +81,8 @@ beforeAll(async () => {
     "20260905022223_shift_draft_privacy",
     "20260905040950_offline_shift_sessions",
     "20260905065933_centralized_schedule",
+    "20260907143003_native_v2_persistence",
+    "20260912114907_bored_malcolm_colcord",
   ]) {
     await pg!.exec(
       readFileSync(
@@ -361,7 +365,7 @@ describe("central schedule database", () => {
       });
       await expect(
         joinShiftInTransaction(tx, f.actor, shiftId),
-      ).rejects.toThrow("prepared device");
+      ).rejects.toThrow("legacy offline work");
       await tx
         .update(offlineShiftSessions)
         .set({ status: "released" })

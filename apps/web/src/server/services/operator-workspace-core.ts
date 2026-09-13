@@ -51,6 +51,7 @@ export async function resolveOperationalShift(input: {
       id: shifts.id,
       title: shifts.title,
       shiftDate: shifts.shiftDate,
+      openingCashCents: shifts.openingCashCents,
       status: shifts.status,
       locationId: sellingLocations.id,
       locationName: sellingLocations.name,

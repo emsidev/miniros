@@ -15,14 +15,14 @@ export function WorkflowSteps({
   return (
     <ol
       aria-label="Progress"
-      className="grid gap-2 border-b pb-5"
+      className="grid gap-2 border-b pb-3"
       style={{ gridTemplateColumns: `repeat(${steps.length}, minmax(0,1fr))` }}
     >
       {steps.map((step, index) => (
         <li
           key={step}
           aria-current={index === current ? "step" : undefined}
-          className="flex min-w-0 flex-col gap-2 text-xs sm:flex-row sm:items-center sm:text-sm"
+          className="flex min-w-0 items-center gap-2 text-xs sm:text-sm"
         >
           <span
             className={cn(

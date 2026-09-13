@@ -1,0 +1,77 @@
+
+> miniros@0.1.0 typecheck /Users/emsi/Documents/ChatGPT/MINIROS/miniros
+> turbo run typecheck --force
+
+• turbo 2.10.12
+
+   • Packages in scope: @miniros/agent, @miniros/api, @miniros/config, @miniros/contracts, @miniros/db, @miniros/domain, @miniros/e2e, @miniros/mobile, @miniros/sdk, @miniros/site, @miniros/ui, @miniros/web
+   • Running typecheck in 12 packages
+   • Remote caching disabled
+
+@miniros/ui:typecheck: cache bypass, force executing 761bc79ee2b3bc7c
+@miniros/domain:typecheck: cache bypass, force executing 4bcdd3264b58498c
+@miniros/db:typecheck: cache bypass, force executing 442daaf99e532759
+@miniros/domain:typecheck: 
+@miniros/domain:typecheck: > @miniros/domain@0.1.0 typecheck /Users/emsi/Documents/ChatGPT/MINIROS/miniros/packages/domain
+@miniros/domain:typecheck: > tsc --noEmit -p tsconfig.json
+@miniros/domain:typecheck: 
+@miniros/ui:typecheck: 
+@miniros/ui:typecheck: > @miniros/ui@0.1.0 typecheck /Users/emsi/Documents/ChatGPT/MINIROS/miniros/packages/ui
+@miniros/ui:typecheck: > tsc --noEmit -p tsconfig.json
+@miniros/ui:typecheck: 
+@miniros/db:typecheck: 
+@miniros/db:typecheck: > @miniros/db@0.1.0 typecheck /Users/emsi/Documents/ChatGPT/MINIROS/miniros/packages/db
+@miniros/db:typecheck: > tsc --noEmit -p tsconfig.json
+@miniros/db:typecheck: 
+@miniros/site:typecheck: cache bypass, force executing 4a6726a12610485f
+@miniros/site:typecheck: 
+@miniros/site:typecheck: > @miniros/site@0.1.0 typecheck /Users/emsi/Documents/ChatGPT/MINIROS/miniros/apps/site
+@miniros/site:typecheck: > astro check
+@miniros/site:typecheck: 
+@miniros/contracts:typecheck: cache bypass, force executing 01f9a1c8911da5bc
+@miniros/contracts:typecheck: 
+@miniros/contracts:typecheck: > @miniros/contracts@0.1.0 typecheck /Users/emsi/Documents/ChatGPT/MINIROS/miniros/packages/contracts
+@miniros/contracts:typecheck: > tsc --noEmit -p tsconfig.json
+@miniros/contracts:typecheck: 
+@miniros/site:typecheck: 22:54:17 [types] Generated 49ms
+@miniros/site:typecheck: 22:54:17 [check] Getting diagnostics for Astro files in /Users/emsi/Documents/ChatGPT/MINIROS/miniros/apps/site...
+@miniros/sdk:typecheck: cache bypass, force executing fb5d49ef23e57a1d
+@miniros/mobile:typecheck: cache bypass, force executing 965447648921a0d4
+@miniros/e2e:typecheck: cache bypass, force executing 77def3a34e38f2d3
+@miniros/api:typecheck: cache bypass, force executing f52713bffead1423
+@miniros/mobile:typecheck: 
+@miniros/mobile:typecheck: > @miniros/mobile@0.1.0 typecheck /Users/emsi/Documents/ChatGPT/MINIROS/miniros/apps/mobile
+@miniros/mobile:typecheck: > tsc --noEmit -p tsconfig.json
+@miniros/mobile:typecheck: 
+@miniros/e2e:typecheck: 
+@miniros/e2e:typecheck: > @miniros/e2e@0.1.0 typecheck /Users/emsi/Documents/ChatGPT/MINIROS/miniros/apps/e2e
+@miniros/e2e:typecheck: > tsc --noEmit -p tsconfig.json
+@miniros/e2e:typecheck: 
+@miniros/sdk:typecheck: 
+@miniros/sdk:typecheck: > @miniros/sdk@0.1.0 typecheck /Users/emsi/Documents/ChatGPT/MINIROS/miniros/packages/sdk
+@miniros/sdk:typecheck: > tsc --noEmit -p tsconfig.json
+@miniros/sdk:typecheck: 
+@miniros/api:typecheck: 
+@miniros/api:typecheck: > @miniros/api@0.1.0 typecheck /Users/emsi/Documents/ChatGPT/MINIROS/miniros/apps/api
+@miniros/api:typecheck: > tsc --noEmit -p tsconfig.json
+@miniros/api:typecheck: 
+@miniros/web:typecheck: cache bypass, force executing f07cec6a998a26a4
+@miniros/agent:typecheck: cache bypass, force executing f942c9a7ba8ebf88
+@miniros/site:typecheck: Result (15 files): 
+@miniros/site:typecheck: - 0 errors
+@miniros/site:typecheck: - 0 warnings
+@miniros/site:typecheck: - 0 hints
+@miniros/site:typecheck: 
+@miniros/agent:typecheck: 
+@miniros/agent:typecheck: > @miniros/agent@0.1.0 typecheck /Users/emsi/Documents/ChatGPT/MINIROS/miniros/apps/agent
+@miniros/agent:typecheck: > tsc --noEmit -p tsconfig.json
+@miniros/agent:typecheck: 
+@miniros/web:typecheck: 
+@miniros/web:typecheck: > @miniros/web@0.1.0 typecheck /Users/emsi/Documents/ChatGPT/MINIROS/miniros/apps/web
+@miniros/web:typecheck: > tsc --noEmit -p tsconfig.json
+@miniros/web:typecheck: 
+
+ Tasks:    11 successful, 11 total
+Cached:    0 cached, 11 total
+  Time:    8.663s 
+

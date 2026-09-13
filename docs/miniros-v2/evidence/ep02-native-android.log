@@ -1,0 +1,16 @@
+
+> @miniros/mobile@0.1.0 native:check:android /Users/emsi/Documents/ChatGPT/MINIROS/miniros/apps/mobile
+> node ../../scripts/native/build.mjs android --check
+
+{
+  "platform": "android",
+  "result": "BLOCKED",
+  "missing": [
+    "Java runtime/JDK",
+    "Android SDK with platform-tools/adb"
+  ],
+  "physicalEvidence": false
+}
+/Users/emsi/Documents/ChatGPT/MINIROS/miniros/apps/mobile:
+ ERR_PNPM_RECURSIVE_RUN_FIRST_FAIL  @miniros/mobile@0.1.0 native:check:android: `node ../../scripts/native/build.mjs android --check`
+Exit status 2

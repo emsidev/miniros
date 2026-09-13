@@ -22,3 +22,15 @@ The repo now uses a `pnpm` + Turbo monorepo layout so the product surfaces can s
 ## Product rule
 
 Business logic belongs in shared TypeScript packages and server-side services, not inside React components and not inside Supabase RPC business logic.
+
+## Database changes after a refactor
+
+Run `pnpm db:check` before starting the updated app. It checks the database's
+columns and applied migration history without changing any data, using
+`DATABASE_URL` or, if unset, `apps/web/.env.local`.
+
+Review pending SQL migrations and confirm the target before applying them.
+`pnpm db:migrate` applies migrations to the linked hosted Supabase project;
+`pnpm db:migrate:local` targets the local Supabase database. The linked project
+must match the app's database. Do not reset a database or delete offline journals
+to resolve a missing-column error. Rerun `pnpm db:check` after migration.

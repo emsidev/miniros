@@ -63,7 +63,7 @@ type ProductRecord = {
   status: "active" | "inactive" | "deleted";
   isSellable: boolean;
   requiresRecipeDeduction: boolean;
-  inventoryMode: "none" | "recipe" | "produced";
+  inventoryMode: "none" | "recipe" | "produced" | "stock";
   outputInventoryItemId: string | null;
   imageUrl: string | null;
 };
@@ -90,10 +90,14 @@ export function CreateProductDialog({
   const [isPending, startTransition] = useTransition();
   const [isSellable, setIsSellable] = useState(product?.isSellable ?? true);
   const [inventoryMode, setInventoryMode] = useState<
-    "none" | "recipe" | "produced"
+    "none" | "recipe" | "produced" | "stock"
   >(
     product?.inventoryMode ??
-      (product?.requiresRecipeDeduction ? "recipe" : "none"),
+      (product?.requiresRecipeDeduction
+        ? "recipe"
+        : product
+          ? "none"
+          : "stock"),
   );
   const [outputInventoryItemId, setOutputInventoryItemId] = useState(
     product?.outputInventoryItemId ?? "",
@@ -119,7 +123,11 @@ export function CreateProductDialog({
     setIsSellable(product?.isSellable ?? true);
     setInventoryMode(
       product?.inventoryMode ??
-        (product?.requiresRecipeDeduction ? "recipe" : "none"),
+        (product?.requiresRecipeDeduction
+          ? "recipe"
+          : product
+            ? "none"
+            : "stock"),
     );
     setOutputInventoryItemId(product?.outputInventoryItemId ?? "");
     setCategoryId(product?.categoryId ?? categories[0]?.id ?? "");
@@ -207,7 +215,7 @@ export function CreateProductDialog({
             {isEditing ? "Edit product" : "Add product"}
           </DialogTitle>
           <DialogDescription>
-            Create a sellable item with price and cost snapshots.
+            Name, price, cost, and simple stock. Extra details are optional.
           </DialogDescription>
         </DialogHeader>
         <form
@@ -230,76 +238,6 @@ export function CreateProductDialog({
               placeholder="Classic Milk Tea"
               defaultValue={product?.name}
             />
-            <SetupInput
-              label="SKU"
-              feedback={feedback}
-              name="sku"
-              maxLength={80}
-              disabled={isPending}
-              placeholder="Generated automatically"
-              hint="Leave blank to generate a unique SKU automatically."
-              defaultValue={product?.sku ?? ""}
-            />
-          </div>
-          <div className="space-y-2">
-            <Label htmlFor="product-category">Category</Label>
-            <Select
-              value={categoryId}
-              onValueChange={setCategoryId}
-              disabled={isPending || categories.length === 0}
-            >
-              <SelectTrigger
-                id="product-category"
-                className="h-11 w-full rounded-xl"
-                aria-invalid={Boolean(feedback.fieldErrors?.categoryId?.[0])}
-                aria-describedby={
-                  feedback.fieldErrors?.categoryId?.[0]
-                    ? "product-category-error"
-                    : undefined
-                }
-              >
-                <SelectValue placeholder="Select a category" />
-              </SelectTrigger>
-              <SelectContent>
-                {categories.map((category) => (
-                  <SelectItem key={category.id} value={category.id}>
-                    {category.name}
-                  </SelectItem>
-                ))}
-              </SelectContent>
-            </Select>
-            {feedback.fieldErrors?.categoryId?.[0] ? (
-              <p
-                id="product-category-error"
-                className="text-xs font-medium text-destructive"
-              >
-                {feedback.fieldErrors.categoryId[0]}
-              </p>
-            ) : null}
-          </div>
-          <div className="space-y-2">
-            <Label htmlFor="product-description">Description</Label>
-            <Textarea
-              id="product-description"
-              name="description"
-              maxLength={1000}
-              disabled={isPending}
-              aria-invalid={Boolean(descriptionError)}
-              aria-describedby={
-                descriptionError ? "product-description-error" : undefined
-              }
-              className="min-h-20 rounded-xl"
-              placeholder="Optional details your team should know"
-              defaultValue={product?.description ?? ""}
-            />
-            {descriptionError ? (
-              <p
-                id="product-description-error"
-                className="text-xs font-medium text-destructive"
-              >
-                {descriptionError}
-              </p>
-            ) : null}
           </div>
           <div className="grid gap-4 sm:grid-cols-2">
             <SetupInput
@@ -399,6 +337,86 @@ export function CreateProductDialog({
               </div>
             </div>
           ) : null}
+          <details className="space-y-4 border-y py-3">
+            <summary className="flex min-h-12 cursor-pointer items-center font-semibold">
+              Category, SKU & details
+            </summary>
+            <div className="mt-4 space-y-4">
+              {" "}
+              <SetupInput
+                label="SKU"
+                feedback={feedback}
+                name="sku"
+                maxLength={80}
+                disabled={isPending}
+                placeholder="Generated automatically"
+                hint="Leave blank to generate a unique SKU automatically."
+                defaultValue={product?.sku ?? ""}
+              />
+              <div className="space-y-2">
+                <Label htmlFor="product-category">Category</Label>
+                <Select
+                  value={categoryId}
+                  onValueChange={setCategoryId}
+                  disabled={isPending || categories.length === 0}
+                >
+                  <SelectTrigger
+                    id="product-category"
+                    className="h-11 w-full rounded-xl"
+                    aria-invalid={Boolean(
+                      feedback.fieldErrors?.categoryId?.[0],
+                    )}
+                    aria-describedby={
+                      feedback.fieldErrors?.categoryId?.[0]
+                        ? "product-category-error"
+                        : undefined
+                    }
+                  >
+                    <SelectValue placeholder="Select a category" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    {categories.map((category) => (
+                      <SelectItem key={category.id} value={category.id}>
+                        {category.name}
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+                {feedback.fieldErrors?.categoryId?.[0] ? (
+                  <p
+                    id="product-category-error"
+                    className="text-xs font-medium text-destructive"
+                  >
+                    {feedback.fieldErrors.categoryId[0]}
+                  </p>
+                ) : null}
+              </div>
+              <div className="space-y-2">
+                <Label htmlFor="product-description">Description</Label>
+                <Textarea
+                  id="product-description"
+                  name="description"
+                  maxLength={1000}
+                  disabled={isPending}
+                  aria-invalid={Boolean(descriptionError)}
+                  aria-describedby={
+                    descriptionError ? "product-description-error" : undefined
+                  }
+                  className="min-h-20 rounded-xl"
+                  placeholder="Optional details your team should know"
+                  defaultValue={product?.description ?? ""}
+                />
+                {descriptionError ? (
+                  <p
+                    id="product-description-error"
+                    className="text-xs font-medium text-destructive"
+                  >
+                    {descriptionError}
+                  </p>
+                ) : null}
+              </div>
+            </div>
+          </details>
           <FieldGroup label="Selling behavior">
             <ToggleField
               id="product-sellable"
@@ -414,7 +432,9 @@ export function CreateProductDialog({
             <Select
               value={inventoryMode}
               onValueChange={(value) =>
-                setInventoryMode(value as "none" | "recipe" | "produced")
+                setInventoryMode(
+                  value as "none" | "recipe" | "produced" | "stock",
+                )
               }
               disabled={isPending}
             >
@@ -425,6 +445,9 @@ export function CreateProductDialog({
                 <SelectValue />
               </SelectTrigger>
               <SelectContent>
+                <SelectItem value="stock">
+                  Simple stock · one unit per sale
+                </SelectItem>
                 <SelectItem value="none">No automatic deduction</SelectItem>
                 <SelectItem value="recipe" disabled={!recipesEnabled}>
                   Recipe deduction at sale
@@ -435,11 +458,13 @@ export function CreateProductDialog({
               </SelectContent>
             </Select>
             <p className="text-xs text-muted-foreground">
-              {inventoryMode === "produced"
-                ? "POS deducts finished goods. Production consumes recipe inputs separately."
-                : inventoryMode === "recipe"
-                  ? "Each completed sale deducts the product recipe from booth stock."
-                  : "Sales do not change inventory automatically."}
+              {inventoryMode === "stock"
+                ? "A stock item is linked automatically. Each unit sold deducts one unit."
+                : inventoryMode === "produced"
+                  ? "POS deducts finished goods. Production consumes recipe inputs separately."
+                  : inventoryMode === "recipe"
+                    ? "Each completed sale deducts the product recipe from booth stock."
+                    : "Sales do not change inventory automatically."}
             </p>
           </div>
           {inventoryMode === "produced" ? (
@@ -494,7 +519,6 @@ export function CreateProductDialog({
               type="submit"
               disabled={
                 isPending ||
-                categoryId.length === 0 ||
                 (inventoryMode === "produced" &&
                   outputInventoryItemId.length === 0)
               }

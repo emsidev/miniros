@@ -17,13 +17,7 @@
         "NEXT_PUBLIC_SUPABASE_ANON_KEY",
         "PUBLIC_APP_URL"
       ],
-      "outputs": [
-        "dist/**",
-        ".next/**",
-        ".astro/**",
-        "public/sw.js",
-        "public/pwa-assets.json"
-      ]
+      "outputs": ["dist/**", ".next/**", ".astro/**"]
     },
     "lint": {
       "dependsOn": ["^lint"]

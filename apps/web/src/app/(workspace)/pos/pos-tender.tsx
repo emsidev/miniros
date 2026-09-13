@@ -52,8 +52,9 @@ function PaymentMethodPicker({
         );
       })}
       <label
+        htmlFor={`more-${payment.id}`}
         className={cn(
-          "relative flex min-h-14 flex-col items-center justify-center gap-1 rounded-[var(--mi-radius-md)] border px-2 text-xs font-semibold transition-colors duration-[var(--mi-motion-fast)]",
+          "relative flex min-h-14 focus-within:ring-2 focus-within:ring-ring focus-within:ring-offset-2 flex-col items-center justify-center gap-1 rounded-[var(--mi-radius-md)] border px-2 text-xs font-semibold transition-colors duration-[var(--mi-motion-fast)]",
           isMore
             ? "border-[var(--mi-color-ink)] bg-[var(--mi-color-ink)] text-[var(--mi-color-accent)]"
             : "bg-card text-muted-foreground hover:bg-muted",
@@ -62,6 +63,7 @@ function PaymentMethodPicker({
         <Plus className="size-4" aria-hidden="true" />
         <span>{isMore ? formatPaymentMethod(payment.method) : "More"}</span>
         <select
+          id={`more-${payment.id}`}
           value={isMore ? payment.method : ""}
           onChange={(event) => onChange(event.target.value as PaymentMethod)}
           className="absolute inset-0 cursor-pointer opacity-0"
@@ -88,6 +90,7 @@ function PaymentFields({
   changeCents,
   onUpdate,
   onUseManualCash,
+  totalCents,
 }: {
   payment: PaymentDraft;
   index: number;
@@ -95,8 +98,10 @@ function PaymentFields({
   changeCents?: number;
   onUpdate: (patch: Partial<PaymentDraft>) => void;
   onUseManualCash: () => void;
+  totalCents: number;
 }) {
-  const showAmount = isSplit || payment.amountMode === "manual";
+  const showAmount =
+    payment.method === "cash" || isSplit || payment.amountMode === "manual";
   return (
     <div className="space-y-3">
       {isSplit ? (
@@ -127,25 +132,28 @@ function PaymentFields({
             <Button
               type="button"
               variant="outline"
-              className="min-h-11"
+              className="min-h-12"
               onClick={() => onUpdate({ amountMode: "exact" })}
             >
-              Exact
+              Exact amount
             </Button>
           ) : null}
-          {[20, 50, 100, 200, 500, 1000].map((amount) => (
-            <Button
-              key={amount}
-              type="button"
-              variant="outline"
-              className="min-h-11"
-              onClick={() =>
-                onUpdate({ amount: String(amount), amountMode: "manual" })
-              }
-            >
-              ₱{amount}
-            </Button>
-          ))}
+          {[20, 50, 100, 200, 500, 1000]
+            .filter((amount) => amount * 100 >= totalCents)
+            .slice(0, 3)
+            .map((amount) => (
+              <Button
+                key={amount}
+                type="button"
+                variant="outline"
+                className="min-h-11"
+                onClick={() =>
+                  onUpdate({ amount: String(amount), amountMode: "manual" })
+                }
+              >
+                ₱{amount}
+              </Button>
+            ))}
         </div>
       ) : null}
       {showAmount ? (
@@ -163,6 +171,7 @@ function PaymentFields({
               onUpdate({ amount, amountMode: "manual" })
             }
             required
+            className="h-12"
           />
           {payment.method === "cash" && changeCents !== undefined ? (
             <div className="mt-2 flex items-center justify-between gap-3 text-sm">
@@ -184,6 +193,9 @@ function PaymentFields({
               value={payment.reference}
               onChange={(event) => onUpdate({ reference: event.target.value })}
               autoComplete="off"
+              autoCapitalize="none"
+              autoCorrect="off"
+              spellCheck={false}
               required
             />
           </div>
@@ -258,6 +270,7 @@ export function PosTenderEditor({
           )}
         >
           <PaymentFields
+            totalCents={totalCents}
             payment={payment}
             index={index}
             isSplit={payments.length > 1}

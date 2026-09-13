@@ -4,7 +4,7 @@ import { useEffect, useState, useTransition } from "react";
 import { useRouter } from "next/navigation";
 import { Building2, Plus } from "lucide-react";
 import { toast } from "sonner";
-import { guardLocalExit, clearLocalAccount } from "@/lib/offline/store";
+import { clearSavedCheckouts, guardSavedCheckoutExit } from "@/lib/pos-drafts";
 import { switchBusinessAction } from "@/server/actions/businesses";
 import { WorkspaceSelector } from "./workspace-selector";
 import type { WorkspaceView } from "./view-selector";
@@ -84,7 +84,7 @@ export function BusinessSelector({
     setSelectedBusinessId(nextBusinessId);
     startTransition(async () => {
       try {
-        await guardLocalExit();
+        await guardSavedCheckoutExit();
       } catch (error) {
         setSelectedBusinessId(businessId);
         toast.error(
@@ -99,7 +99,7 @@ export function BusinessSelector({
         return;
       }
 
-      await clearLocalAccount();
+      await clearSavedCheckouts();
       router.replace(businessDestination(business, currentView));
       router.refresh();
     });

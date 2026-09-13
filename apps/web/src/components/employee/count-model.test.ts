@@ -10,14 +10,14 @@ const items = [
   { id: "milk", name: "Milk", unit: "litres", initialQuantity: "0" },
 ];
 describe("employee count data", () => {
-  it("retains defaults and includes every item in the payload regardless of search visibility", () => {
+  it("never turns expected quantities into actual counts and includes every item in the payload regardless of search visibility", () => {
     const values = { ...initialCounts(items), cups: "12 + 6", milk: "1 / 3" };
     expect(validateCounts(items, values)).toEqual([]);
     expect(countsPayload(items, values)).toEqual([
       { inventoryItemId: "cups", quantity: "18.000" },
       { inventoryItemId: "milk", quantity: "0.333" },
     ]);
-    expect(initialCounts(items).cups).toBe("12.500");
+    expect(initialCounts(items).cups).toBe("");
   });
   it("identifies empty, negative, and invalid counts with field targets", () => {
     expect(

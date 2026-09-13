@@ -95,7 +95,9 @@ export async function getPosWorkspace(shiftId?: string) {
         categoryName: productCategories.name,
         priceCents: products.priceCents,
         requiresRecipeDeduction: products.requiresRecipeDeduction,
-        producedInventoryItemId: productProductionOutputs.inventoryItemId,
+        producedInventoryItemId: sql<
+          string | null
+        >`coalesce(${products.stockInventoryItemId}, ${productProductionOutputs.inventoryItemId})`,
       })
       .from(products)
       .leftJoin(
@@ -261,6 +263,7 @@ export async function getPosWorkspace(shiftId?: string) {
 
   return {
     shift,
+    draftOwnerKey: `${access.business.id}:${access.user.id}`,
     shiftSummary: {
       saleCount: saleSummary?.saleCount ?? 0,
       itemCount: Number(itemSummary?.itemCount ?? 0),

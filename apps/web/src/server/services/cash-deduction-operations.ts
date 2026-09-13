@@ -42,7 +42,9 @@ export async function submitCashDeduction(
     prepared,
     async (tx) => {
       const approvalsEnabled = prepared
-        ? true
+        ? prepared.snapshot.schemaVersion === 1 ||
+          prepared.snapshot.features.approvalsEnabled ||
+          access.business.features.approvalsEnabled
         : access.business.features.approvalsEnabled;
       const [existing] = await tx
         .select({

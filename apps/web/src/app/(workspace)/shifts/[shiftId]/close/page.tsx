@@ -1,4 +1,3 @@
-import { reservedShiftDevice } from "@/server/services/offline-prepare";
 import { redirect } from "next/navigation";
 import { ShiftContext } from "@/components/employee/shift-context";
 import { ShiftUnavailable } from "@/components/employee/shift-unavailable";
@@ -8,6 +7,8 @@ import {
   isProductionOnlyEmployee,
   requireActiveBusiness,
 } from "@/server/services/access";
+import { PreparedEntry } from "@/features/offline/prepared-entry";
+import { isLegacyOnlineShift } from "@/server/services/legacy-online-shift";
 import { CloseoutForm } from "./closeout-form";
 export const dynamic = "force-dynamic";
 export default async function CloseShiftPage({
@@ -18,8 +19,8 @@ export default async function CloseShiftPage({
   const { employee } = await requireActiveBusiness();
   if (isProductionOnlyEmployee(employee)) redirect("/production");
   const { shiftId } = await params;
-  const reserved = await reservedShiftDevice(shiftId);
-  if (reserved?.ownsDevice) redirect(`/offline?session=${reserved.id}`);
+  if (!(await isLegacyOnlineShift(shiftId)))
+    return <PreparedEntry shiftId={shiftId} task="close" />;
   let workspace;
   try {
     workspace = await getCloseoutWorkspace(shiftId);
@@ -38,6 +39,7 @@ export default async function CloseShiftPage({
           saleSummary: workspace.saleSummary,
           paymentSummary: workspace.paymentSummary,
           approvedDeductionsCents: workspace.approvedDeductionsCents,
+          openingCashCents: workspace.shift.openingCashCents,
         }}
       />
     </div>

@@ -8,13 +8,12 @@ export type CountItem = {
   name: string;
   unit: string;
   initialQuantity: string;
+  categoryName?: string | null;
 };
 export type FieldError = { id: string; label: string; message: string };
 export type CountValues = Record<string, string>;
 export function initialCounts(items: readonly CountItem[]): CountValues {
-  return Object.fromEntries(
-    items.map((item) => [item.id, item.initialQuantity]),
-  );
+  return Object.fromEntries(items.map((item) => [item.id, ""]));
 }
 export function validateCounts(
   items: readonly CountItem[],

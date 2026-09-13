@@ -1,0 +1,13 @@
+(!) Your Vite config uses features that are unsupported by `configLoader: 'native'`, which is planned to become the default in a future major version of Vite:
+  - ESM syntax in a file loaded as CommonJS (vitest.config.ts:1:1). Use a `.mjs` extension or set `"type": "module"` in the closest package.json
+Set `VITE_CONFIG_NATIVE_IGNORE_WARNING=true` to suppress this warning.
+
+ RUN  v4.1.11 /Users/emsi/Documents/ChatGPT/MINIROS/miniros/apps/web
+
+EP05-T07 simultaneous PostgreSQL backend PIDs: 63731, 63735; distinct: true
+
+ Test Files  7 passed (7)
+      Tests  40 passed (40)
+   Start at  22:53:21
+   Duration  1.79s (transform 1.40s, setup 0ms, import 3.95s, tests 2.54s, environment 1ms)
+

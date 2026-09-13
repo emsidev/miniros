@@ -14,7 +14,8 @@ export function PrepareShift({ shiftId }: { shiftId: string }) {
     setError("");
     void prepareShiftOnDevice(shiftId).then(
       (session) => {
-        if (current) location.replace(`/offline?session=${session.id}`);
+        if (current)
+          location.replace(`/offline?session=${session.id}&task=overview`);
       },
       (failure) => {
         if (current)

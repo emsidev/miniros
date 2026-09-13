@@ -1,4 +1,4 @@
-export async function requireOfflineShell() {
+export async function requireOfflineShell(requiredContract: 1 | 2 = 2) {
   if (!("serviceWorker" in navigator))
     throw new Error(
       "This browser does not support offline installation. Open MINIROS in a supported browser.",
@@ -28,7 +28,10 @@ export async function requireOfflineShell() {
     channel.port1.onmessage = (event) => {
       clearTimeout(timer);
       channel.port1.close();
-      resolve(event.data?.ready === true);
+      resolve(
+        event.data?.ready === true &&
+          (event.data?.contractVersion ?? 1) >= requiredContract,
+      );
     };
     worker.postMessage("CHECK_OFFLINE_READY", [channel.port2]);
   });

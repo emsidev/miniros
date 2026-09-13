@@ -1,5 +1,6 @@
 "use client";
 
+import { useContext } from "react";
 import {
   ArrowRight,
   Check,
@@ -12,7 +13,7 @@ import {
 import { Button } from "@/components/ui/button";
 import { syncStatus } from "@/lib/offline/device-status";
 import { cn } from "@/lib/utils";
-import { useDevice } from "./device-context";
+import { DeviceContext, useDevice } from "./device-context";
 import { AppUpdate } from "./app-update";
 
 export function SyncStatusButton({
@@ -22,7 +23,9 @@ export function SyncStatusButton({
   inverse?: boolean;
   always?: boolean;
 }) {
-  const { snapshot, online, error, loading, openPanel } = useDevice();
+  const device = useContext(DeviceContext);
+  if (!device) return null;
+  const { snapshot, online, error, loading, openPanel } = device;
   const status = syncStatus(snapshot, online, error);
   if (!always && (loading || (status.state === "empty" && online))) return null;
   const Icon =

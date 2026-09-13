@@ -1,5 +1,5 @@
 "use client";
-import { useCallback, useEffect, useState } from "react";
+import { useCallback, useEffect, useRef, useState } from "react";
 import { liveQuery } from "dexie";
 import { releasePreparedShiftAction } from "@/server/actions/offline";
 import {
@@ -9,6 +9,27 @@ import {
   ChevronDown,
   MapPin,
 } from "lucide-react";
+import { ThisDevice } from "./device-controls";
+import { ShiftCountWorkflow } from "@/components/employee/shift-count-workflow";
+import {
+  loadClosingDraft,
+  saveClosingDraft,
+  submitPreparedClosing,
+  type ClosingDraft,
+} from "@/lib/offline/count-draft";
+import {
+  loadRequestDraft,
+  saveRequestDraft,
+  submitRequestDraft,
+  type RequestDraft,
+} from "@/lib/offline/request-draft";
+import {
+  Sheet,
+  SheetContent,
+  SheetHeader,
+  SheetTitle,
+  SheetDescription,
+} from "@/components/ui/sheet";
 import { PreparedOpeningCounts } from "./prepared-opening-counts";
 import {
   requestedShiftId,
@@ -16,13 +37,9 @@ import {
 } from "@/lib/offline/resolve-session";
 import { useDevice } from "./device-context";
 import { synchronizePreparedShifts } from "@/lib/offline/sync";
-import {
-  calculatePreparedSale,
-  offlineOperationSchema,
-} from "@miniros/contracts";
+import { calculatePreparedSale } from "@miniros/contracts";
 import { calculatePosAvailableQuantity } from "@miniros/domain";
 import {
-  appendShiftAction,
   offlineChanged,
   shiftStore,
   type LocalAction,
@@ -41,7 +58,6 @@ import { EmptyState, StatusBadge } from "@/components/shared/feedback";
 import { ShiftContext } from "@/components/employee/shift-context";
 import {
   canOpenLocalTask,
-  localResumeHref,
   localShiftStatus,
   parseLocalWorkspaceRoute,
   requiresConnection,
@@ -67,24 +83,62 @@ export function DeviceWorkspace() {
   }, [openPanel]);
 
   const launchParams = new URLSearchParams(launch?.search);
+  const identity = snapshot.shifts[0]?.session.snapshot;
+  const identityKey = identity
+    ? `${identity.businessId}:${identity.userId}`
+    : undefined;
+  const [selectedShift, setSelectedShift] = useState<string>();
+  useEffect(() => {
+    if (!identityKey) {
+      setSelectedShift(undefined);
+      return;
+    }
+    try {
+      setSelectedShift(
+        JSON.parse(
+          localStorage.getItem("miniros:selected-shift:" + identityKey) ??
+            "null",
+        )?.id,
+      );
+    } catch {
+      setSelectedShift(undefined);
+    }
+  }, [identityKey]);
   const target = launchParams.get("session") ?? undefined;
   const targetShift = requestedShiftId(launch?.path ?? "", launchParams);
-  const listRoute = launch?.path === "/shifts";
+  const listRoute =
+    launch?.path === "/shifts" && launchParams.get("all") === "1";
   const session =
     launch && !listRoute
-      ? resolveSavedSession(sessions, target, targetShift)
+      ? resolveSavedSession(sessions, target, targetShift ?? selectedShift)
       : undefined;
   const missingTarget =
     Boolean(launch) && !loading && Boolean(target || targetShift) && !session;
 
   useEffect(() => {
     if (!launch || loading || launch.path !== "/offline") return;
-    const selected = resolveSavedSession(sessions, target, targetShift);
-    const href = selected ? localResumeHref(selected) : "/shifts";
+    const selected = resolveSavedSession(
+      sessions,
+      target,
+      targetShift ?? selectedShift,
+    );
+    const shift = selected?.snapshot.shiftId;
+    const task = new URLSearchParams(launch.search).get("task");
+    const href = shift
+      ? task === "sell"
+        ? `/pos?shift=${shift}`
+        : task === "close"
+          ? `/shifts/${shift}/close`
+          : task === "sales"
+            ? `/shifts/${shift}/sales`
+            : task === "inventory"
+              ? `/inventory?shift=${shift}`
+              : `/shifts/${shift}`
+      : "/shifts?all=1";
     const next = parseLocalWorkspaceRoute(href, location.origin);
     history.replaceState(history.state, "", href);
     setLaunch(next);
-  }, [launch, loading, sessions, target, targetShift]);
+  }, [launch, loading, sessions, target, targetShift, selectedShift]);
 
   const navigate = useCallback(
     (href: string) => {
@@ -112,24 +166,38 @@ export function DeviceWorkspace() {
         (next.path === "/pos" || next.path === "/inventory") &&
         !next.search
       ) {
-        const active = sessions.find(
-          (saved) =>
-            saved.projection.state === "active" &&
-            !["recovery", "closed", "released"].includes(saved.status),
+        const active = resolveSavedSession(
+          sessions.filter((saved) => canOpenLocalTask(saved, "sell")),
+          undefined,
+          selectedShift,
         );
         if (!active) {
           destination = { path: "/shifts", search: "" };
-          setMessage("Start a saved shift before opening this workspace.");
+          setMessage("Choose a shift before selling.");
         } else {
           destination.search = `?shift=${encodeURIComponent(active.snapshot.shiftId)}`;
         }
+      }
+      const id = requestedShiftId(
+        destination.path,
+        new URLSearchParams(destination.search),
+      );
+      const chosen = sessions.find((saved) => saved.snapshot.shiftId === id);
+      if (chosen && identityKey) {
+        setSelectedShift(id);
+        try {
+          localStorage.setItem(
+            "miniros:selected-shift:" + identityKey,
+            JSON.stringify({ id, status: localShiftStatus(chosen) }),
+          );
+        } catch {}
       }
       const url = `${destination.path}${destination.search}`;
       history.pushState(history.state, "", url);
       setLaunch(destination);
       window.scrollTo({ top: 0, behavior: "auto" });
     },
-    [online, sessions],
+    [online, sessions, selectedShift, identityKey],
   );
 
   const path = launch?.path ?? "/shifts";
@@ -159,7 +227,12 @@ export function DeviceWorkspace() {
           className="h-11 min-w-0 flex-1 shadow-none sm:max-w-64 [&_[data-slot=select-value]]:min-w-0"
         />
       }
-      route={{ pathname: path, shift: shiftRoute, onNavigate: navigate }}
+      route={{
+        pathname: path,
+        shift: shiftRoute,
+        onNavigate: navigate,
+        identityKey,
+      }}
     >
       <div className={path === "/pos" ? "" : "space-y-6"}>
         {message ? (
@@ -188,7 +261,30 @@ export function DeviceWorkspace() {
               </Button>
             }
           />
-        ) : path === "/shifts" || !sessions.length ? (
+        ) : path === "/more" || path === "/help" ? (
+          <section className="space-y-6">
+            <PageHeader title={path === "/help" ? "Shift help" : "More"} />
+            <ThisDevice />
+            <div className="divide-y border-y">
+              <p className="py-4 text-sm">
+                Prepare online. Count stock and opening float. Sell, record
+                expenses, then count actual stock and cash to close.
+              </p>
+              <p className="py-4 text-sm text-muted-foreground">
+                Saved work stays on this device. Keep this app installed until
+                all transactions and photos are uploaded.
+              </p>
+              <Button
+                className="my-3"
+                variant="outline"
+                disabled={!online}
+                onClick={() => location.assign("/profile")}
+              >
+                Account & sign out
+              </Button>
+            </div>
+          </section>
+        ) : listRoute || !session ? (
           <SavedShiftsScreen
             sessions={sessions}
             locked={snapshot.locked}
@@ -198,13 +294,37 @@ export function DeviceWorkspace() {
             onLoadOnline={() => location.assign("/shifts")}
           />
         ) : session ? (
-          <SavedShiftRoute
-            path={path}
-            session={session}
-            online={online}
-            onNavigate={navigate}
-            onMessage={setMessage}
-          />
+          <>
+            <SavedShiftRoute
+              key={session.id}
+              path={path}
+              session={session}
+              online={online}
+              onNavigate={navigate}
+              onMessage={setMessage}
+            />
+            {path === `/shifts/${session.snapshot.shiftId}` ? (
+              <section className="space-y-4 border-t pt-6">
+                <h2 className="text-lg font-bold">Other shifts</h2>
+                {sessions
+                  .filter((saved) => saved.id !== session.id)
+                  .slice(0, 5)
+                  .map((saved) => (
+                    <SavedShiftRow
+                      key={saved.id}
+                      session={saved}
+                      onNavigate={navigate}
+                    />
+                  ))}
+                <Button
+                  variant="outline"
+                  onClick={() => navigate("/shifts?all=1")}
+                >
+                  Upcoming shifts & history
+                </Button>
+              </section>
+            ) : null}
+          </>
         ) : (
           <OfflineUnavailable path={path} onBack={() => navigate("/shifts")} />
         )}
@@ -454,7 +574,7 @@ function SavedShiftRoute({
       <>
         <ShiftContext
           shift={localShiftContext(session)}
-          title="Inventory & cash"
+          title="Stock & expenses"
           onBack={() => onNavigate(shiftPath)}
         />
         <RequestForm key={session.id} session={session} />
@@ -465,7 +585,7 @@ function SavedShiftRoute({
       <>
         <ShiftContext
           shift={localShiftContext(session)}
-          title="Start shift"
+          title="Opening count"
           onBack={() => onNavigate(shiftPath)}
         />
         <PreparedOpeningCounts
@@ -536,6 +656,20 @@ async function releaseUnusedSession(
       throw new Error(
         "This shift has saved work. Sync and close it before releasing it.",
       );
+    const opening = (
+      await shiftStore().drafts.get("counts:" + session.id + ":start")
+    )?.value as
+      | { counts?: Record<string, string>; cash?: string; notes?: string }
+      | undefined;
+    if (
+      opening &&
+      (Object.values(opening.counts ?? {}).some((value) => value !== "") ||
+        opening.cash ||
+        opening.notes)
+    )
+      throw new Error(
+        "This shift has saved counts. Keep this device and finish the shift; it cannot be released as unused.",
+      );
     const result = await releasePreparedShiftAction({
       sessionId: session.id,
       storageId: session.snapshot.storageInstallationId,
@@ -543,13 +677,13 @@ async function releaseUnusedSession(
     if (!result.ok) throw new Error(result.error);
     await shiftStore().sessions.update(session.id, { status: "released" });
     offlineChanged();
-    onNavigate("/shifts");
+    onNavigate("/shifts?all=1");
   } catch (error) {
     onMessage(error instanceof Error ? error.message : "Release failed.");
   }
 }
 
-function SavedShiftOverview({
+export function SavedShiftOverview({
   session,
   onNavigate,
 }: {
@@ -566,9 +700,9 @@ function SavedShiftOverview({
       <ShiftContext
         shift={localShiftContext(session)}
         title={session.snapshot.locationName}
-        backHref="/shifts"
+        backHref="/shifts?all=1"
         backLabel="Back to shifts"
-        onBack={() => onNavigate("/shifts")}
+        onBack={() => onNavigate("/shifts?all=1")}
       />
       <section className="rounded-xl border bg-card p-5 sm:p-6">
         <div className="flex flex-col gap-5 sm:flex-row sm:items-center sm:justify-between">
@@ -612,7 +746,7 @@ function SavedShiftOverview({
                 ? "Start shift"
                 : status === "closing"
                   ? "Continue closeout"
-                  : "Sell"}
+                  : "Continue selling"}
               <ArrowRight aria-hidden="true" />
             </Button>
           ) : null}
@@ -625,7 +759,7 @@ function SavedShiftOverview({
                 onNavigate(`/inventory?shift=${session.snapshot.shiftId}`)
               }
             >
-              Inventory & cash
+              Stock & expenses
             </Button>
             <Button
               variant="ghost"
@@ -640,8 +774,40 @@ function SavedShiftOverview({
         variant="outline"
         onClick={() => onNavigate(`${shiftPath}/sales`)}
       >
-        Sales and receipts
+        Receipts
       </Button>
+      <dl className="grid grid-cols-2 gap-x-6 border-y text-sm">
+        <div className="py-4">
+          <dt className="text-muted-foreground">Sales</dt>
+          <dd className="mt-1 text-xl font-bold">
+            {formatMoney(session.projection.salesCents)}
+          </dd>
+        </div>
+        <div className="py-4">
+          <dt className="text-muted-foreground">Recorded expenses</dt>
+          <dd className="mt-1 text-xl font-bold">
+            {formatMoney(session.projection.deductionsCents)}
+          </dd>
+        </div>
+        <div className="py-4">
+          <dt className="text-muted-foreground">Receipts</dt>
+          <dd className="mt-1 font-bold">{session.projection.saleCount}</dd>
+        </div>
+        <div className="py-4">
+          <dt className="text-muted-foreground">Remaining stock</dt>
+          <dd className="mt-1 font-bold">
+            {
+              Object.values(session.projection.balances).filter(
+                (value) => Number(value) > 0,
+              ).length
+            }{" "}
+            stock items
+          </dd>
+        </div>
+      </dl>
+      {session.projection.state === "closing" || session.status === "closed" ? (
+        <LocalCloseoutResult session={session} />
+      ) : null}
       <ReconciledResult session={session} />
     </div>
   );
@@ -685,18 +851,20 @@ function PreparedPos({
     ([inventoryItemId, quantity]) => ({ inventoryItemId, quantity }),
   );
   const catalog = snapshot.products.map((product) => {
+    const stockItem =
+      product.stockInventoryItemId ?? product.producedInventoryItemId;
     const recipe =
       snapshot.features.recipesEnabled &&
       product.requiresRecipeDeduction &&
-      !product.producedInventoryItemId;
+      !stockItem;
     return {
       ...product,
       requiresRecipeDeduction: recipe,
-      stockTracked: Boolean(recipe || product.producedInventoryItemId),
-      stockRequirements: product.producedInventoryItemId
+      stockTracked: Boolean(recipe || stockItem),
+      stockRequirements: stockItem
         ? [
             {
-              inventoryItemId: product.producedInventoryItemId,
+              inventoryItemId: stockItem,
               quantityPerUnit: "1",
             },
           ]
@@ -725,10 +893,11 @@ function PreparedPos({
   }));
   return (
     <PosForm
+      key={session.id}
       shiftId={snapshot.shiftId}
       offlineSessionId={session.id}
       locationName={snapshot.locationName}
-      shiftSummary={session.projection}
+      shiftDate={snapshot.shiftDate}
       inventoryBalances={inventoryBalances}
       products={products}
       promosEnabled={snapshot.features.promosEnabled}
@@ -745,269 +914,347 @@ function PreparedCloseoutForm({
   session: LocalSession;
   onDone: () => void;
 }) {
-  const [counts, setCounts] = useState<Record<string, string>>({});
-  const [cash, setCash] = useState("");
-  const [notes, setNotes] = useState("");
+  const [draft, setDraft] = useState<ClosingDraft>();
   const [error, setError] = useState("");
+  useEffect(() => {
+    let active = true;
+    loadClosingDraft(session.id).then(
+      (value) => {
+        if (active) setDraft(value);
+      },
+      () => {
+        if (active)
+          setError("Counts could not be recovered. Check storage and retry.");
+      },
+    );
+    return () => {
+      active = false;
+    };
+  }, [session.id]);
+  const persist = useCallback(
+    (value: ClosingDraft) => saveClosingDraft(session.id, value),
+    [session.id],
+  );
+  const submit = async (value: ClosingDraft) => {
+    await saveClosingDraft(session.id, value);
+    await submitPreparedClosing(session, value);
+    void synchronizePreparedShifts();
+    onDone();
+  };
+  return error ? (
+    <p role="alert">
+      {error}
+      <Button onClick={() => location.reload()}>Retry</Button>
+    </p>
+  ) : draft ? (
+    <ShiftCountWorkflow
+      mode="close"
+      shiftId={session.snapshot.shiftId}
+      items={session.snapshot.inventory.map((item) => ({
+        ...item,
+        initialQuantity: session.projection.balances[item.id] ?? "0",
+      }))}
+      summary={{
+        openingCashCents: session.projection.openingCashCents ?? 0,
+        saleSummary: {
+          grossSalesCents: session.projection.salesCents,
+          discountsCents: 0,
+        },
+        paymentSummary: [
+          { method: "cash", amountCents: session.projection.cashCents },
+        ],
+        approvedDeductionsCents: session.projection.deductionsCents,
+      }}
+      closeout={{ draft, onChange: persist, onSubmit: submit }}
+    />
+  ) : (
+    <p role="status">Recovering counts…</p>
+  );
+}
+
+function RequestForm({ session }: { session: LocalSession }) {
+  const [kind, setKind] = useState<"cash" | "inventory">();
+  return (
+    <div className="space-y-4">
+      <p className="text-sm text-muted-foreground">
+        Record cash paid out or request a stock correction. Existing owner
+        approvals still apply.
+      </p>
+      <div className="flex gap-3">
+        <Button onClick={() => setKind("cash")}>Add expense</Button>
+        <Button variant="outline" onClick={() => setKind("inventory")}>
+          Adjust stock
+        </Button>
+      </div>
+      <dl className="divide-y border-y">
+        {session.snapshot.inventory.map((item) => (
+          <div key={item.id} className="flex justify-between gap-4 py-4">
+            <dt>
+              {item.name}
+              <span className="block text-sm text-muted-foreground">
+                {item.unit}
+              </span>
+            </dt>
+            <dd className="font-bold tabular-nums">
+              {session.projection.balances[item.id] ?? "0"}
+            </dd>
+          </div>
+        ))}
+      </dl>
+      <Sheet
+        open={Boolean(kind)}
+        onOpenChange={(open) => {
+          if (!open) setKind(undefined);
+        }}
+      >
+        <SheetContent
+          side="bottom"
+          className="max-h-[90dvh] overflow-y-auto p-5 pb-[max(1.25rem,env(safe-area-inset-bottom))]"
+        >
+          <SheetHeader>
+            <SheetTitle>
+              {kind === "cash" ? "Add expense" : "Adjust stock"}
+            </SheetTitle>
+            <SheetDescription>
+              Entries stay with this shift on this device.
+            </SheetDescription>
+          </SheetHeader>
+          {kind ? (
+            <DurableRequest
+              key={session.id + kind}
+              session={session}
+              kind={kind}
+              onDone={() => setKind(undefined)}
+            />
+          ) : null}
+        </SheetContent>
+      </Sheet>
+    </div>
+  );
+}
+function DurableRequest({
+  session,
+  kind,
+  onDone,
+}: {
+  session: LocalSession;
+  kind: "cash" | "inventory";
+  onDone: () => void;
+}) {
+  const [draft, setDraft] = useState<RequestDraft>();
+  const [error, setError] = useState("");
+  const [saved, setSaved] = useState(false);
   const [busy, setBusy] = useState(false);
-  const [ready, setReady] = useState(false);
-  const key = `counts:${session.id}:close`;
+  const submitting = useRef(false);
   useEffect(() => {
-    shiftStore()
-      .drafts.get(key)
-      .then((row) => {
-        const saved = row?.value as
-          | { counts: Record<string, string>; cash: string; notes: string }
-          | undefined;
-        if (saved) {
-          setCounts(saved.counts);
-          setCash(saved.cash);
-          setNotes(saved.notes);
-        }
-        setReady(true);
-      })
-      .catch(() =>
-        setError("Counts cannot be recovered. Check device storage."),
-      );
-  }, [key]);
+    let active = true;
+    loadRequestDraft(session.id, kind).then(
+      (value) => {
+        if (active) setDraft(value);
+      },
+      () => {
+        if (active)
+          setError("Draft cannot be recovered. Check device storage.");
+      },
+    );
+    return () => {
+      active = false;
+    };
+  }, [session.id, kind]);
   useEffect(() => {
-    if (ready)
-      shiftStore()
-        .drafts.put({ id: key, value: { counts, cash, notes } })
-        .catch(() =>
-          setError(
-            "Counts could not be saved. Free device storage before continuing.",
-          ),
-        );
-  }, [key, counts, cash, notes, ready]);
+    if (!draft || submitting.current) return;
+    let active = true;
+    setSaved(false);
+    saveRequestDraft(session.id, kind, draft).then(
+      () => {
+        if (active) setSaved(true);
+      },
+      () => {
+        if (active)
+          setError("Draft was not saved. Free device storage and retry.");
+      },
+    );
+    return () => {
+      active = false;
+    };
+  }, [draft, session.id, kind]);
+  function change(field: keyof RequestDraft, value: string) {
+    setDraft((current) => (current ? { ...current, [field]: value } : current));
+  }
   return (
     <form
-      className="space-y-5"
+      className="mx-auto mt-5 max-w-xl space-y-4"
       onSubmit={async (event) => {
         event.preventDefault();
+        if (!draft || submitting.current) return;
+        submitting.current = true;
         setBusy(true);
         setError("");
         try {
-          const lines = session.snapshot.inventory.map((item) => ({
-            inventoryItemId: item.id,
-            quantity: counts[item.id] ?? "",
-          }));
-          const payload = {
-            shiftId: session.snapshot.shiftId,
-            closeoutId: crypto.randomUUID(),
-            cashReconciliationId: crypto.randomUUID(),
-            profitSummaryId: crypto.randomUUID(),
-            inventoryEventId: crypto.randomUUID(),
-            actualCashCents: Math.round(Number(cash) * 100),
-            counts: lines,
-            notes,
-          };
-          const operation = offlineOperationSchema.parse({
-            type: "SUBMIT_CLOSEOUT",
-            payload,
-          });
-          await appendShiftAction(session.id, operation);
-          await shiftStore().drafts.delete(key);
+          await submitRequestDraft(
+            session.id,
+            session.snapshot.shiftId,
+            kind,
+            draft,
+          );
           void synchronizePreparedShifts();
           onDone();
         } catch (failure) {
           setError(
             failure instanceof Error
               ? failure.message
-              : "Could not save counts.",
+              : "Request could not be saved.",
           );
         } finally {
+          submitting.current = false;
           setBusy(false);
         }
       }}
     >
-      <p className="text-sm text-muted-foreground">
-        Count your closing stock and cash. Your entries save automatically on
-        this device until you submit.
-      </p>
-      <div className="divide-y">
-        {session.snapshot.inventory.map((item) => (
-          <div
-            key={item.id}
-            className="grid grid-cols-[minmax(0,1fr)_112px] items-center gap-4 py-3"
-          >
-            <Label htmlFor={`close-${item.id}`}>
-              {item.name}
-              <span className="mt-1 block text-xs text-muted-foreground">
-                {item.unit} · expected{" "}
-                {session.projection.balances[item.id] ?? "0"}
-              </span>
+      {draft ? (
+        <>
+          {kind === "cash" ? (
+            <div className="space-y-2">
+              <Label htmlFor="expense-name">Expense name</Label>
+              <Input
+                id="expense-name"
+                required
+                maxLength={120}
+                value={draft.label}
+                onChange={(event) => change("label", event.target.value)}
+                className="h-12"
+              />
+            </div>
+          ) : (
+            <div className="space-y-2">
+              <Label htmlFor="stock-item">Stock item</Label>
+              <select
+                id="stock-item"
+                required
+                value={draft.item}
+                onChange={(event) => change("item", event.target.value)}
+                className="h-12 w-full rounded-lg border bg-card px-3"
+              >
+                <option value="">Choose item</option>
+                {session.snapshot.inventory.map((item) => (
+                  <option key={item.id} value={item.id}>
+                    {item.name} · {item.unit}
+                  </option>
+                ))}
+              </select>
+            </div>
+          )}
+          <div className="space-y-2">
+            <Label htmlFor="expense-amount">
+              {kind === "cash"
+                ? "Amount paid (₱)"
+                : "Quantity change (negative removes stock)"}
             </Label>
             <Input
-              id={`close-${item.id}`}
+              id="expense-amount"
+              required
               type="number"
               inputMode="decimal"
-              min="0"
-              step="0.001"
-              required
-              value={counts[item.id] ?? ""}
-              onChange={(event) =>
-                setCounts({ ...counts, [item.id]: event.target.value })
-              }
+              min={kind === "cash" ? "0.01" : undefined}
+              step={kind === "cash" ? "0.01" : "0.001"}
+              value={draft.amount}
+              onChange={(event) => change("amount", event.target.value)}
+              className="h-12"
             />
           </div>
-        ))}
-      </div>
-      <div className="space-y-2">
-        <Label htmlFor="actual-cash">Actual cash counted (₱)</Label>
-        <Input
-          id="actual-cash"
-          type="number"
-          inputMode="decimal"
-          min="0"
-          step="0.01"
-          required
-          value={cash}
-          onChange={(event) => setCash(event.target.value)}
-        />
-        <p className="text-sm text-muted-foreground">
-          Expected before reviews:{" "}
-          {formatMoney(
-            session.projection.cashCents - session.projection.deductionsCents,
-          )}
-        </p>
-      </div>
-      <div className="space-y-2">
-        <Label htmlFor="count-notes">Notes (optional)</Label>
-        <Input
-          id="count-notes"
-          value={notes}
-          maxLength={2000}
-          onChange={(event) => setNotes(event.target.value)}
-        />
-      </div>
+          <div className="space-y-2">
+            <Label htmlFor="expense-reason">Reason</Label>
+            <Input
+              id="expense-reason"
+              required
+              maxLength={2000}
+              value={draft.reason}
+              onChange={(event) => change("reason", event.target.value)}
+              className="h-12"
+            />
+          </div>
+          <p role="status" className="text-sm text-muted-foreground">
+            {saved ? "Saved on this device" : "Saving entries…"}
+          </p>
+          <Button type="submit" disabled={busy} size="lg" className="w-full">
+            {busy
+              ? "Saving…"
+              : kind === "cash"
+                ? "Save expense"
+                : "Save stock request"}
+          </Button>
+        </>
+      ) : (
+        <p role="status">Recovering draft…</p>
+      )}
       {error ? (
         <p role="alert" className="text-sm text-destructive">
           {error}
         </p>
       ) : null}
-      <Button type="submit" disabled={busy || !ready}>
-        {busy ? "Saving…" : "Submit closeout"}
-      </Button>
     </form>
   );
 }
 
-function RequestForm({ session }: { session: LocalSession }) {
-  const [type, setType] = useState("cash");
-  const [message, setMessage] = useState("");
-  const [busy, setBusy] = useState(false);
+function LocalCloseoutResult({ session }: { session: LocalSession }) {
+  const [action, setAction] = useState<LocalAction>();
+  useEffect(() => {
+    const sub = liveQuery(() =>
+      shiftStore()
+        .shiftActions.where("sessionId")
+        .equals(session.id)
+        .filter((a) => a.operation.type === "SUBMIT_CLOSEOUT")
+        .first(),
+    ).subscribe(setAction);
+    return () => sub.unsubscribe();
+  }, [session.id]);
+  if (action?.operation.type !== "SUBMIT_CLOSEOUT") return null;
+  const actual = action.operation.payload;
+  const expected =
+    (session.projection.openingCashCents ?? 0) +
+    session.projection.cashCents -
+    session.projection.deductionsCents;
   return (
-    <form
-      className="max-w-xl space-y-4"
-      onSubmit={async (event) => {
-        event.preventDefault();
-        const form = event.currentTarget;
-        const data = new FormData(form);
-        setBusy(true);
-        try {
-          const reason = String(data.get("reason"));
-          const operation = offlineOperationSchema.parse(
-            type === "cash"
-              ? {
-                  type: "CREATE_CASH_DEDUCTION",
-                  payload: {
-                    deductionId: crypto.randomUUID(),
-                    shiftId: session.snapshot.shiftId,
-                    label: String(data.get("label")),
-                    amountCents: Math.round(Number(data.get("amount")) * 100),
-                    reason,
-                  },
-                }
-              : {
-                  type: "CREATE_INVENTORY_ADJUSTMENT",
-                  payload: {
-                    adjustmentId: crypto.randomUUID(),
-                    inventoryEventId: crypto.randomUUID(),
-                    shiftId: session.snapshot.shiftId,
-                    inventoryItemId: String(data.get("item")),
-                    quantityDelta: String(data.get("amount")),
-                    reason,
-                  },
-                },
-          );
-          await appendShiftAction(session.id, operation);
-          setMessage(
-            "Request saved on this device. An owner reviews it online; it does not increase available stock.",
-          );
-          form.reset();
-          void synchronizePreparedShifts();
-        } catch (error) {
-          setMessage(
-            error instanceof Error
-              ? error.message
-              : "Request could not be saved.",
-          );
-        } finally {
-          setBusy(false);
-        }
-      }}
-    >
-      <h2 className="text-lg font-bold">Inventory and cash requests</h2>
+    <section className="space-y-4 border-y py-5">
+      <h2 className="text-lg font-bold">
+        {action.status === "synced"
+          ? "Closeout uploaded"
+          : "Closed on this device"}
+      </h2>
       <p className="text-sm text-muted-foreground">
-        Record cash paid out or correct an inventory count. Requests save
-        immediately and sync automatically when a connection is available.
+        Owner reviews and attachment uploads are separate. This device retains
+        the entered counts.
       </p>
-      <Label htmlFor="request-kind">Request type</Label>
-      <select
-        id="request-kind"
-        className="h-12 w-full rounded-lg border bg-card px-3"
-        value={type}
-        onChange={(event) => setType(event.target.value)}
-      >
-        <option value="cash">Cash paid out</option>
-        <option value="inventory">Stock adjustment</option>
-      </select>
-      {type === "cash" ? (
-        <>
-          <Label htmlFor="request-label">Expense name</Label>
-          <Input id="request-label" name="label" required maxLength={120} />
-        </>
-      ) : (
-        <>
-          <Label htmlFor="request-item">Inventory item</Label>
-          <select
-            id="request-item"
-            name="item"
-            className="h-12 w-full rounded-lg border bg-card px-3"
+      <dl className="divide-y">
+        <div className="flex justify-between gap-3 py-3">
+          <dt>Cash difference · device estimate</dt>
+          <dd className="font-bold">
+            {formatMoney(actual.actualCashCents - expected)}
+          </dd>
+        </div>
+        {actual.counts.map((count) => (
+          <div
+            key={count.inventoryItemId}
+            className="flex justify-between gap-3 py-3"
           >
-            {session.snapshot.inventory.map((item) => (
-              <option key={item.id} value={item.id}>
-                {item.name} ({item.unit})
-              </option>
-            ))}
-          </select>
-        </>
-      )}
-      <Label htmlFor="request-amount">
-        {type === "cash"
-          ? "Amount (₱)"
-          : "Quantity change (negative for stock removed)"}
-      </Label>
-      <Input
-        id="request-amount"
-        name="amount"
-        type="number"
-        required
-        step={type === "cash" ? "0.01" : "0.001"}
-        min={type === "cash" ? "0.01" : undefined}
-      />
-      <Label htmlFor="request-reason">Reason</Label>
-      <Input id="request-reason" name="reason" required maxLength={2000} />
-      <Button type="submit" disabled={busy}>
-        {busy ? "Saving…" : "Save request"}
-      </Button>
-      {message ? (
-        <p role="status" className="text-sm">
-          {message}
-        </p>
-      ) : null}
-    </form>
+            <dt>
+              {
+                session.snapshot.inventory.find(
+                  (item) => item.id === count.inventoryItemId,
+                )?.name
+              }
+            </dt>
+            <dd className="tabular-nums">
+              {Number(count.quantity) -
+                Number(
+                  session.projection.balances[count.inventoryItemId] ?? 0,
+                )}{" "}
+              difference · {count.quantity} counted
+            </dd>
+          </div>
+        ))}
+      </dl>
+    </section>
   );
 }
 

@@ -24,7 +24,6 @@ const adminLabels: Record<string, string> = {
   approvals: "Approvals",
   reports: "Reports",
   settings: "Settings",
-  devices: "Devices",
 };
 
 const workspaceLabels: Record<string, string> = {

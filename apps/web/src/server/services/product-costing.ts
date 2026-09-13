@@ -33,6 +33,7 @@ type DatabaseTransaction = Parameters<
 >[0];
 
 type ProductCostFields = {
+  stockInventoryItemId?: string | null;
   costCents: number;
   manualCostCents: number;
   laborCostCents: number;
@@ -117,7 +118,7 @@ export function buildProductCostBreakdown(
     overheadCostCents: product.overheadCostCents,
   }).totalCostCents;
   const effective = resolveEffectiveProductCost({
-    recipesEnabled,
+    recipesEnabled: recipesEnabled && !product.stockInventoryItemId,
     recipeLineCount,
     manualCostCents: product.manualCostCents,
     calculatedCostCents,
@@ -152,6 +153,7 @@ export async function loadProductCostBreakdowns(
     .select({
       id: products.id,
       costCents: products.costCents,
+      stockInventoryItemId: products.stockInventoryItemId,
       manualCostCents: products.manualCostCents,
       laborCostCents: products.laborCostCents,
       overheadCostCents: products.overheadCostCents,
@@ -203,6 +205,7 @@ export async function recalculateProductCosts(
       id: products.id,
       name: products.name,
       costCents: products.costCents,
+      stockInventoryItemId: products.stockInventoryItemId,
       manualCostCents: products.manualCostCents,
       laborCostCents: products.laborCostCents,
       overheadCostCents: products.overheadCostCents,
@@ -239,6 +242,7 @@ export async function recalculateProductCosts(
       );
     const automatic =
       input.recipesEnabled &&
+      !product.stockInventoryItemId &&
       (summaries.get(product.id)?.recipeLineCount ?? 0) > 0;
     const nextCostCents = automatic
       ? currentCalculation.calculatedCostCents

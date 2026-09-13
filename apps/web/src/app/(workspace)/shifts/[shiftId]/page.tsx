@@ -1,6 +1,6 @@
-import { isAdminMemberRole } from "@miniros/domain";
-import { reservedShiftDevice } from "@/server/services/offline-prepare";
 import Link from "next/link";
+import { PrepareShift } from "@/features/offline/prepare-shift";
+import { PreparedEntry } from "@/features/offline/prepared-entry";
 import { redirect } from "next/navigation";
 import { ArrowRight, Boxes, Factory, WalletCards } from "lucide-react";
 import { ShiftContext } from "@/components/employee/shift-context";
@@ -20,26 +20,22 @@ export default async function ShiftDetailPage({
 }: {
   params: Promise<{ shiftId: string }>;
 }) {
-  const { employee, business, membership } = await requireActiveBusiness();
+  const { employee, business } = await requireActiveBusiness();
   if (isProductionOnlyEmployee(employee)) redirect("/production");
   const { shiftId } = await params;
   const shift = await getAssignedShift(shiftId);
-  const reserved = await reservedShiftDevice(shiftId);
-  const action = reserved
-    ? {
-        href: reserved.ownsDevice
-          ? `/offline?session=${reserved.id}`
-          : isAdminMemberRole(membership.role)
-            ? `/admin/devices?session=${reserved.id}`
-            : `/shifts/${shiftId}`,
-        label: reserved.ownsDevice ? "Continue shift" : "Review device access",
-      }
-    : shiftAction(shift, shift.permissions.canUsePos);
+  const action = shiftAction(shift, shift.permissions.canUsePos);
   const canAct = ["assigned", "confirmed"].includes(shift.assignmentStatus);
-  const open =
-    !reserved &&
+  if (canAct && shift.permissions.canUsePos && shift.status === "scheduled")
+    return <PrepareShift shiftId={shiftId} />;
+  if (
     canAct &&
-    (shift.status === "active" || shift.status === "closing");
+    shift.permissions.canUsePos &&
+    ["active", "closing", "closed"].includes(shift.status)
+  )
+    return <PreparedEntry shiftId={shiftId} />;
+  const open =
+    canAct && (shift.status === "active" || shift.status === "closing");
   const guidance = {
     draft:
       "This assignment is being prepared. Check back once your admin publishes the shift.",
@@ -74,13 +70,7 @@ export default async function ShiftDetailPage({
                   ? "Assignment cancelled"
                   : "Your next step"}
             </h2>
-            <p className="mt-1 text-sm text-muted-foreground">
-              {reserved
-                ? reserved.ownsDevice
-                  ? "This shift is saved on this device. Open it to count stock, sell, or close out."
-                  : "This shift was prepared on another device. Use that device to continue, or ask your owner to review device access. Do not enter the same sales again."
-                : guidance}
-            </p>
+            <p className="mt-1 text-sm text-muted-foreground">{guidance}</p>
           </div>
           {action.href !== `/shifts/${shift.id}` ? (
             <Button asChild size="lg" className="shrink-0">

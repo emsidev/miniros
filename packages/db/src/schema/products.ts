@@ -2,6 +2,7 @@ import {
   bigint,
   boolean,
   check,
+  foreignKey,
   index,
   pgTable,
   text,
@@ -10,6 +11,7 @@ import {
   uuid,
 } from "drizzle-orm/pg-core";
 import { sql } from "drizzle-orm";
+import { inventoryItems } from "./inventory";
 import { businesses } from "./business";
 import { productStatusEnum } from "./enums";
 
@@ -70,6 +72,7 @@ export const products = pgTable(
     requiresRecipeDeduction: boolean("requires_recipe_deduction")
       .default(false)
       .notNull(),
+    stockInventoryItemId: uuid("stock_inventory_item_id"),
     imageUrl: text("image_url"),
     createdAt: timestamp("created_at", { withTimezone: true })
       .defaultNow()
@@ -80,6 +83,11 @@ export const products = pgTable(
     deletedAt: timestamp("deleted_at", { withTimezone: true }),
   },
   (table) => ({
+    stockTenantForeignKey: foreignKey({
+      name: "products_stock_tenant_fk",
+      columns: [table.businessId, table.stockInventoryItemId],
+      foreignColumns: [inventoryItems.businessId, inventoryItems.id],
+    }).onDelete("restrict"),
     businessIdx: index("products_business_id_idx").on(table.businessId),
     categoryIdx: index("products_category_id_idx").on(table.categoryId),
     businessSkuUnique: uniqueIndex("products_business_sku_unique").on(

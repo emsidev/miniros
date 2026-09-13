@@ -1,0 +1,208 @@
+
+> miniros@0.1.0 test /Users/emsi/Documents/ChatGPT/MINIROS/miniros
+> turbo run test --force
+
+• turbo 2.10.12
+
+   • Packages in scope: @miniros/agent, @miniros/api, @miniros/config, @miniros/contracts, @miniros/db, @miniros/domain, @miniros/e2e, @miniros/mobile, @miniros/sdk, @miniros/site, @miniros/ui, @miniros/web
+   • Running test in 12 packages
+   • Remote caching disabled
+
+@miniros/ui:test: cache bypass, force executing d6e46f49c5fa1a9e
+@miniros/db:test: cache bypass, force executing becb91109f9b548b
+@miniros/domain:test: cache bypass, force executing 8702db4ed9e8206a
+@miniros/domain:test: 
+@miniros/domain:test: > @miniros/domain@0.1.0 test /Users/emsi/Documents/ChatGPT/MINIROS/miniros/packages/domain
+@miniros/domain:test: > vitest run
+@miniros/domain:test: 
+@miniros/db:test: 
+@miniros/db:test: > @miniros/db@0.1.0 test /Users/emsi/Documents/ChatGPT/MINIROS/miniros/packages/db
+@miniros/db:test: > echo No db tests yet
+@miniros/db:test: 
+@miniros/ui:test: 
+@miniros/ui:test: > @miniros/ui@0.1.0 test /Users/emsi/Documents/ChatGPT/MINIROS/miniros/packages/ui
+@miniros/ui:test: > pnpm tokens:check
+@miniros/ui:test: 
+@miniros/db:test: No db tests yet
+@miniros/ui:test: 
+@miniros/ui:test: > @miniros/ui@0.1.0 tokens:check /Users/emsi/Documents/ChatGPT/MINIROS/miniros/packages/ui
+@miniros/ui:test: > node scripts/tokens.mjs check
+@miniros/ui:test: 
+@miniros/domain:test: 
+@miniros/domain:test:  RUN  v4.1.11 /Users/emsi/Documents/ChatGPT/MINIROS/miniros/packages/domain
+@miniros/domain:test: 
+@miniros/ui:test: Token files are current; contrast pairs pass.
+@miniros/site:test: cache bypass, force executing daeb8fe5b5e839d3
+@miniros/domain:test:  ✓ tests/sku.test.ts (4 tests) 3ms
+@miniros/domain:test:  ✓ tests/business-features.test.ts (3 tests) 3ms
+@miniros/domain:test:  ✓ tests/pos-availability.test.ts (6 tests) 4ms
+@miniros/domain:test:  ✓ tests/quantity.test.ts (7 tests) 4ms
+@miniros/domain:test:  ✓ tests/inventory-deductions.test.ts (5 tests) 18ms
+@miniros/domain:test:  ✓ tests/money.test.ts (8 tests) 25ms
+@miniros/domain:test:  ✓ tests/location-profitability.test.ts (7 tests) 5ms
+@miniros/domain:test:  ✓ tests/permissions.test.ts (4 tests) 2ms
+@miniros/domain:test:  ✓ tests/recipe-cost.test.ts (5 tests) 7ms
+@miniros/domain:test:  ✓ tests/v2-reducer.test.ts (22 tests) 104ms
+@miniros/domain:test:  ✓ tests/shift-profit.test.ts (4 tests) 4ms
+@miniros/site:test: 
+@miniros/site:test: > @miniros/site@0.1.0 test /Users/emsi/Documents/ChatGPT/MINIROS/miniros/apps/site
+@miniros/site:test: > echo No site tests yet
+@miniros/site:test: 
+@miniros/site:test: No site tests yet
+@miniros/domain:test:  ✓ tests/v2-review.test.ts (35 tests) 514ms
+@miniros/domain:test: 
+@miniros/domain:test:  Test Files  12 passed (12)
+@miniros/domain:test:       Tests  110 passed (110)
+@miniros/domain:test:    Start at  22:57:42
+@miniros/domain:test:    Duration  813ms (transform 588ms, setup 0ms, import 910ms, tests 692ms, environment 1ms)
+@miniros/domain:test: 
+@miniros/contracts:test: cache bypass, force executing 7aea7966a232ad03
+@miniros/contracts:test: 
+@miniros/contracts:test: > @miniros/contracts@0.1.0 test /Users/emsi/Documents/ChatGPT/MINIROS/miniros/packages/contracts
+@miniros/contracts:test: > vitest run
+@miniros/contracts:test: 
+@miniros/contracts:test: 
+@miniros/contracts:test:  RUN  v4.1.11 /Users/emsi/Documents/ChatGPT/MINIROS/miniros/packages/contracts
+@miniros/contracts:test: 
+@miniros/contracts:test:  ✓ tests/inventory-units.test.ts (1 test) 2ms
+@miniros/contracts:test:  ✓ tests/staff-workflow.test.ts (105 tests) 8ms
+@miniros/contracts:test:  ✓ tests/v2-review.test.ts (37 tests) 21ms
+@miniros/contracts:test: 
+@miniros/contracts:test:  Test Files  3 passed (3)
+@miniros/contracts:test:       Tests  143 passed (143)
+@miniros/contracts:test:    Start at  22:57:43
+@miniros/contracts:test:    Duration  171ms (transform 101ms, setup 0ms, import 146ms, tests 31ms, environment 0ms)
+@miniros/contracts:test: 
+@miniros/mobile:test: cache bypass, force executing 18b620c7a086dbf0
+@miniros/api:test: cache bypass, force executing 7c405254f4efed01
+@miniros/sdk:test: cache bypass, force executing 3dfd6f1b30e63e18
+@miniros/e2e:test: cache bypass, force executing 04d2141f47f98349
+@miniros/e2e:test: 
+@miniros/e2e:test: > @miniros/e2e@0.1.0 test /Users/emsi/Documents/ChatGPT/MINIROS/miniros/apps/e2e
+@miniros/e2e:test: > vitest run
+@miniros/e2e:test: 
+@miniros/mobile:test: 
+@miniros/mobile:test: > @miniros/mobile@0.1.0 test /Users/emsi/Documents/ChatGPT/MINIROS/miniros/apps/mobile
+@miniros/mobile:test: > vitest run
+@miniros/mobile:test: 
+@miniros/sdk:test: 
+@miniros/sdk:test: > @miniros/sdk@0.1.0 test /Users/emsi/Documents/ChatGPT/MINIROS/miniros/packages/sdk
+@miniros/sdk:test: > echo No sdk tests yet
+@miniros/sdk:test: 
+@miniros/api:test: 
+@miniros/api:test: > @miniros/api@0.1.0 test /Users/emsi/Documents/ChatGPT/MINIROS/miniros/apps/api
+@miniros/api:test: > echo No api tests yet
+@miniros/api:test: 
+@miniros/sdk:test: No sdk tests yet
+@miniros/api:test: No api tests yet
+@miniros/web:test: cache bypass, force executing c546e8102f6a9c6e
+@miniros/agent:test: cache bypass, force executing 27eb560436bd89f5
+@miniros/e2e:test: (!) Your Vite config uses features that are unsupported by `configLoader: 'native'`, which is planned to become the default in a future major version of Vite:
+@miniros/e2e:test:   - ESM syntax in a file loaded as CommonJS (vitest.config.ts:1:1). Use a `.mjs` extension or set `"type": "module"` in the closest package.json
+@miniros/e2e:test: Set `VITE_CONFIG_NATIVE_IGNORE_WARNING=true` to suppress this warning.
+@miniros/mobile:test: 
+@miniros/mobile:test:  RUN  v4.1.11 /Users/emsi/Documents/ChatGPT/MINIROS/miniros/apps/mobile
+@miniros/mobile:test: 
+@miniros/e2e:test: 
+@miniros/e2e:test:  RUN  v4.1.11 /Users/emsi/Documents/ChatGPT/MINIROS/miniros/apps/e2e
+@miniros/e2e:test: 
+@miniros/agent:test: 
+@miniros/agent:test: > @miniros/agent@0.1.0 test /Users/emsi/Documents/ChatGPT/MINIROS/miniros/apps/agent
+@miniros/agent:test: > echo No agent tests yet
+@miniros/agent:test: 
+@miniros/web:test: 
+@miniros/web:test: > @miniros/web@0.1.0 test /Users/emsi/Documents/ChatGPT/MINIROS/miniros/apps/web
+@miniros/web:test: > vitest run
+@miniros/web:test: 
+@miniros/agent:test: No agent tests yet
+@miniros/mobile:test:  ✓ tests/ep02-review/protocol-review.test.ts (36 tests) 19ms
+@miniros/e2e:test:  ✓ ../web/src/test/service-worker.test.ts (6 tests) 43ms
+@miniros/mobile:test:  ✓ tests/ep02-review/store-review.test.ts (18 tests) 162ms
+@miniros/web:test: (!) Your Vite config uses features that are unsupported by `configLoader: 'native'`, which is planned to become the default in a future major version of Vite:
+@miniros/web:test:   - ESM syntax in a file loaded as CommonJS (vitest.config.ts:1:1). Use a `.mjs` extension or set `"type": "module"` in the closest package.json
+@miniros/web:test: Set `VITE_CONFIG_NATIVE_IGNORE_WARNING=true` to suppress this warning.
+@miniros/e2e:test:  ✓ src/production-http.test.ts (4 tests) 419ms
+@miniros/web:test: 
+@miniros/web:test:  RUN  v4.1.11 /Users/emsi/Documents/ChatGPT/MINIROS/miniros/apps/web
+@miniros/web:test: 
+@miniros/mobile:test:  ✓ tests/ep04-review/connection-review.test.ts (5 tests) 926ms
+@miniros/mobile:test:      ✓ serializes two real connections while allowing the coordinator to release the first write lock  338ms
+@miniros/e2e:test:  ✓ ../web/src/lib/offline/store.test.ts (8 tests) 157ms
+@miniros/mobile:test:  ✓ tests/ep02-review/session-review.test.ts (15 tests) 1153ms
+@miniros/mobile:test:      ✓ automatically retries a 300-message backlog in bounded batches using controlled timers, then cancels timers on stop  876ms
+@miniros/mobile:test:  ✓ tests/ep04-review/crash-review.test.ts (2 tests) 1159ms
+@miniros/mobile:test:      ✓ EP04-T01 SIGKILL at before-commit recovers an absent or complete sale with original retry receipt  828ms
+@miniros/mobile:test:      ✓ EP04-T01 SIGKILL at after-commit recovers an absent or complete sale with original retry receipt  331ms
+@miniros/mobile:test:  ✓ tests/ep04/persistence.test.ts (26 tests) 1909ms
+@miniros/mobile:test:      ✓ EP04-T01 survives real process SIGKILL before-commit and reopens the actual file  402ms
+@miniros/mobile:test:      ✓ EP04-T04 recovers counted, zero and uncounted drafts after failed autosave and real SIGKILL  415ms
+@miniros/web:test:  ✓ src/lib/offline/device-status.test.ts (11 tests) 148ms
+@miniros/web:test:  ✓ src/lib/schedule.test.ts (4 tests) 24ms
+@miniros/mobile:test:  ✓ tests/ep04-review/repository-review.test.ts (21 tests) 2467ms
+@miniros/mobile:test:      ✓ EP04-T01/T02 rolls back every record at tenders and permits exact retry after reopen  341ms
+@miniros/mobile:test: 
+@miniros/mobile:test:  Test Files  7 passed (7)
+@miniros/mobile:test:       Tests  123 passed (123)
+@miniros/mobile:test:    Start at  22:57:43
+@miniros/mobile:test:    Duration  2.92s (transform 778ms, setup 0ms, import 1.17s, tests 7.80s, environment 1ms)
+@miniros/mobile:test: 
+@miniros/web:test:  ✓ src/lib/offline/sync.test.ts (2 tests) 58ms
+@miniros/web:test:  ✓ src/server/services/admin-shift-workflows.db.test.ts (8 tests) 747ms
+@miniros/web:test:      ✓ locks against a concurrent shift start and rejects the stale admin edit after it starts  351ms
+@miniros/web:test:  ✓ src/lib/offline/store.test.ts (8 tests) 222ms
+@miniros/web:test:  ✓ src/test/native-v2-review/legacy-review.test.ts (6 tests) 832ms
+@miniros/web:test:      ✓ EP05-T06 replays supported v1 operations with frozen prices and historic fraction rounding after additive migration  436ms
+@miniros/web:test:  ✓ src/server/services/schedule.db.test.ts (13 tests) 1129ms
+@miniros/web:test:  ✓ src/test/service-worker.test.ts (6 tests) 91ms
+@miniros/web:test:  ✓ pwa/sw.test.ts (3 tests) 135ms
+@miniros/web:test:  ✓ src/lib/supabase/data-access-boundary.test.ts (1 test) 45ms
+@miniros/web:test: EP05-T07 simultaneous PostgreSQL backend PIDs: 64829, 64823; distinct: true
+@miniros/web:test:  ✓ src/test/native-v2-review/ingestion-review.test.ts (14 tests) 1350ms
+@miniros/web:test:  ✓ src/lib/offline/opening-draft.test.ts (5 tests) 332ms
+@miniros/web:test:  ✓ src/lib/inventory-forms.test.ts (6 tests) 22ms
+@miniros/web:test:  ✓ src/lib/offline/app-update.test.ts (4 tests) 28ms
+@miniros/web:test:  ✓ src/test/v2-golden-integration.test.ts (1 test) 1530ms
+@miniros/web:test:      ✓ saves the whole shift offline, restarts, then drains cloud with original receipts and independent peer/media queues  1523ms
+@miniros/web:test:  ✓ src/test/native-v2/http.test.ts (2 tests) 43ms
+@miniros/web:test:  ✓ src/app/api/offline/proof/route.test.ts (3 tests) 80ms
+@miniros/web:test:  ✓ src/test/native-v2/backend.db.test.ts (12 tests) 1664ms
+@miniros/web:test:      ✓ independent shift requests and prep commands remain durable while another shift has a gap  326ms
+@miniros/web:test:  ✓ src/server/services/offline-http.test.ts (6 tests) 52ms
+@miniros/web:test:  ✓ src/features/offline/application-providers.test.ts (1 test) 7ms
+@miniros/web:test:  ✓ src/lib/offline/workspace-route.test.ts (4 tests) 3ms
+@miniros/web:test:  ✓ src/components/employee/shift-presentation.test.ts (5 tests) 16ms
+@miniros/web:test:  ✓ src/app/admin/approvals/page.test.ts (3 tests) 20ms
+@miniros/web:test:  ✓ src/features/offline/pwa-provider.test.ts (3 tests) 9ms
+@miniros/web:test:  ✓ src/test/native-v2-review/http-review.test.ts (4 tests) 22ms
+@miniros/web:test:  ✓ src/app/(workspace)/pos/pos-checkout.test.ts (10 tests) 8ms
+@miniros/web:test:  ✓ src/test/isolation-guard.test.ts (7 tests) 23ms
+@miniros/web:test:  ✓ src/lib/offline/prepare.test.ts (5 tests) 6ms
+@miniros/web:test:  ✓ src/lib/numeric-expression.test.ts (4 tests) 3ms
+@miniros/web:test:  ✓ src/server/services/operator-workspace-core.test.ts (2 tests) 1ms
+@miniros/web:test:  ✓ src/app/admin/_components/shift-assignment-utils.test.ts (4 tests) 6ms
+@miniros/web:test:  ✓ src/components/employee/count-model.test.ts (3 tests) 3ms
+@miniros/web:test:  ✓ src/lib/development-skeleton.test.ts (1 test) 2ms
+@miniros/web:test:  ✓ src/server/services/offline-admin-access.test.ts (7 tests) 5ms
+@miniros/web:test:  ✓ src/lib/shift-planning.test.ts (15 tests) 11ms
+@miniros/web:test:  ✓ src/server/services/inventory-workspace.db.test.ts (5 tests) 2884ms
+@miniros/web:test:  ✓ src/app/admin/_components/shift-date-utils.test.ts (5 tests) 7ms
+@miniros/web:test:  ✓ src/server/services/security-boundaries.db.test.ts (3 tests) 3335ms
+@miniros/web:test:      ✓ closes direct tenant-reference poisoning and legacy proof writes while retaining linked reads  393ms
+@miniros/web:test: 
+@miniros/web:test:  Test Files  38 passed (38)
+@miniros/web:test:       Tests  206 passed (206)
+@miniros/web:test:    Start at  22:57:44
+@miniros/web:test:    Duration  5.20s (transform 4.11s, setup 0ms, import 18.34s, tests 14.90s, environment 3ms)
+@miniros/web:test: 
+@miniros/e2e:test:  ✓ src/offline-workflow.test.ts (27 tests) 3933ms
+@miniros/e2e:test: 
+@miniros/e2e:test:  Test Files  4 passed (4)
+@miniros/e2e:test:       Tests  45 passed (45)
+@miniros/e2e:test:    Start at  22:57:43
+@miniros/e2e:test:    Duration  6.52s (transform 1.64s, setup 0ms, import 3.53s, tests 4.55s, environment 0ms)
+@miniros/e2e:test: 
+
+ Tasks:    11 successful, 11 total
+Cached:    0 cached, 11 total
+  Time:    8.758s 
+

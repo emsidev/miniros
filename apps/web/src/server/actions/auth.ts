@@ -1,5 +1,4 @@
 "use server";
-import { assertDeviceCanLeave } from "../services/offline-context";
 
 import { actionFailure, actionSuccess } from "@miniros/contracts";
 import { cookies } from "next/headers";
@@ -82,8 +81,6 @@ export async function loginAction(input: unknown) {
 
 export async function logoutAction() {
   try {
-    const { requireUser } = await import("../services/access");
-    await assertDeviceCanLeave((await requireUser()).id);
     const supabase = await createClient();
     const { error } = await supabase.auth.signOut();
 

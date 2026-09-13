@@ -11,6 +11,7 @@ dist
 .env
 .env*.local
 *.log
+!docs/miniros-v2/evidence/ep0[2-5]-*.log
 .DS_Store
 coverage
 .vercel
@@ -21,3 +22,7 @@ supabase/.temp
 # Generated after the production build
 apps/web/public/sw.js
 apps/web/public/pwa-assets.json
+
+# Expo-generated native projects; source module and config plugin remain tracked.
+/apps/mobile/android/
+/apps/mobile/ios/

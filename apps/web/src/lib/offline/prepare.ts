@@ -24,7 +24,7 @@ async function prepare(shiftId: string) {
       "Content-Type": "application/json",
       "x-miniros-storage": storageId,
     },
-    body: JSON.stringify({ shiftId }),
+    body: JSON.stringify({ shiftId, contractVersion: 2 }),
   });
   const session = (await response.json()) as PreparedShift & { error?: string };
   if (!response.ok)

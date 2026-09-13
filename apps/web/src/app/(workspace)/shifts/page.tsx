@@ -1,3 +1,4 @@
+import { SelectedShiftLanding } from "@/components/employee/selected-shift-landing";
 import Link from "next/link";
 import { CalendarDays } from "lucide-react";
 import { Button } from "@/components/ui/button";
@@ -13,13 +14,23 @@ import { ShiftList } from "../_components/shift-list";
 
 export const dynamic = "force-dynamic";
 
-export default async function ShiftsPage() {
-  const { employee } = await requireActiveBusiness();
+export default async function ShiftsPage({
+  searchParams,
+}: {
+  searchParams: Promise<{ all?: string }>;
+}) {
+  const { all } = await searchParams;
+  const { employee, business, user } = await requireActiveBusiness();
   if (isProductionOnlyEmployee(employee)) redirect("/production");
   const shifts = await listAssignedShifts();
 
   return (
     <>
+      <SelectedShiftLanding
+        identityKey={`${business.id}:${user.id}`}
+        shifts={shifts}
+        showAll={all === "1"}
+      />
       <PageHeader
         title="My shifts"
         description="Your assignments, your next action, and the day’s results."

@@ -55,6 +55,10 @@ export const startShiftSchema = z
     notes: nullableText(2_000),
   })
   .strict();
+export const startShiftWithCashSchema = startShiftSchema.extend({
+  openingCashCents: centsSchema,
+});
+
 export const saleSchema = z
   .object({
     saleId: uuidSchema,

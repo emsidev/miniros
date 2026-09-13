@@ -5,7 +5,7 @@ import { useRouter } from "next/navigation";
 import { LogOut } from "lucide-react";
 import { toast } from "sonner";
 import { Button } from "@/components/ui/button";
-import { guardLocalExit, clearLocalAccount } from "@/lib/offline/store";
+import { clearSavedCheckouts, guardSavedCheckoutExit } from "@/lib/pos-drafts";
 import { logoutAction } from "@/server/actions/auth";
 
 export function LogoutButton() {
@@ -15,7 +15,7 @@ export function LogoutButton() {
   function handleLogout() {
     startTransition(async () => {
       try {
-        await guardLocalExit();
+        await guardSavedCheckoutExit();
       } catch (error) {
         toast.error(
           error instanceof Error ? error.message : "Finish pending work first.",
@@ -29,7 +29,7 @@ export function LogoutButton() {
         return;
       }
 
-      await clearLocalAccount();
+      await clearSavedCheckouts();
       router.replace("/login");
       router.refresh();
     });

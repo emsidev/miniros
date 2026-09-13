@@ -10,7 +10,8 @@
     "./actions": "./src/actions.ts",
     "./constants": "./src/constants.ts",
     "./health": "./src/health.ts",
-    "./workflows": "./src/workflows.ts"
+    "./workflows": "./src/workflows.ts",
+    "./v2": "./src/v2.ts"
   },
   "scripts": {
     "build": "tsdown src/index.ts --format esm --no-fixed-extension --target es2022 --dts --out-dir dist --clean",

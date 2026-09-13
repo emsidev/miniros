@@ -28,12 +28,20 @@ export type StartShiftInput = {
     quantity: number | string;
   }[];
   notes?: string | null;
+  openingCashCents?: number;
 };
 
 export async function startAssignedShift(
   input: StartShiftInput,
   prepared?: PreparedOperationContext,
 ) {
+  if (
+    !Number.isSafeInteger(input.openingCashCents ?? 0) ||
+    (input.openingCashCents ?? 0) < 0 ||
+    (prepared?.snapshot.schemaVersion === 2 &&
+      input.openingCashCents === undefined)
+  )
+    throw new AccessError("Enter opening cash, including explicit zero.");
   const access = await requireActiveBusiness({
     employeePermission: "pos",
     assignedShiftId: input.shiftId,
@@ -221,6 +229,7 @@ export async function startAssignedShift(
         .set({
           status: "active",
           actualStartAt: startedAt,
+          openingCashCents: input.openingCashCents ?? 0,
           startedBy: access.employee.id,
           updatedAt: startedAt,
         })

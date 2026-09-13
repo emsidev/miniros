@@ -1,3 +1,4 @@
+import { retryLegacyEvidence } from "./legacy-evidence";
 import {
   offlineEnvelopeSchema,
   type PreparedShift,
@@ -76,6 +77,8 @@ export function synchronizePreparedShifts() {
   running ??= synchronize().finally(() => {
     running = undefined;
     offlineChanged();
+    // Never hold the financial queue behind a slow or failed attachment.
+    void synchronizeEvidence().catch(() => {});
   });
   return running;
 }
@@ -118,51 +121,6 @@ async function synchronize() {
       });
       offlineChanged();
       try {
-        // Upload already-acknowledged sale proofs before attempting its closeout barrier.
-        const uploadProofs = async () => {
-          for (const proof of await db.proofs
-            .where("sessionId")
-            .equals(session.id)
-            .filter((p) => p.synced === 0)
-            .toArray()) {
-            const sale = actions.find(
-              (a) =>
-                a.operation.type === "CREATE_SALE" &&
-                (a.operation.proofs.some((p) => p.fileId === proof.id) ||
-                  a.operation.discountProof?.fileId === proof.id),
-            );
-            if (
-              !sale ||
-              (await db.shiftActions.get(sale.id))?.status !== "synced"
-            )
-              continue;
-            await renew();
-            const form = new FormData();
-            if (proof.saleId) form.set("saleId", proof.saleId);
-            else form.set("paymentId", proof.paymentId!);
-            form.set("fileId", proof.id);
-            const declared =
-              sale.operation.type === "CREATE_SALE"
-                ? proof.saleId
-                  ? sale.operation.discountProof
-                  : sale.operation.proofs.find((p) => p.fileId === proof.id)
-                : undefined;
-            form.set("file", proof.file, declared?.name ?? proof.file.name);
-            try {
-              await request("/api/offline/proof", {
-                method: "POST",
-                body: form,
-              });
-              await db.proofs.update(proof.id, { synced: 1, error: undefined });
-            } catch (error) {
-              await db.proofs.update(proof.id, {
-                error: error instanceof Error ? error.message : "Upload failed",
-              });
-              throw error;
-            }
-          }
-        };
-        await uploadProofs();
         for (const action of actions) {
           if (action.status === "synced") continue;
           await renew();
@@ -195,7 +153,6 @@ async function synchronize() {
               syncCode: undefined,
             });
           });
-          await uploadProofs();
           offlineChanged();
         }
         await db.sessions.update(session.id, {
@@ -227,6 +184,111 @@ async function synchronize() {
       const lease = (await db.meta.get("syncLease"))?.value as
         { id: string } | undefined;
       if (lease?.id === leaseId) await db.meta.delete("syncLease");
+    });
+  }
+}
+
+let evidenceRunning: Promise<void> | undefined;
+export function synchronizeEvidence() {
+  evidenceRunning ??= uploadEvidence().finally(() => {
+    evidenceRunning = undefined;
+    offlineChanged();
+  });
+  return evidenceRunning;
+}
+
+async function uploadEvidence() {
+  if (!navigator.onLine) return;
+  const db = shiftStore();
+  const leaseId = crypto.randomUUID();
+  const claimed = await db.transaction("rw", db.meta, async () => {
+    const lease = (await db.meta.get("evidenceSyncLease"))?.value as
+      { expires: number } | undefined;
+    if (lease && lease.expires > Date.now()) return false;
+    await db.meta.put({
+      id: "evidenceSyncLease",
+      value: { id: leaseId, expires: Date.now() + 60000 },
+    });
+    return true;
+  });
+  if (!claimed) return;
+  try {
+    const identity = await refreshOfflineIdentity();
+    for (const session of await visibleSessions()) {
+      if (
+        ["recovery", "released"].includes(session.status) ||
+        session.syncCode === "CONFLICT"
+      )
+        continue;
+      const actions = await db.shiftActions
+        .where("sessionId")
+        .equals(session.id)
+        .sortBy("sequence");
+      for (const proof of await db.proofs
+        .where("sessionId")
+        .equals(session.id)
+        .filter((p) => p.synced === 0)
+        .toArray()) {
+        const sale = actions.find(
+          (a) =>
+            a.operation.type === "CREATE_SALE" &&
+            (a.operation.proofs.some((p) => p.fileId === proof.id) ||
+              a.operation.discountProof?.fileId === proof.id),
+        );
+        if (!sale || (await db.shiftActions.get(sale.id))?.status !== "synced")
+          continue;
+        await db.meta.put({
+          id: "evidenceSyncLease",
+          value: { id: leaseId, expires: Date.now() + 60000 },
+        });
+        const current = await cachedIdentity();
+        if (
+          current?.userId !== identity.userId ||
+          current.businessId !== identity.businessId
+        )
+          return;
+        const form = new FormData();
+        if (proof.saleId) form.set("saleId", proof.saleId);
+        else form.set("paymentId", proof.paymentId!);
+        form.set("fileId", proof.id);
+        const declared =
+          sale.operation.type === "CREATE_SALE"
+            ? proof.saleId
+              ? sale.operation.discountProof
+              : sale.operation.proofs.find((p) => p.fileId === proof.id)
+            : undefined;
+        form.set("file", proof.file, declared?.name ?? proof.file.name);
+        try {
+          await request("/api/offline/proof", {
+            method: "POST",
+            body: form,
+          });
+          await db.proofs.update(proof.id, { synced: 1, error: undefined });
+        } catch (error) {
+          await db.proofs.update(proof.id, {
+            error: error instanceof Error ? error.message : "Upload failed",
+          });
+          if ((error as { code?: string }).code === "AUTH") throw error;
+          // Evidence retries are independent. A failed photo must not stop later sales.
+        }
+      }
+    }
+    await retryLegacyEvidence();
+  } catch (error) {
+    if ((error as { code?: string }).code === "AUTH") {
+      for (const session of await visibleSessions())
+        await db.sessions.update(session.id, {
+          syncCode: "AUTH",
+          syncError:
+            error instanceof Error ? error.message : "Sign in again to upload.",
+        });
+      await db.meta.delete("identity");
+    }
+  } finally {
+    await db.transaction("rw", db.meta, async () => {
+      const lease = (await db.meta.get("evidenceSyncLease"))?.value as
+        { id: string } | undefined;
+      if (lease?.id === leaseId) await db.meta.delete("evidenceSyncLease");
     });
   }
 }

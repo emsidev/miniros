@@ -1,3 +1,4 @@
+import Link from "next/link";
 import { AdminTable } from "@/components/shared/admin-table";
 import {
   TableBody,
@@ -45,11 +46,35 @@ export default async function ProductsPage() {
   return (
     <>
       <PageHeader
-        title="Products"
+        title="Catalog"
         description="Set the products your operators can sell and the costs used for profit."
         action={products.length > 0 ? createAction : undefined}
       />
 
+      <nav
+        aria-label="Catalog tools"
+        className="mb-6 flex flex-wrap gap-3 border-y py-3"
+      >
+        {[
+          ["/admin/products/categories", "Categories"],
+          ["/admin/inventory/items", "Stock items"],
+          ["/admin/inventory/stock", "Stock movements"],
+          ...(business.features.recipesEnabled
+            ? [["/admin/inventory/recipes", "Recipes · optional"]]
+            : []),
+          ...(business.features.promosEnabled
+            ? [["/admin/promos", "Discounts"]]
+            : []),
+        ].map(([href, label]) => (
+          <Link
+            className="inline-flex min-h-12 items-center px-3 text-sm font-semibold hover:underline"
+            key={href}
+            href={href!}
+          >
+            {label}
+          </Link>
+        ))}
+      </nav>
       {products.length === 0 ? (
         <EmptyState
           title="No products yet"
@@ -119,7 +144,11 @@ export default async function ProductsPage() {
                       ? "Available in POS"
                       : "Hidden from POS"}
                   </Badge>
-                  {product.inventoryMode === "produced" ? (
+                  {product.inventoryMode === "stock" ? (
+                    <p className="mt-2 text-muted-foreground">
+                      Simple stock · one unit per sale
+                    </p>
+                  ) : product.inventoryMode === "produced" ? (
                     <p className="mt-2 text-muted-foreground">
                       Produced stock: {product.outputInventoryItemName}
                     </p>

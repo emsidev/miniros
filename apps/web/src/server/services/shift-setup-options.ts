@@ -1,3 +1,4 @@
+import { requireActiveBusiness } from "./access";
 import { listEmployees } from "./employees";
 import { listLocations } from "./locations";
 import type { getAdminShift } from "./admin-shifts";
@@ -5,6 +6,7 @@ import type { getAdminShift } from "./admin-shifts";
 export async function getShiftSetupOptions(
   shift?: Awaited<ReturnType<typeof getAdminShift>>,
 ) {
+  const access = await requireActiveBusiness({ admin: true });
   const [locations, employees] = await Promise.all([
     listLocations(),
     listEmployees(),
@@ -46,5 +48,10 @@ export async function getShiftSetupOptions(
         available: false,
       });
   });
-  return { locations: locationOptions, employees: employeeOptions };
+  return {
+    locations: locationOptions,
+    employees: employeeOptions,
+    canSellMyself: access.membership.role === "owner",
+    selfEmployeeId: access.employee?.id ?? null,
+  };
 }

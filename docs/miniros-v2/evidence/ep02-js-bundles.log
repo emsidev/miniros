@@ -1,0 +1,36 @@
+Using src/app as the root directory for Expo Router.
+Expo Autolinking module resolution enabled
+Starting Metro Bundler
+
+| (node:56245) Warning: The 'NO_COLOR' env is ignored due to the 'FORCE_COLOR' env being set.
+| (Use `node --trace-warnings ...` to show where the warning was created)
+| (node:56245) Warning: The 'NO_COLOR' env is ignored due to the 'FORCE_COLOR' env being set.
+| (Use `node --trace-warnings ...` to show where the warning was created)
+| (node:56245) Warning: The 'NO_COLOR' env is ignored due to the 'FORCE_COLOR' env being set.
+| (Use `node --trace-warnings ...` to show where the warning was created)
+| (node:56245) Warning: The 'NO_COLOR' env is ignored due to the 'FORCE_COLOR' env being set.
+| (Use `node --trace-warnings ...` to show where the warning was created)
+| (node:56245) Warning: The 'NO_COLOR' env is ignored due to the 'FORCE_COLOR' env being set.
+| (Use `node --trace-warnings ...` to show where the warning was created)
+| (node:56245) Warning: The 'NO_COLOR' env is ignored due to the 'FORCE_COLOR' env being set.
+| (Use `node --trace-warnings ...` to show where the warning was created)
+| (node:56245) Warning: The 'NO_COLOR' env is ignored due to the 'FORCE_COLOR' env being set.
+| (Use `node --trace-warnings ...` to show where the warning was created)
+Web Bundled 1740ms apps/mobile/index.js (227 modules)
+Android Bundled 3660ms apps/mobile/index.js (617 modules)
+iOS Bundled 5453ms apps/mobile/index.js (652 modules)
+
+› web bundles (1):
+_expo/static/js/web/index-17f6ba1f510d0419e4098433ffd7750d.js (415KB)
+
+› android bundles (1):
+_expo/static/js/android/index-1caa4a98169e5ebb0a5ac281fa99f95f.hbc (1.7MB)
+
+› ios bundles (1):
+_expo/static/js/ios/index-0d544ed5b9e396cd5944c369f5f4657f.hbc (1.7MB)
+
+› Files (2):
+index.html (1.2KB)
+metadata.json (244B)
+
+Exported: /tmp/miniros-ep02-export

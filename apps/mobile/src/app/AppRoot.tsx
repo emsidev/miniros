@@ -2,8 +2,16 @@ import { StatusBar } from "expo-status-bar";
 import { ScrollView, Text, View } from "react-native";
 import { workflowCatalog } from "@miniros/domain";
 import { brandIdentity, brandTokens, heroCopy } from "@miniros/ui";
+import { PeerSpikeScreen } from "../ep02/PeerSpikeScreen";
+
+declare const process: {
+  env: { EXPO_PUBLIC_MINIROS_EP02_SPIKE?: string };
+};
 
 export function AppRoot() {
+  if (process.env.EXPO_PUBLIC_MINIROS_EP02_SPIKE === "1") {
+    return <PeerSpikeScreen />;
+  }
   return (
     <ScrollView
       style={{ flex: 1, backgroundColor: brandTokens.colors.canvas }}
@@ -38,7 +46,7 @@ export function AppRoot() {
           <Text
             style={{
               color: brandTokens.colors.mutedForeground,
-              fontSize: 12,
+              fontSize: 14,
             }}
           >
             {heroCopy.eyebrow}
@@ -66,6 +74,8 @@ export function AppRoot() {
       {workflowCatalog.map((workflow) => (
         <View
           key={workflow.id}
+          accessible
+          accessibilityLabel={`${workflow.label}. ${workflow.owner}. ${workflow.ruleModules.join(", ")}`}
           style={{
             borderRadius: 14,
             padding: 16,
@@ -74,18 +84,26 @@ export function AppRoot() {
             borderColor: brandTokens.colors.border,
           }}
         >
-          <Text style={{ color: brandTokens.colors.ink, fontWeight: "700" }}>
-            {workflow.owner}
-          </Text>
+          {/* label names the task; owner names its category, not its title. */}
           <Text
+            accessibilityRole="header"
             style={{
-              marginTop: 6,
-              fontSize: 18,
+              fontSize: 20,
               fontWeight: "700",
               color: brandTokens.colors.ink,
             }}
           >
             {workflow.label}
+          </Text>
+          <Text
+            style={{
+              marginTop: 6,
+              fontSize: 14,
+              fontWeight: "600",
+              color: brandTokens.colors.mutedForeground,
+            }}
+          >
+            {workflow.owner}
           </Text>
           <Text
             style={{

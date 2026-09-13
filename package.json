@@ -12,6 +12,7 @@
     "test": "turbo run test",
     "e2e": "pnpm --filter @miniros/e2e test",
     "db:generate": "drizzle-kit generate --config ./drizzle.config.ts",
+    "db:check": "tsx scripts/db/check.mts",
     "db:migrate": "supabase db push",
     "db:migrate:local": "supabase migration up --local",
     "db:studio": "drizzle-kit studio --config ./drizzle.config.ts",

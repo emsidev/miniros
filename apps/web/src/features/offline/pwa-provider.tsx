@@ -2,6 +2,7 @@
 import { useEffect } from "react";
 import { captureInstallPrompt } from "@/lib/offline/install-prompt";
 import { synchronizePreparedShifts } from "@/lib/offline/sync";
+import { pendingLegacyEvidence } from "@/lib/offline/legacy-evidence";
 import { visibleSessions } from "@/lib/offline/store";
 
 export function PwaProvider() {
@@ -41,7 +42,8 @@ export function PwaProvider() {
       try {
         if (
           document.visibilityState === "visible" &&
-          (await visibleSessions()).length
+          ((await visibleSessions()).length ||
+            (await pendingLegacyEvidence()).length)
         ) {
           await synchronizePreparedShifts();
         }

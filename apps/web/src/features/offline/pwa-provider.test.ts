@@ -4,6 +4,7 @@ const mocks = vi.hoisted(() => ({
   effect: undefined as undefined | (() => () => void),
   visibleSessions: vi.fn(),
   synchronize: vi.fn(),
+  pendingEvidence: vi.fn(),
 }));
 vi.mock("react", () => ({
   useEffect: (effect: () => () => void) => {
@@ -15,6 +16,9 @@ vi.mock("@/lib/offline/store", () => ({
 }));
 vi.mock("@/lib/offline/sync", () => ({
   synchronizePreparedShifts: mocks.synchronize,
+}));
+vi.mock("@/lib/offline/legacy-evidence", () => ({
+  pendingLegacyEvidence: mocks.pendingEvidence,
 }));
 vi.mock("@/lib/offline/install-prompt", () => ({
   captureInstallPrompt: vi.fn(),
@@ -32,6 +36,7 @@ beforeEach(() => {
   vi.stubGlobal("navigator", {});
   mocks.visibleSessions.mockReset().mockResolvedValue([{ id: "prepared" }]);
   mocks.synchronize.mockReset().mockResolvedValue(undefined);
+  mocks.pendingEvidence.mockReset().mockResolvedValue([]);
   PwaProvider();
 });
 afterEach(() => {
@@ -80,4 +85,14 @@ it("keeps one polling loop when resume events overlap an in-flight sync", async 
   await vi.advanceTimersByTimeAsync(30_000);
   expect(mocks.synchronize).toHaveBeenCalledTimes(2);
   expect(vi.getTimerCount()).toBe(1);
+});
+
+it("retries older attachments without a prepared shift", async () => {
+  mocks.visibleSessions.mockResolvedValue([]);
+  mocks.pendingEvidence.mockResolvedValue([{ id: "older-photo" }]);
+  cleanup = mocks.effect!();
+  await vi.advanceTimersByTimeAsync(0);
+  expect(mocks.synchronize).toHaveBeenCalledTimes(1);
+  await vi.advanceTimersByTimeAsync(30_000);
+  expect(mocks.synchronize).toHaveBeenCalledTimes(2);
 });

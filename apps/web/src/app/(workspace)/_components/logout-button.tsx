@@ -5,7 +5,7 @@ import { useRouter } from "next/navigation";
 import { LogOut } from "lucide-react";
 
 import { Button } from "@/components/ui/button";
-import { guardLocalExit, clearLocalAccount } from "@/lib/offline/store";
+import { clearSavedCheckouts, guardSavedCheckoutExit } from "@/lib/pos-drafts";
 import { logoutAction } from "@/server/actions/auth";
 
 export function LogoutButton() {
@@ -24,7 +24,7 @@ export function LogoutButton() {
           setError(undefined);
           startTransition(async () => {
             try {
-              await guardLocalExit();
+              await guardSavedCheckoutExit();
             } catch (error) {
               setError(
                 error instanceof Error
@@ -38,7 +38,7 @@ export function LogoutButton() {
               setError(result.error);
               return;
             }
-            await clearLocalAccount();
+            await clearSavedCheckouts();
             router.replace("/login");
             router.refresh();
           });

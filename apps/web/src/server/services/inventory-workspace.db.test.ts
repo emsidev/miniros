@@ -65,6 +65,8 @@ beforeAll(async () => {
     "20260902080000_automatic_recipe_unit_cost",
     "20260905022136_shift_draft_statuses",
     "20260905040950_offline_shift_sessions",
+    "20260907143003_native_v2_persistence",
+    "20260912114907_bored_malcolm_colcord",
   ]) {
     await pg.exec(
       readFileSync(
