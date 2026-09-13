@@ -122,9 +122,15 @@ importers:
       '@miniros/domain':
         specifier: workspace:*
         version: link:../../packages/domain
+      '@playwright/test':
+        specifier: ^1.63.0
+        version: 1.63.0
       drizzle-orm:
         specifier: ^0.45.2
         version: 0.45.2(@electric-sql/pglite@0.3.16)(expo-sqlite@57.0.2(expo@57.0.20)(react-native@0.86.3(@babel/core@7.29.7)(@types/react@19.2.17)(react@19.2.7))(react@19.2.7))(postgres@3.4.9)
+      esbuild:
+        specifier: 0.28.1
+        version: 0.28.1
       fake-indexeddb:
         specifier: ^6.2.4
         version: 6.2.5
@@ -246,7 +252,7 @@ importers:
         version: 1.35.0(react@19.2.7)
       next:
         specifier: 15.5.25
-        version: 15.5.25(@babel/core@7.29.7)(@types/node@22.20.0)(babel-plugin-react-compiler@1.0.0)(react-dom@19.2.7(react@19.2.7))(react@19.2.7)
+        version: 15.5.25(@babel/core@7.29.7)(@playwright/test@1.63.0)(@types/node@22.20.0)(babel-plugin-react-compiler@1.0.0)(react-dom@19.2.7(react@19.2.7))(react@19.2.7)
       next-themes:
         specifier: ^0.4.6
         version: 0.4.6(react-dom@19.2.7(react@19.2.7))(react@19.2.7)
@@ -1896,6 +1902,11 @@ packages:
 
   '@oxc-project/types@0.148.0':
     resolution: {integrity: sha512-Nm4s/jB+4FpFsPhWGEC4h7rzksesmtnMXomo6rCMcg/b8zLQuOziRgkCS1fxDCXOlJB/6Q8oABOZ/OP6RIPj9A==}
+
+  '@playwright/test@1.63.0':
+    resolution: {integrity: sha512-oxMK4vllB9RK5NQ2l1pq1IfOf2AvnEuj/vYGDj0H2nMtmtZpKtCwt/l00GEO6xjGfpBNAvjovvYdCm50dRQkpQ==}
+    engines: {node: '>=20'}
+    hasBin: true
 
   '@quansync/fs@1.0.0':
     resolution: {integrity: sha512-4TJ3DFtlf1L5LDMaM6CanJ/0lckGNtJcMjQ1NAV6zDmA0tEHKZtxNKin8EgPaVX1YzljbxckyT2tJrpQKAtngQ==}
@@ -6271,6 +6282,16 @@ packages:
     resolution: {integrity: sha512-nDywThFk1i4BQK4twPQ6TA4RT8bDY96yeuCVBWL3ePARCiEKDRSrNGbFIgUJpLp+XeIR65v8ra7WuJOFUBtkMA==}
     engines: {node: '>=8'}
 
+  playwright-core@1.63.0:
+    resolution: {integrity: sha512-rYCsBF/M5HjUch52bbtVONEFjv6Xu8sm8h72dNlR5bzIE1fvC/bxgspzkjSfU+MweEMmPM8KJebG6nnyxo5mCg==}
+    engines: {node: '>=20'}
+    hasBin: true
+
+  playwright@1.63.0:
+    resolution: {integrity: sha512-+7ziBLidS4NaNCdt57SUDT+wYmmd5fmiQejUic/kb+YsYSCPyOOE9sebzMjNmQrsnNpDJqd4WHvV/8lfKfUDUg==}
+    engines: {node: '>=20'}
+    hasBin: true
+
   plist@3.1.1:
     resolution: {integrity: sha512-ZIfcLJC+7E7FBFnDxm9MPmt7D+DidyQ26lewieO75AdhA2ayMtsJSES0iWzqJQbcVRSrTufQoy0DR94xHue0oA==}
     engines: {node: '>=10.4.0'}
@@ -9573,6 +9594,10 @@ snapshots:
   '@oslojs/encoding@1.1.0': {}
 
   '@oxc-project/types@0.148.0': {}
+
+  '@playwright/test@1.63.0':
+    dependencies:
+      playwright: 1.63.0
 
   '@quansync/fs@1.0.0':
     dependencies:
@@ -14138,7 +14163,7 @@ snapshots:
       react: 19.2.7
       react-dom: 19.2.7(react@19.2.7)
 
-  next@15.5.25(@babel/core@7.29.7)(@types/node@22.20.0)(babel-plugin-react-compiler@1.0.0)(react-dom@19.2.7(react@19.2.7))(react@19.2.7):
+  next@15.5.25(@babel/core@7.29.7)(@playwright/test@1.63.0)(@types/node@22.20.0)(babel-plugin-react-compiler@1.0.0)(react-dom@19.2.7(react@19.2.7))(react@19.2.7):
     dependencies:
       '@next/env': 15.5.25
       '@swc/helpers': 0.5.15
@@ -14156,6 +14181,7 @@ snapshots:
       '@next/swc-linux-x64-musl': 15.5.25
       '@next/swc-win32-arm64-msvc': 15.5.25
       '@next/swc-win32-x64-msvc': 15.5.25
+      '@playwright/test': 1.63.0
       babel-plugin-react-compiler: 1.0.0
       sharp: 0.35.4(@types/node@22.20.0)
     transitivePeerDependencies:
@@ -14463,6 +14489,12 @@ snapshots:
   pkg-up@3.1.0:
     dependencies:
       find-up: 3.0.0
+
+  playwright-core@1.63.0: {}
+
+  playwright@1.63.0:
+    dependencies:
+      playwright-core: 1.63.0
 
   plist@3.1.1:
     dependencies:

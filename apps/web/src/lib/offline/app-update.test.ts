@@ -44,6 +44,15 @@ describe("app updates preserve local work", () => {
     expect(await shiftStore().drafts.count()).toBe(1);
     expect(postMessage).not.toHaveBeenCalled();
   });
+  it("does not activate after its recovery deadline is cancelled", async () => {
+    const controller = new AbortController();
+    controller.abort(new Error("Recovery deadline"));
+    await expect(
+      activateAppUpdate(worker, false, controller.signal),
+    ).rejects.toThrow("Recovery deadline");
+    expect(postMessage).not.toHaveBeenCalled();
+    expect(addEventListener).not.toHaveBeenCalled();
+  });
   it("activates only after guarding work and reloads on the new controller", async () => {
     const reload = vi.fn();
     vi.stubGlobal("location", { reload });

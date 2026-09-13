@@ -35,6 +35,13 @@ function setup() {
   return { session, fetch };
 }
 describe("automatic preparation coordinator", () => {
+  it("does not hold a saved shift behind an unanswered persistence prompt", async () => {
+    const { session } = setup();
+    vi.stubGlobal("navigator", {
+      storage: { persist: () => new Promise(() => {}) },
+    });
+    expect(await prepareShiftOnDevice(session.snapshot.shiftId)).toBe(session);
+  });
   it("checks app files before reserving and deduplicates concurrent mounts", async () => {
     const { session, fetch } = setup();
     const first = prepareShiftOnDevice(session.snapshot.shiftId);
@@ -60,7 +67,10 @@ describe("automatic preparation coordinator", () => {
     mocks.save.mockRejectedValueOnce(new Error("Storage full"));
     await expect(
       prepareShiftOnDevice(session.snapshot.shiftId),
-    ).rejects.toThrow("Storage full");
+    ).rejects.toMatchObject({
+      code: "storage",
+      report: { error: "Storage full" },
+    });
     expect(await prepareShiftOnDevice(session.snapshot.shiftId)).toBe(session);
     expect(fetch).toHaveBeenCalledTimes(2);
   });
@@ -70,6 +80,19 @@ describe("automatic preparation coordinator", () => {
     await expect(
       prepareShiftOnDevice(session.snapshot.shiftId),
     ).rejects.toThrow("could not be saved");
+  });
+  it("rejects session readback from another installation", async () => {
+    const { session } = setup();
+    mocks.get.mockResolvedValue({
+      ...session,
+      snapshot: {
+        ...session.snapshot,
+        storageInstallationId: crypto.randomUUID(),
+      },
+    });
+    await expect(
+      prepareShiftOnDevice(session.snapshot.shiftId),
+    ).rejects.toMatchObject({ code: "storage" });
   });
   it("retries after a lost response without selecting another shift", async () => {
     const { session, fetch } = setup();

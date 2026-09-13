@@ -9,6 +9,7 @@ export async function middleware(request: NextRequest) {
       "/offline",
       "/sw.js",
       "/pwa-assets.json",
+      "/pwa-shell.html",
       "/manifest.webmanifest",
       "/install",
       "/sync",

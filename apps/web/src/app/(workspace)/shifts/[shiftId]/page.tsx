@@ -1,5 +1,4 @@
 import Link from "next/link";
-import { PrepareShift } from "@/features/offline/prepare-shift";
 import { PreparedEntry } from "@/features/offline/prepared-entry";
 import { redirect } from "next/navigation";
 import { ArrowRight, Boxes, Factory, WalletCards } from "lucide-react";
@@ -26,8 +25,6 @@ export default async function ShiftDetailPage({
   const shift = await getAssignedShift(shiftId);
   const action = shiftAction(shift, shift.permissions.canUsePos);
   const canAct = ["assigned", "confirmed"].includes(shift.assignmentStatus);
-  if (canAct && shift.permissions.canUsePos && shift.status === "scheduled")
-    return <PrepareShift shiftId={shiftId} />;
   if (
     canAct &&
     shift.permissions.canUsePos &&
@@ -153,6 +150,11 @@ export default async function ShiftDetailPage({
             </span>
           </h2>
           <ul className="divide-y rounded-xl border bg-card">
+            {shift.teammates.length === 0 ? (
+              <li className="px-5 py-4 text-sm text-muted-foreground">
+                No other teammates are assigned.
+              </li>
+            ) : null}
             {shift.teammates.map((teammate) => (
               <li
                 key={teammate.employeeId}

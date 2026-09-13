@@ -91,3 +91,7 @@ Original implementation: repository type checks, lint and tests passed. The opti
 - Reduced-motion safeguards are present in global CSS and readiness/refresh indicators use `motion-safe`; actual OS reduced-motion interaction was not exercised. The browser tool did not support the attempted zoom shortcuts, so **200% browser zoom remains unverified**.
 
 Outstanding release checks: physical Android/iPhone installation, actual production offline cold launch through sales/proofs/closeout/reconnection, real multi-browser connections and hosted auth/Storage, 200% zoom, and the OS reduced-motion setting. The disposable database and browser fixtures are not substitutes for that staging/device run. Development mode intentionally remains without the production service worker; there is no online-only start bypass.
+
+## iOS preparation recovery — 14 September 2026
+
+The local repair keeps readiness mandatory and delays reservation until Start shift. It adds repair, build validation, bounded recovery and stage-specific diagnostics without changing business/API/journal contracts. See [iOS preparation repair evidence and physical acceptance gate](ios-shift-preparation.md) for repeatable browser checks, limitations and the required baseline inspection of the failing iPhone. This change is not approved for production release; Safari and Home Screen on physical iOS 18.4.1 remain unverified.

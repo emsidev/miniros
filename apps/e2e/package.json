@@ -5,17 +5,20 @@
   "scripts": {
     "dev": "echo Add e2e tooling when the first shared flow is stable",
     "build": "node -e \"console.log('Offline workflow suite: run pnpm e2e')\"",
-    "lint": "eslint src --ext .ts",
+    "lint": "eslint src browser playwright.config.ts --ext .ts,.mts",
     "typecheck": "tsc --noEmit -p tsconfig.json",
-    "test": "vitest run"
+    "test": "vitest run",
+    "test:browser": "playwright test"
   },
   "devDependencies": {
-    "vitest": "4.1.11",
-    "fake-indexeddb": "^6.2.4",
     "@electric-sql/pglite": "^0.3.14",
-    "drizzle-orm": "^0.45.2",
-    "@miniros/db": "workspace:*",
     "@miniros/contracts": "workspace:*",
-    "@miniros/domain": "workspace:*"
+    "@miniros/db": "workspace:*",
+    "@miniros/domain": "workspace:*",
+    "@playwright/test": "^1.63.0",
+    "drizzle-orm": "^0.45.2",
+    "esbuild": "0.28.1",
+    "fake-indexeddb": "^6.2.4",
+    "vitest": "4.1.11"
   }
 }

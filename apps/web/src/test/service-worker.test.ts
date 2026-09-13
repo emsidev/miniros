@@ -1,8 +1,15 @@
 import { readFileSync } from "node:fs";
 import { fileURLToPath } from "node:url";
 import { runInNewContext } from "node:vm";
-import { describe, expect, it } from "vitest";
-function worker() {
+import { describe, expect, it, vi } from "vitest";
+function worker(
+  options: {
+    wrongBuild?: boolean;
+    truncated?: boolean;
+    failedAsset?: boolean;
+    quota?: boolean;
+  } = {},
+) {
   const listeners = new Map<string, (event: Record<string, unknown>) => void>();
   const records = new Map<string, Response>();
   let offline = false;
@@ -13,12 +20,16 @@ function worker() {
       for (const path of paths) records.set(path, new Response(path));
     },
     put: async (path: string, response: Response) => {
+      if (options.quota) throw new DOMException("Full", "QuotaExceededError");
       records.set(path, response);
     },
-    match: async (path: string | Request) =>
-      records
-        .get(typeof path === "string" ? path : new URL(path.url).pathname)
-        ?.clone(),
+    match: vi.fn(async (path: string | Request, options?: CacheQueryOptions) =>
+      options?.ignoreVary
+        ? records
+            .get(typeof path === "string" ? path : new URL(path.url).pathname)
+            ?.clone()
+        : undefined,
+    ),
   };
   const self = {
     addEventListener: (
@@ -33,9 +44,15 @@ function worker() {
     readFileSync(
       fileURLToPath(new URL("../../pwa/sw.js", import.meta.url)),
       "utf8",
-    ),
+    )
+      .replaceAll("__BUILD_ID__", "test-build")
+      .replace(
+        "const ASSETS = null;",
+        'const ASSETS = ["/_next/static/test.js", "/_next/static/test.css"];',
+      ),
     {
       self,
+      DOMException,
       AbortController,
       setTimeout,
       clearTimeout,
@@ -46,10 +63,19 @@ function worker() {
         if (offline) throw new TypeError("Network unavailable");
         if (serverDown)
           return new Response("Server unavailable", { status: 503 });
+        if (options.failedAsset && input === "/_next/static/test.js")
+          return new Response("Missing", { status: 404 });
         return new Response(
           typeof input === "string" && input.includes("pwa-assets")
-            ? JSON.stringify({ assets: ["/_next/static/test.js"] })
-            : "PRIVATE NETWORK RESPONSE",
+            ? JSON.stringify({
+                version: options.wrongBuild ? "other-build" : "test-build",
+                assets: options.truncated
+                  ? ["/_next/static/test.js"]
+                  : ["/_next/static/test.js", "/_next/static/test.css"],
+              })
+            : input === "/offline"
+              ? '<meta name="miniros-build" content="test-build">/offline'
+              : "PRIVATE NETWORK RESPONSE",
         );
       },
     },
@@ -79,12 +105,17 @@ function worker() {
   };
   const ready = async () => {
     let result: Promise<unknown> | undefined;
-    let value: { ready: boolean } | undefined;
+    let value:
+      { ready: boolean; missingFiles?: string[]; code?: string } | undefined;
     listeners.get("message")!({
       data: "CHECK_OFFLINE_READY",
       ports: [
         {
-          postMessage: (reply: { ready: boolean }) => {
+          postMessage: (reply: {
+            ready: boolean;
+            missingFiles?: string[];
+            code?: string;
+          }) => {
             value = reply;
           },
         },
@@ -94,12 +125,14 @@ function worker() {
       },
     });
     await result;
-    return value?.ready;
+    return value;
   };
   return {
     install,
     navigate,
-    ready,
+    ready: async () => (await ready())?.ready,
+    report: ready,
+    cache,
     records,
     serverUnavailable: () => {
       serverDown = true;
@@ -114,8 +147,8 @@ describe("production offline shell boundaries", () => {
     const sw = worker();
     await sw.install();
     sw.disconnect();
-    expect(await (await sw.navigate("/"))?.text()).toBe("/offline");
-    expect(await (await sw.navigate("/shifts/test/start"))?.text()).toBe(
+    expect(await (await sw.navigate("/"))?.text()).toContain("/offline");
+    expect(await (await sw.navigate("/shifts/test/start"))?.text()).toContain(
       "/offline",
     );
   });
@@ -136,7 +169,7 @@ describe("production offline shell boundaries", () => {
       "/offline?panel=sync&session=test",
       "/help",
     ]) {
-      expect(await (await sw.navigate(path))?.text()).toBe("/offline");
+      expect(await (await sw.navigate(path))?.text()).toContain("/offline");
     }
     expect([...sw.records.keys()]).not.toContain("/install");
     expect([...sw.records.keys()]).not.toContain("/sync");
@@ -162,4 +195,44 @@ describe("production offline shell boundaries", () => {
     expect(response?.status).toBe(503);
     expect(await response?.text()).toBe("Server unavailable");
   });
+});
+
+it("checks public cache entries independently of HTTP Vary headers", async () => {
+  const sw = worker();
+  await sw.install();
+  expect(await sw.ready()).toBe(true);
+  expect(sw.cache.match).toHaveBeenCalledWith("/offline", { ignoreVary: true });
+});
+it("reports missing files and the exact worker build", async () => {
+  const sw = worker();
+  await sw.install();
+  sw.records.delete("/_next/static/test.js");
+  expect(await sw.report()).toMatchObject({
+    ready: false,
+    version: "miniros-test-build",
+    contractVersion: 2,
+    missingFiles: ["/_next/static/test.js"],
+  });
+});
+it("rejects a manifest from another deployment before saving a shell", async () => {
+  const sw = worker({ wrongBuild: true });
+  await expect(sw.install()).rejects.toThrow("build mismatch");
+  expect(sw.records.size).toBe(0);
+});
+it("does not publish a manifest after a failed asset download", async () => {
+  const sw = worker({ failedAsset: true });
+  await expect(sw.install()).rejects.toThrow("download failed");
+  expect(sw.records.has("/pwa-assets.json")).toBe(false);
+  expect(await sw.ready()).toBe(false);
+});
+it("does not report ready after quota failure", async () => {
+  const sw = worker({ quota: true });
+  await expect(sw.install()).rejects.toThrow("Full");
+  expect(await sw.ready()).toBe(false);
+});
+
+it("rejects a truncated manifest even when its version matches", async () => {
+  const sw = worker({ truncated: true });
+  await expect(sw.install()).rejects.toThrow("build mismatch");
+  expect(sw.records.size).toBe(0);
 });

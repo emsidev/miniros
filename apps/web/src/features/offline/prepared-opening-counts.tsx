@@ -13,6 +13,7 @@ import {
 import { requireOfflineShell } from "@/lib/offline/readiness";
 import { synchronizePreparedShifts } from "@/lib/offline/sync";
 import type { LocalSession } from "@/lib/offline/store";
+import { useReadinessProgress } from "./readiness-progress";
 
 export function PreparedOpeningCounts({
   session,
@@ -25,6 +26,8 @@ export function PreparedOpeningCounts({
   const [error, setError] = useState("");
   const [attempt, setAttempt] = useState(0);
   const [saveError, setSaveError] = useState("");
+  const [checkingOpening, setCheckingOpening] = useState(false);
+  const readinessMessage = useReadinessProgress();
   useEffect(() => {
     let current = true;
     setError("");
@@ -72,22 +75,37 @@ export function PreparedOpeningCounts({
   if (!draft)
     return (
       <div className="mx-auto max-w-3xl space-y-3 py-4">
-        <p role={error ? "alert" : "status"} className="text-sm">
-          {error || "Checking your saved shift…"}
+        <p
+          role={error ? "alert" : "status"}
+          className="text-sm tabular-nums"
+          aria-atomic="true"
+        >
+          {error || readinessMessage}
         </p>
         {error ? (
           <Button
+            type="button"
             variant="outline"
+            className="min-h-12"
             onClick={() => setAttempt((value) => value + 1)}
           >
             <RefreshCw aria-hidden="true" />
-            Retry
+            Retry setup
           </Button>
         ) : null}
       </div>
     );
   return (
     <div className="space-y-5">
+      {checkingOpening ? (
+        <p
+          role="status"
+          aria-atomic="true"
+          className="mx-auto max-w-3xl text-sm tabular-nums"
+        >
+          {readinessMessage}
+        </p>
+      ) : null}
       {session.snapshot.schemaVersion === 1 ? (
         <p className="mx-auto max-w-3xl border-y py-3 text-sm text-muted-foreground">
           Legacy shift: opening float remains zero. Its original journal version
@@ -111,11 +129,17 @@ export function PreparedOpeningCounts({
           draft,
           onChange: persist,
           onSubmit: async (next) => {
-            await requireOfflineShell(session.snapshot.schemaVersion);
-            await saveOpeningDraft(session.id, next);
-            await submitPreparedOpening(session, next);
-            void synchronizePreparedShifts().catch(() => {});
-            onDone();
+            setCheckingOpening(true);
+            try {
+              await requireOfflineShell(session.snapshot.schemaVersion);
+              await saveOpeningDraft(session.id, next);
+              await submitPreparedOpening(session, next);
+              void synchronizePreparedShifts().catch(() => {});
+              onDone();
+            } finally {
+              // ShiftCountWorkflow presents rejected submissions inline and retains entries.
+              setCheckingOpening(false);
+            }
           },
         }}
       />
