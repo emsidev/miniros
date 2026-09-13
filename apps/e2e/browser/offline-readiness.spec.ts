@@ -214,6 +214,13 @@ test("disposable shift keeps opening drafts and full journal through recovery an
     .toBe(0);
   expect(result.balance).toBe("7");
   expect(result.state).toBe("closing");
+  await page.goto(`/offline?session=${session.id}`);
+  await expect(
+    page.getByRole("heading", { name: "Final reconciled result" }),
+  ).toBeVisible();
+  await expect(
+    page.getByText("Something went wrong", { exact: true }),
+  ).toHaveCount(0);
 });
 
 test("[render] preparation failure stays readable with reachable recovery", async ({

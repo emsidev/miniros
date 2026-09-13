@@ -4,7 +4,11 @@ import { readFile } from "node:fs/promises";
 import { build } from "esbuild";
 import { fileURLToPath } from "node:url";
 import { preparedFixture } from "../../web/src/test/offline-fixture";
-import { offlineEnvelopeSchema } from "@miniros/contracts";
+import {
+  emptyShiftProjection,
+  offlineEnvelopeSchema,
+  projectOfflineOperation,
+} from "@miniros/contracts";
 const root = fileURLToPath(new URL("../../../", import.meta.url));
 const bundled = await build({
   stdin: {
@@ -93,6 +97,7 @@ const bundled = await build({
 const script = bundled.outputFiles[0]!.text;
 const sessions = new Map<string, ReturnType<typeof preparedFixture>>();
 const acknowledgements = new Map<string, object>();
+const projections = new Map<string, ReturnType<typeof emptyShiftProjection>>();
 const staleSeen = new Set<string>();
 const legacyWorker = `self.addEventListener("install", () => self.skipWaiting());
 self.addEventListener("activate", event => event.waitUntil(self.clients.claim()));
@@ -193,16 +198,41 @@ const server = createServer(async (request, response) => {
         const envelope = offlineEnvelopeSchema.parse(JSON.parse(body));
         let reply = acknowledgements.get(envelope.id);
         if (!reply) {
+          const projection = projectOfflineOperation(
+            session.snapshot,
+            projections.get(storage) ?? emptyShiftProjection(),
+            envelope.operation,
+          );
+          projections.set(storage, projection);
+          const expectedCashCents =
+            (projection.openingCashCents ?? 0) +
+            projection.cashCents -
+            projection.deductionsCents;
           session.status =
-            envelope.operation.type === "SUBMIT_CLOSEOUT"
-              ? "closing"
-              : "active";
+            envelope.operation.type === "SUBMIT_CLOSEOUT" ? "closed" : "active";
           session.acknowledgedSequence = envelope.sequence;
           reply = {
             ok: true,
             sequence: envelope.sequence,
             sessionStatus: session.status,
-            result: {},
+            result:
+              envelope.operation.type === "SUBMIT_CLOSEOUT"
+                ? {
+                    profitCents:
+                      projection.salesCents -
+                      projection.productCostCents -
+                      projection.deductionsCents -
+                      Object.values(session.snapshot.costs).reduce(
+                        (total, cost) => total + cost,
+                        0,
+                      ),
+                    expectedCashCents,
+                    actualCashCents: envelope.operation.payload.actualCashCents,
+                    cashDifferenceCents:
+                      envelope.operation.payload.actualCashCents -
+                      expectedCashCents,
+                  }
+                : {},
           };
           acknowledgements.set(envelope.id, reply);
         }
